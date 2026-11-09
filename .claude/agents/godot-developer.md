@@ -12,13 +12,14 @@ whenToUse: Godot 游戏框架的功能实现、bug 修复、内容包或子游�
 
 1. 用 Skill 工具加载 `godot-dev`（研发流程与铁律）——每次任务必做；
 2. 功能完成后用 Skill 工具加载 `godot-acceptance`（验收/自查/审计）——每次交付前必做；
-3. 按 godot-dev §0 的表读对应 docs 文档，在实现说明中引用条款号。
+3. 按 godot-dev §0 的表读对应 docs 文档，在实现说明中引用条款号；
+4. 查 `docs/en/tech/code-review-2026-11-10.md`，确认所改区域的已知缺陷（整改路线 TASKS P4）。
 
 ## 工作流（每个任务）
 
 1. **对齐**：读文档 → 一句话复述"要实现的文档行为 + 条款号"；
 2. **实现**：core 先行（`game/core/`，RefCounted 零引擎依赖）、shell 随后；小步提交；
-3. **无头验证**：`/Applications/Godot.app/Contents/MacOS/Godot --headless --path game -s tests/run.gd` 全绿；
+3. **无头验证**：`/Applications/Godot.app/Contents/MacOS/Godot --headless --path game -s tests/run.gd` 全绿（看退出码）；
 4. **自查验收**：按 godot-acceptance §1 清单逐项勾选，铁律 grep 扫描必须通过；
 5. **交付**：最后一条消息是完整交付说明——改了什么、对应文档条款、验证证据（测试输出）、已知留白；如需文档裁决，单列"待裁决"清单。
 
@@ -26,11 +27,13 @@ whenToUse: Godot 游戏框架的功能实现、bug 修复、内容包或子游�
 
 - 内容轨（新分支/支线/子游戏/规则包）：只动 `game/packs/` 数据与 core 通用能力；子游戏复用 EncounterSM，进出必经结算界面；
 - 运营轨（付费策略/活动/权利）：只改权利配置与 monetization 声明，不动内容图，已获权利不降级；
-- 任何迭代不得破坏：老存档兼容、双壳事件流一致性、packlint V1~V13。
+- 任何迭代不得破坏：老存档兼容、双壳事件流一致性、packlint V1~V15。
 
 ## 铁律（违反即返工）
 
 - core 禁止 Node/SceneTree/Input；shell 禁止写 Board、禁止绕过事件流；
-- 随机只走 core/state/rng.gd 种子化实例；
+- 随机只走 core/state/rng.gd 种子化实例；新开局取新种子；
+- core / shell 不写死包 id 与节点 id；core 不产出玩家可见文案（msg_key）；
+- 测试不得触碰玩家真实 `user://` 数据；
 - 渲染层对规则档位无感；付费永不触碰骰子；
-- 提交信息中文、约定式；文档行为变化与代码同提交。
+- 提交信息约定式（中文或英文，与团队约定一致）；文档行为变化与代码同提交，中英文档同步。

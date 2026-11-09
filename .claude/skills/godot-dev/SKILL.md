@@ -9,6 +9,8 @@ type: prompt
 
 你是"抄本纪元"的 Godot 研发工程师。**实现服从文档**：`docs/` 是唯一设计真相，代码只许实现文档已写明的行为；实现中发现文档缺失或矛盾，先回文档补写/裁决，再改代码（铁律：原型与实现不得超出文档）。
 
+文档为双语：`docs/` 中文原文为准，`docs/en/` 为英文镜像（术语表 `docs/en/GLOSSARY.md`）；行为变更须中英文档同一提交更新。
+
 ## 0. 开工前必读（按任务类型）
 
 | 任务类型 | 必读文档 |
@@ -18,6 +20,8 @@ type: prompt
 | 内容包/支线/新战役 | `docs/tech/02-内容包格式规范.md`、`docs/tech/03-内容包制作操作指南.md`、`docs/framework/08-分支模型规范.md` |
 | 资源/效果/数值 | `docs/tech/04-资源与效果系统.md`、`docs/framework/10-道具与图鉴规范.md`、`docs/framework/11-轻规则包-v1.md` |
 | 商业化/运营迭代 | `docs/framework/06-商业化框架.md`、白皮书 §10.4（迭代双轨） |
+| 移动平台/英文版 | `docs/tech/01-技术方案讨论稿.md` §10.1 与 E-5、`docs/en/tech/06-english-mobile-plan.md` |
+| 已知缺陷与核验状态 | `docs/en/tech/code-review-2026-11-10.md`、`docs/framework/03-TASKS.md` P4 |
 
 ## 1. 引擎与语言裁决（已定）
 
@@ -31,11 +35,14 @@ type: prompt
 |---|---|
 | 呈现与逻辑解耦（白皮书 §7.3） | `core/` 只含 **RefCounted** 类，禁止 `extends Node`、禁止引用场景树/输入/渲染 API |
 | 事件流唯一输入（白皮书 §6） | core 对外只发 `EventStream.emit()`；shell 只订阅事件流 + 只读 Board，不得反向调用 core 内部 |
-| 状态板唯一真相（白皮书 §4.2） | 一切剧情读写走 `Board.write(key, value, provenance)`；禁止直接改剧情节点状态 |
+| 状态板唯一真相（白皮书 §4.2） | 一切剧情读写走 `Board.write(key, value, provenance)`；禁止直接改剧情节点状态；`main.gd` / `subgame_runner.gd` 同样适用——写板经 core API |
+| 框架与内容解耦（白皮书 §2） | core 与 shell 不得出现包 id（`campaign01`……）、节点 id（`N1-1`……）或包私有键；包相关一切来自 manifest 与包目录 |
 | 一核两壳（09 §8） | 同一 `EncounterSM` 实例驱动 `shell/portrait/` 与 `shell/landscape/` 两套场景；单局内禁止切换 |
 | 规则包扩展轴（05） | 规则差异收进 `core/encounter/rulepack/`；渲染与界面代码对规则档位无感 |
 | 付费禁区（06 §4） | 禁止任何"付费改骰/卖数值"代码路径；权利只走 `global.entitlement.*` 状态板变量 |
 | 托管同通道（09 §9.3） | AutoAgent 与手势输入产出同一类 Command 对象，仅 `source` 不同 |
+| 本地化（tech/01 E-5） | core 不产出玩家可见文案：事件携带 `msg_key` + `args`，壳层按语言表解析 |
+| 移动平台（tech/01 §10.1） | 形态切换走设备方向 API（非窗口缩放）；安全区、暂停/恢复、返回键必须处理 |
 
 ## 3. 目录结构（game/）
 
@@ -53,7 +60,7 @@ game/
 │   └── landscape/   # 横屏空间形态（五区 + 战术格）
 ├── packs/           # 内容包源（按 tech/02 §1 结构；发布时打 PCK）
 │   └── campaign01/  # 首个实例（docs/story/campaign01 的搬运）
-├── tools/           # packlint.gd（V1~V13 校验）/ simulate.gd（bot 仿真）
+├── tools/           # packlint.gd（V1~V15 校验）/ simulate.gd（bot 仿真）
 └── tests/           # 无头测试入口 tests/run.gd
 ```
 
@@ -61,8 +68,10 @@ game/
 
 - 全部文件加类型标注（`var x: int`、`func f() -> void`）；core 类命名 `PascalCase`，文件名 `snake_case.gd`；
 - 事件 = `Dictionary`（`{id, type, payload, source, node}`），事件类型用 `StringName` 常量集中在 `core/state/event_types.gd`；
-- 随机一律走 `core/state/rng.gd` 的种子化实例，禁止裸 `randi()`；
-- 文本键：UI 文案集中 `shell/ui/texts_zh.gd`，与 tech/02 §7 i18n 预留一致；
+- 随机一律走 `core/state/rng.gd` 的种子化实例，禁止裸 `randi()`；**新开局取新种子**，固定种子只用于测试与工具；
+- 持久化路径（`user://saves`、`user://settings.cfg`）必须可注入；测试一律用 `user://test/…`，不得触碰玩家真实数据；
+- 截图/演示驱动放 `tools/`，不进 `main.gd`；
+- 文本键：UI 文案集中语言表（现为 `shell/ui/texts_zh.gd`，英文版增设英文表），与 tech/02 §1.1 双语构建一致；
 - 提交信息中文、约定式（`feat(core): …` / `fix(shell): …` / `packs: …`）。
 
 ## 5. 开发流程（每个任务必须走完）
@@ -77,7 +86,7 @@ game/
 
 - **内容轨**（新分支/支线/子游戏/规则包）：只动 `packs/` 数据 + 必要的 core 通用能力；子游戏复用 `EncounterSM`、自带规则参数与表现包装，进场/离场必经结算界面（04 §6）；
 - **运营轨**（付费策略/活动/权利投放）：只改权利配置与 `monetization` 声明，不动内容图；已获权利不降级；
-- 任何迭代不得破坏：老存档兼容（SaveSystem 迁移链）、双壳事件流一致性、V1~V13 校验。
+- 任何迭代不得破坏：老存档兼容（SaveSystem 迁移链）、双壳事件流一致性、V1~V15 校验。
 
 ## 7. 禁令（违反即返工）
 
@@ -85,4 +94,6 @@ game/
 - shell 直接修改 Board 或剧情节点（必须走 core API）；
 - 绕过事件流直接驱动 UI；
 - 新增未在 tech/02 登记的 manifest 字段或资源类型而不更新规范；
-- 复制粘贴两份"横屏版/竖屏版"逻辑。
+- 复制粘贴两份"横屏版/竖屏版"逻辑；
+- core 或 shell 写死包 id / 节点 id；
+- 测试读取或删除玩家真实 `user://` 存档与设置。
