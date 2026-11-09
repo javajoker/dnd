@@ -7,6 +7,16 @@ extends RefCounted
 var _rng := RandomNumberGenerator.new()
 var _seed: int = 0
 
+## 新开局种子覆盖（可注入）：≥0 时 new_game_seed() 恒返回该值——仅供测试/工具/截图取确定路径。
+## 正式运行保持 -1：每次新开局取新种子（tech/01 §5.2；代码评审 B3）。
+static var fixed_seed_override: int = -1
+
+## 新开局种子：覆盖值优先；否则由系统时间（秒 + 微秒计时）派生，保证每局骰序不同。
+static func new_game_seed() -> int:
+	if fixed_seed_override >= 0:
+		return fixed_seed_override
+	return absi(hash([Time.get_unix_time_from_system(), Time.get_ticks_usec()]))
+
 func _init(seed_value: int = 0) -> void:
 	set_seed(seed_value)
 

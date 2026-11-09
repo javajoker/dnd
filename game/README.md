@@ -31,4 +31,6 @@ TP0 逻辑核骨架 → TP1 campaign01 仿真全结局 → TP2 单遭遇竖屏�
 
 ## 已知问题
 
-见 `../docs/en/tech/code-review-2026-11-10.md`：启动不读回存档（B1）、横屏只缩放桌面窗口（B2）、新开局固定种子（B3）、测试读写真实 user:// 数据（B4）。整改路线见 `../docs/framework/03-TASKS.md` P4。
+见 `../docs/en/tech/code-review-2026-11-10.md`：B1/B3/B4 已修复（P4 阶段 0）；尚余横屏只缩放桌面窗口（B2）、campaign01 硬编码（M1）、本地化（M5）等。
+
+截图工具：`godot --path game -- --home-shot`（旗标表见 `tools/shot_driver.gd`）；复现指定种子：`-- --seed=N`。整改路线见 `../docs/framework/03-TASKS.md` P4。

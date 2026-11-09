@@ -92,7 +92,7 @@ The framework has built rule depth and the business model in as extension axes (
 - [x] Encounter list (L4): maze / battle / dialogue / rest mix — see campaign book §7
 - [x] Item table, including placement of branch-key items — see campaign book §8
 - [~] Branch-graph validation passes (dead ends / unreachable / closed flag loops) — packlint 0 FAIL on all packs, **but 5 flags (seen_fading, blank_memory, page_tearer, insider, failed_to_hold) are written and never read** (packlint V4 WARN; code review M3)
-- [~] Full internal playthrough and tuning — playable within one session; progress isn't restored after relaunch and every new game uses the same RNG seed (code review B1/B3). Claimed: full Godot playthrough (N0-1 → four endings E1–E4 + NG+); bot simulation covers 45 nodes at 100%; winrate puts all 11 battle encounters within target win-rate bands (story/03 final balance)
+- [x] Full internal playthrough and tuning — resumes after relaunch and seeds each new game freshly (B1/B3 fixed in P4 Phase 0): full Godot playthrough (N0-1 → four endings E1–E4 + NG+); bot simulation covers 45 nodes at 100%; winrate puts all 11 battle encounters within target win-rate bands (story/03 final balance)
 
 ---
 
@@ -108,7 +108,7 @@ The framework has built rule depth and the business model in as extension axes (
 - [x] TP1 campaign01 simulation: pack_loader / story_graph / packlint (V1–V13) / bot simulation; all four endings reachable (E3 confirmed as an NG+ hidden ending), lone wolf reachable; acceptance rulings completed the data (lone-wolf entrance edge, Bond placement, encounters registered up to 16), campaign book updated
 - [x] TP2 single-encounter portrait shell: encounter core (six-state SM + Light rule pack + auto-play agent) + portrait three-band breathing / progress bar / four tabs / quickbar chips / two-tier dice presentation / auto-play pacing, event-stream-driven rendering; ruling fixed the 04/09 combat-ratio contradiction (12/55/37 → 12/55/33)
 - [x] TP3 dual-shell verification: landscape five-zone shell (initiative bar / action wheel / tactical grid / dice tray / log strip) + shell router (choice defaults to time / forced narrative wrapper / per-encounter lock); **byte-for-byte identical event streams for the same encounter in both shells**; ruling: the three columns are width weights 15:60:12 normalised
-- [~] TP4 screen loop: (SaveSystem writes snapshots but the game never loads them on launch — code review B1) minimal loop of all nine screens + SaveSystem (five-part snapshot, no saving mid-encounter, ☰ returns to the pre-encounter snapshot, migration chain) + L3 event runtime (four trigger kinds and settlement writes); ruling: growth curve uses the three tiers of 11 §6
+- [x] TP4 screen loop: (load-on-launch added in P4 Phase 0) minimal loop of all nine screens + SaveSystem (five-part snapshot, no saving mid-encounter, ☰ returns to the pre-encounter snapshot, migration chain) + L3 event runtime (four trigger kinds and settlement writes); ruling: growth curve uses the three tiers of 11 §6
 - [~] **All P1.5 technical prototypes (TP0–TP4) achieved** on desktop/headless; not yet built or run on a phone (no export presets; landscape mode only resizes a desktop window — code review B2) — the framework's minimal playable loop holds; moving on to content integration and operations
 - [x] Continuous-iteration channel: the dual-track release pipeline works end to end — content track (arc_tide side arc via graft, riddle_maze sub-game, packlint V1–V14 go-live validation) and operations track (ops_config entitlements / prices / events / home_promo)
 
@@ -144,10 +144,10 @@ The framework has built rule depth and the business model in as extension axes (
 
 **Phase 0 · Fix the blockers (code review B1–B4)**
 
-- [ ] Test isolation: injectable SaveSystem / UiSettings paths, tests use `user://test/…` only; replace the git-SHA "core unchanged" test with a static check
-- [ ] Load the save on launch (B1); "Continue" really continues
-- [ ] Fresh RNG seed per new game (B3)
-- [ ] Move screenshot / demo drivers out of main.gd
+- [x] Test isolation: injectable `SaveSystem.save_dir` / `UiSettings.redirect_path`; tests use `user://test/…` only, wiped before each run; the git-SHA "core unchanged" test is replaced by a static scan of core code
+- [x] Load the save on launch (B1); "Continue" really continues; a corrupt or future-version save warns and starts a new game (cold-start test added)
+- [x] Fresh RNG seed per new game (B3): `Rng.new_game_seed()`; fixed seeds only for tests/screenshots (`Rng.fixed_seed_override`) and `-- --seed=N` for reproduction
+- [x] Move screenshot / demo drivers out of main.gd → `tools/shot_driver.gd` (loaded dynamically only with a shot flag; shot runs also isolate saves and settings)
 
 **Phase 1 · Decouple and localise the engine**
 

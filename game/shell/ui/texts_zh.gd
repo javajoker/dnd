@@ -117,6 +117,7 @@ const ENDING_NGPLUS := "开始二周目"
 const ENDING_HOME := "回主屏"
 const ENDING_SAVED := "抄本已记录。" # 07 §4.2 结局快照（同上）
 const ENDING_PLAYTHROUGH := "—— 第 %d 周目 完 ——"
+const RESUMED := "抄本翻回上次落笔的那一页。"
 const NGPLUS_TOAST := "你带着抄本残页回到潮醒之前。织命者残简 ×1 随行，图鉴与权利如故。"
 # Hub（战役书 §4 N1-1：休整 / 商店 / 传闻；04 §3.3 半屏弹层）
 const HUB_SHOP := "商店"

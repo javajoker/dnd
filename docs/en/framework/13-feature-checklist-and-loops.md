@@ -110,7 +110,7 @@ Note: the Godot gesture layer implements all of 12 §1's recognition parameters 
 | Item-by-item read-out | XP / loot / flags / reputation / clock animated one by one | ✅ | ✅ |
 | Growth point allocation | Attribute points at settlement / loadout, capped at +3 | ✅ | ✅ (global.growth) |
 | Jump to new scroll entries | Settlement → History Scroll | ✅ | ✅ |
-| Save snapshots | Settlement complete / Home idle / manual; migration chain | ❌ (not in prototype) | ⚠️ written and migratable, but **never loaded on launch** — "Continue" restarts the campaign (code review B1) |
+| Save snapshots | Settlement complete / Home idle / manual; migration chain | ❌ (not in prototype) | ✅ loaded on launch + migration chain; "Continue" really continues (P4 Phase 0) |
 | New Game+ | Ending → NG+: fragment carry-over / Compendium and entitlements kept / playthrough count | ❌ | ✅ |
 | Ending types | E1–E4 triggered by conditions + ending screen | ❌ (outside the slice) | ✅ |
 
@@ -141,7 +141,7 @@ Note: the Godot gesture layer implements all of 12 §1's recognition parameters 
 | packlint V1–V14 | ✅ 0 FAIL on all four packs |
 | Bot simulation (all endings / coverage) | ✅ 45/45 nodes, 100% |
 | shell_diff dual-shell comparison | ✅ byte-identical |
-| Headless tests | ⚠️ 1568 PASS / 4 FAIL at the time of translation, and the runner exits 0 even on failure (see the code-review report) |
+| Headless tests | ✅ 1583 PASS / 0 FAIL; test data isolated under user://test/ (P4 Phase 0) |
 | Release audit | ✅ first round closed (fail → fix → re-review pass) |
 
 ---

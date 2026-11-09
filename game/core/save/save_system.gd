@@ -14,6 +14,9 @@ const SAVE_VERSION := 2
 const SAVE_DIR := "user://saves"
 const SLOT_DEFAULT := "slot1"
 
+## 存档目录（可注入）：正式运行 = SAVE_DIR；测试与工具指向 user://test/…，不得触碰玩家真实存档。
+static var save_dir: String = SAVE_DIR
+
 ## 汇总快照。graph_state 由 StoryGraph.serialize() 提供（进度摘要落 meta，07 §4.1）。
 static func make_snapshot(board: Board, stream: EventStream, rng: Rng,
 		bindings: Dictionary, meta: Dictionary) -> Dictionary:
@@ -30,7 +33,7 @@ static func make_snapshot(board: Board, stream: EventStream, rng: Rng,
 
 ## 写盘（JSON）。返回是否成功。
 static func write(snapshot: Dictionary, slot: String = SLOT_DEFAULT) -> bool:
-	var err := DirAccess.make_dir_recursive_absolute(SAVE_DIR)
+	var err := DirAccess.make_dir_recursive_absolute(save_dir)
 	if err != OK:
 		push_error("SaveSystem: 创建存档目录失败 err=%d" % err)
 		return false
@@ -113,5 +116,14 @@ static func apply(snapshot: Dictionary, board: Board, rng: Rng) -> void:
 static func has_save(slot: String = SLOT_DEFAULT) -> bool:
 	return FileAccess.file_exists(_path(slot))
 
+## 删除存档槽（无档视为成功）。
+static func delete(slot: String = SLOT_DEFAULT) -> void:
+	if FileAccess.file_exists(_path(slot)):
+		DirAccess.remove_absolute(_path(slot))
+
+## 存档槽文件路径（随 save_dir 注入）。
+static func path_for(slot: String = SLOT_DEFAULT) -> String:
+	return _path(slot)
+
 static func _path(slot: String) -> String:
-	return SAVE_DIR.path_join("%s.json" % slot)
+	return save_dir.path_join("%s.json" % slot)

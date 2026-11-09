@@ -32,7 +32,9 @@ The logic core is genuinely well built: clean RefCounted layering, seeded RNG, p
 
 ## 2. Blocking defects (must fix before any device build)
 
-### B1 · Saves are written but never loaded — `main.gd`
+> **Status 2026-11-10: B1, B3 and B4 are fixed (TASKS P4 Phase 0); the suite is 1583 PASS / 0 FAIL. B2 remains (Phase 3).**
+
+### B1 · Saves are written but never loaded — `main.gd` ✅ fixed
 `SaveSystem.read()` is never called outside tests. `main.gd:_ready` always builds a fresh `Board`. On relaunch, `_has_continuable()` (`main.gd:1396`) returns true because `has_save()` finds the file, so Home shows **"Continue"**, but `_on_campaign_start` sees an empty `visit_log` and starts a new campaign from N0-1. Every session's progress is lost when the app closes.
 - Contradicts: PRD F6.1, doc 07 §4 (snapshot timing / migration chain), doc 13 §9 "Save snapshots ✅", TASKS TP4 "SaveSystem ✅".
 - Fix: on launch, `SaveSystem.read()` → `migrate()` → `apply()` → `graph.deserialize(meta.graph)`; add a test that runs two `main` instances against the same temp slot.
@@ -41,11 +43,11 @@ The logic core is genuinely well built: clean RefCounted layering, seeded RNG, p
 `_set_window_orientation` only sets `get_window().size` to 1280×720. On iOS/Android that does nothing; the device stays in portrait. There's no `DisplayServer.screen_set_orientation()`, no `display/window/handheld/orientation` setting, no safe-area handling (notch / home indicator), no handling of `NOTIFICATION_APPLICATION_PAUSED` (doc 09 §7 promises auto-pause on calls/backgrounding), and no Android back-button handling.
 - Contradicts: the dual-form promise (whitepaper §7, PRD F1) on the target platform; doc 13 rates every landscape item ✅.
 
-### B3 · Fixed RNG seed for every new game — `main.gd:22,110`
+### B3 · Fixed RNG seed for every new game — `main.gd:22,110` ✅ fixed
 `rng = Rng.new(BATTLE_SEED)` with `BATTLE_SEED := 20260009` ("this slice's two main-line checks are both success paths"). Every install, and every new campaign within a session, replays the identical dice sequence. Combined with B1, every player's first run is the same run. This undermines the core experience goal ("the ritual of the roll", PRD §3) and the "dice fairness" pillar.
 - Fix: seed from `Time.get_unix_time_from_system()` / `randi()` once at new-game time, store it in the snapshot (already supported), and keep fixed seeds only for tests/tools.
 
-### B4 · Tests destroy the real player's data
+### B4 · Tests destroy the real player's data ✅ fixed
 `tests/run.gd:5156` deletes `user://saves/slot1.json` (the real default slot), and `test_home_real_input` reads and writes the real `user://settings.cfg`. Running the suite on a dev machine wipes the developer's own save and changes their preferences — and it is the cause of three of the four failures in §1.
 - Fix: give `SaveSystem` and `UiSettings` an injectable base path, and have every test use `user://test/…`.
 
@@ -60,7 +62,7 @@ The logic core is genuinely well built: clean RefCounted layering, seeded RNG, p
 - Consequence: "a new campaign = a new content pack, no framework change" isn't true yet; campaign02 would require editing core and main. Sub-games and side arcs *are* data-driven (`_discover_subgames`, `graft`), which shows the pattern works.
 - Fix: move gold key / starting gold / settlement-exempt keys into manifest fields; derive the campaign pack from a catalog instead of a constant.
 
-### M2 · `main.gd` is an 1,861-line god object
+### M2 · `main.gd` is an 1,861-line god object (shot drivers moved to `tools/shot_driver.gd`; split still open)
 It holds campaign flow, sub-game flow (a second copy of maze/battle/settle/save-quit logic, `_sub_*`), save timing, entitlements, cosmetics, and ~450 lines of screenshot/demo drivers (`_run_shots_*`, 16 CLI flags) that call private core methods (`graph._enter("N1-3")`) and write fake events into the stream. The demo code ships in the production main scene.
 - Fix: split into `CampaignFlow`, `SubgameFlow` (sharing one encounter/settle flow), `AppServices`; move shot drivers to `tools/`.
 

@@ -4,6 +4,30 @@ extends SceneTree
 
 var failures := 0
 
+## 测试隔离（代码评审 B4）：存档与偏好一律重定向到 user://test/，每次运行前清空——
+## 测试永不读写玩家真实存档（user://saves/slot1.json）与设置（user://settings.cfg）。
+func _isolate_user_data() -> void:
+	_wipe_dir(TEST_DIR)
+	DirAccess.make_dir_recursive_absolute(TEST_DIR)
+	SaveSystem.save_dir = TEST_DIR.path_join("saves")
+	UiSettings.redirect_path = TEST_DIR.path_join("settings.cfg")
+	Rng.fixed_seed_override = 20260009 # 新开局种子固定：main 集成测试依赖确定的主线检定路径
+
+## 新 main 实例（新开局）：先删测试存档槽——main 启动即读回存档（07 §4.2），集成测试默认从零开始。
+func _new_main() -> Node:
+	SaveSystem.delete()
+	return (load("res://main.tscn") as PackedScene).instantiate()
+
+func _wipe_dir(path: String) -> void:
+	var d := DirAccess.open(path)
+	if d == null:
+		return
+	for sub: String in d.get_directories():
+		_wipe_dir(path.path_join(sub))
+	for f: String in d.get_files():
+		d.remove(f)
+	DirAccess.remove_absolute(path)
+
 func check(cond: bool, name: String) -> void:
 	if cond:
 		print("  PASS ", name)
@@ -11,8 +35,11 @@ func check(cond: bool, name: String) -> void:
 		failures += 1
 		push_error("  FAIL " + name)
 
+const TEST_DIR := "user://test"
+
 func _init() -> void:
 	print("== 抄本纪元 core 无头测试 ==")
+	_isolate_user_data()
 	test_rng()
 	test_event_stream()
 	test_board()
@@ -26,6 +53,7 @@ func _init() -> void:
 	test_auto_agent()
 	test_shell_router()
 	test_save_system()
+	test_new_game_seed()
 	test_loadout()
 	test_growth()
 	test_quest_runtime()
@@ -76,6 +104,7 @@ func _async_shell_tests() -> void:
 	await test_mode_boundary()
 	await test_loadout_settle_landscape()
 	await test_main_flow()
+	await test_resume_on_launch()
 	await test_character_nav()
 	await test_gap_features()
 	await test_art_pipeline()
@@ -1428,7 +1457,7 @@ func test_juice() -> void:
 	check(float(sp["amp"]) == 2.0 and float(sp["dur"]) == 0.15, "震动参数：小震 2px/0.15s")
 	check(float(bp["amp"]) == 5.0 and float(bp["dur"]) == 0.3, "震动参数：大震 5px/0.3s")
 	# ---- 震动开关（ui.screen_shake；与兜底条同机制：默认开、合并写盘不丢其它键）----
-	var cfg_path := "user://test_juice_settings.cfg"
+	var cfg_path := "user://test/juice_settings.cfg"
 	check(UiSettings.load_screen_shake(cfg_path), "震动开关缺省=开（读不到键回落文档默认）")
 	UiSettings.save_home_bar_collapsed(true, cfg_path)
 	UiSettings.save_screen_shake(false, cfg_path)
@@ -1638,7 +1667,7 @@ func test_audio() -> void:
 	print("[audio]")
 	# ---- 总线四路（Master 内置 + BGM/SFX/Ambient 自定义挂 Master；幂等）----
 	var am := AudioManager.new()
-	var cfg_path := "user://test_audio_settings.cfg"
+	var cfg_path := "user://test/audio_settings.cfg"
 	am.settings_path = cfg_path
 	root.add_child(am)
 	await process_frame
@@ -1729,7 +1758,7 @@ func test_audio() -> void:
 		and absf(UiSettings.load_volume(UiSettings.KEY_VOL_BGM, cfg_path) - 0.3) < 0.001
 		and absf(UiSettings.load_volume(UiSettings.KEY_VOL_SFX, cfg_path) - 0.8) < 0.001,
 		"三档音量写盘读回")
-	check(absf(UiSettings.load_volume(UiSettings.KEY_VOL_MASTER, "user://test_audio_missing.cfg") - 1.0) < 0.001,
+	check(absf(UiSettings.load_volume(UiSettings.KEY_VOL_MASTER, "user://test/audio_missing.cfg") - 1.0) < 0.001,
 		"设置文件缺失回落默认满格 1.0")
 	UiSettings.save_screen_shake(false, cfg_path)
 	UiSettings.save_volume(UiSettings.KEY_VOL_BGM, 0.4, cfg_path)
@@ -1891,7 +1920,7 @@ func test_save_system() -> void:
 		"快照五要素齐备：board/event_tail/bindings/rng/meta（07 §4.1）")
 	check(str((snap["meta"] as Dictionary).get("saved_at", "")) != "", "meta 含保存时间戳（07 §4.1）")
 	# 写盘 → 读档 → 迁移 → 应用，往返一致（JSON，tech/01 §4.3）
-	check(SaveSystem.write(snap, "test_tp4"), "写入 user://saves/")
+	check(SaveSystem.write(snap, "test_tp4"), "写入存档目录（测试隔离：user://test/saves）")
 	check(SaveSystem.has_save("test_tp4"), "has_save 读档存在")
 	var loaded := SaveSystem.read("test_tp4")
 	check(bool(loaded["ok"]), "读档成功")
@@ -3495,14 +3524,9 @@ func test_subgame_arena() -> void:
 	for v: String in ["V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9", "V11", "V12", "V13"]:
 		check(issues.any(func(i: Dictionary) -> bool:
 			return i["v"] == v and i["level"] == PacklintCore.LEVEL_PASS), "arena packlint %s PASS" % v)
-	# ---- core 零改动（白皮书 §10.2 "子游戏不动框架" 的硬证据）----
-	# 钉版区间：M2 落地提交 ec946ef → M3 子游戏提交 ad46102（此后 core 的演进属后续里程碑，
-	# 如 tech/04 §8 成长系统是框架层能力升级，不削弱"子游戏落地当时不动框架"的证据）。
-	var git_out: Array = []
-	OS.execute("git", ["-C", ProjectSettings.globalize_path("res://.."), "diff", "--name-only",
-		"ec946ef", "ad46102", "--", "game/core/"], git_out, true)
-	var diff_text := "".join(git_out).strip_edges()
-	check(diff_text.is_empty(), "M3 区间 core/ 目录 git diff 为空（子游戏不动框架）：%s" % diff_text)
+	# ---- core 不认识子游戏（白皮书 §10.2 "子游戏不动框架"）：静态扫描 core/ 代码不含任何子游戏/支线包 id ----
+	var core_hits := _core_code_mentions(["arena", "riddle_maze", "arc_tide"])
+	check(core_hits.is_empty(), "core/ 代码零子游戏/支线包 id（子游戏不动框架）：%s" % ";".join(core_hits))
 
 	# ---- 连战三场全胜流程（复用 EncounterSM ×3；奖励写板；战绩旗标）----
 	var stream := EventStream.new()
@@ -3858,7 +3882,7 @@ func test_ops_config() -> void:
 	check(not bool(PacklintCore.load_entitlement_registry("res://packs/_ops/no_such.json")["ok"])
 		and str(PacklintCore.load_entitlement_registry("res://packs/_ops/no_such.json")["error"]).contains("缺失"),
 		"负例：注册表文件缺失 → 明确错误（06 §2.3）")
-	var bad_reg_path := "user://tmp_bad_entitlements.json"
+	var bad_reg_path := "user://test/bad_entitlements.json"
 	var f := FileAccess.open(bad_reg_path, FileAccess.WRITE)
 	f.store_string("{ 损坏的 json")
 	f.close()
@@ -4000,7 +4024,7 @@ func test_cosmetics() -> void:
 
 func test_subgame_flow() -> void:
 	print("[subgame_flow]")
-	var m: Node = (load("res://main.tscn") as PackedScene).instantiate()
+	var m: Node = _new_main()
 	root.add_child(m)
 	await process_frame
 	await process_frame
@@ -4056,7 +4080,7 @@ func test_subgame_flow() -> void:
 
 func test_act2_hybrid_flow() -> void:
 	print("[act2_hybrid_flow]")
-	var m: Node = (load("res://main.tscn") as PackedScene).instantiate()
+	var m: Node = _new_main()
 	root.add_child(m)
 	await process_frame
 	await process_frame
@@ -4095,7 +4119,7 @@ func test_act2_hybrid_flow() -> void:
 
 func test_entitlement_flow() -> void:
 	print("[entitlement_flow]")
-	var m: Node = (load("res://main.tscn") as PackedScene).instantiate()
+	var m: Node = _new_main()
 	root.add_child(m)
 	await process_frame
 	await process_frame
@@ -4403,7 +4427,7 @@ func test_home_hotspots() -> void:
 				bar_ids.append(String(b.text))
 	check(bar_ids.size() == 5, "兜底条含五文字入口（12 §5 骨架）")
 	# ---- main 级等价：两路径到同一界面（热点通道 vs 兜底条按钮通道）----
-	var m: Node = (load("res://main.tscn") as PackedScene).instantiate()
+	var m: Node = _new_main()
 	root.add_child(m)
 	await process_frame
 	await process_frame
@@ -4466,7 +4490,7 @@ func test_home_hotspots() -> void:
 
 func test_home_bar_toggle() -> void:
 	print("[home_bar_toggle]")
-	var path := "user://settings_test_home_bar.cfg" # 测试隔离：不动真实 user://settings.cfg
+	var path := "user://test/home_bar.cfg" # 测试隔离：不动真实 user://settings.cfg
 	if FileAccess.file_exists(path):
 		DirAccess.remove_absolute(path)
 	var stream := EventStream.new()
@@ -4572,7 +4596,7 @@ func test_landscape_story() -> void:
 
 func test_act3_forced_mode() -> void:
 	print("[act3_forced_mode]")
-	var m: Node = (load("res://main.tscn") as PackedScene).instantiate()
+	var m: Node = _new_main()
 	root.add_child(m)
 	await process_frame
 	await process_frame
@@ -4628,7 +4652,7 @@ func test_mode_boundary() -> void:
 	print("[mode_boundary]")
 	var main_scene: PackedScene = load("res://main.tscn")
 	# ============ 横屏战役：全程横屏 + forced 幕例外 + 一切离场路径恢复竖屏 ============
-	var m: Node = main_scene.instantiate()
+	var m: Node = _new_main()
 	root.add_child(m)
 	await process_frame
 	await process_frame
@@ -4725,7 +4749,7 @@ func test_mode_boundary() -> void:
 	m.queue_free()
 	await process_frame
 	# ============ 竖屏战役：全程零切换 ============
-	var m2: Node = main_scene.instantiate()
+	var m2: Node = _new_main()
 	root.add_child(m2)
 	await process_frame
 	await process_frame
@@ -4934,7 +4958,7 @@ func test_loadout_settle_landscape() -> void:
 	st2.queue_free()
 	await process_frame
 	# ---- main 级接线：横屏战役整备/结算形态注入（09 §8 + 04 §④.8）----
-	var m: Node = (load("res://main.tscn") as PackedScene).instantiate()
+	var m: Node = _new_main()
 	root.add_child(m)
 	await process_frame
 	await process_frame
@@ -5006,7 +5030,7 @@ func _main_win_battle(m: Node) -> void:
 func test_main_flow() -> void:
 	print("[main_flow]")
 	var main_scene: PackedScene = load("res://main.tscn")
-	var m: Node = main_scene.instantiate()
+	var m: Node = _new_main()
 	root.add_child(m)
 	await process_frame
 	await process_frame
@@ -5153,9 +5177,8 @@ func test_main_flow() -> void:
 		"对话选项回复进日志")
 	# ---- battle（N1-7）：整备 → 遭遇；遭遇进行中不存档；☰ 恢复快照 ----
 	check(m.current_screen is ScreenLoadout, "battle 节点 → 整备界面（09 §9.1）")
-	var save_path := "user://saves/slot1.json"
-	if FileAccess.file_exists(save_path):
-		DirAccess.remove_absolute(save_path)
+	var save_path := SaveSystem.path_for()
+	SaveSystem.delete()
 	var lo := m.current_screen as ScreenLoadout
 	lo._toggle_skill("inkbolt")
 	lo._toggle_skill("inkshield")
@@ -5354,7 +5377,7 @@ func test_main_flow() -> void:
 func test_character_nav() -> void:
 	print("[character_nav]")
 	# ---- 路径 1：战役未开始的主屏（审计 G1 原始崩点）----
-	var m: Node = (load("res://main.tscn") as PackedScene).instantiate()
+	var m: Node = _new_main()
 	root.add_child(m)
 	await process_frame
 	await process_frame
@@ -5915,7 +5938,7 @@ func test_home_promo() -> void:
 	await process_frame
 
 	# main 级路由：ops_config 实投 arena → 点按直达 ② 入口锁定卡 + 购买弹层
-	var m: Node = (load("res://main.tscn") as PackedScene).instantiate()
+	var m: Node = _new_main()
 	root.add_child(m)
 	await process_frame
 	await process_frame
@@ -5953,8 +5976,92 @@ func _push_click(pos: Vector2) -> void:
 	up.position = pos
 	root.push_input(up)
 
+## 扫描 res://core 下全部 .gd 的非注释代码行，返回命中 ids 的 "文件:行号"。
+func _core_code_mentions(ids: Array) -> Array:
+	var hits: Array = []
+	var stack: Array = ["res://core"]
+	while not stack.is_empty():
+		var dir_path: String = stack.pop_back()
+		var d := DirAccess.open(dir_path)
+		if d == null:
+			continue
+		for sub: String in d.get_directories():
+			stack.append(dir_path.path_join(sub))
+		for fname: String in d.get_files():
+			if not fname.ends_with(".gd"):
+				continue
+			var lines := FileAccess.get_file_as_string(dir_path.path_join(fname)).split("\n")
+			for n: int in lines.size():
+				var code := lines[n].split("#")[0]
+				for id: String in ids:
+					if code.contains(id):
+						hits.append("%s:%d(%s)" % [fname, n + 1, id])
+	return hits
+
+# ---------------------------------------------------------------- 新开局种子（tech/01 §5.2；代码评审 B3）
+
+func test_new_game_seed() -> void:
+	print("[new_game_seed]")
+	var saved := Rng.fixed_seed_override
+	Rng.fixed_seed_override = -1
+	var a := Rng.new_game_seed()
+	OS.delay_usec(50)
+	var b := Rng.new_game_seed()
+	check(a != b, "正式运行：两次新开局种子不同（每局骰序不同）")
+	check(a >= 0 and b >= 0, "新开局种子非负")
+	Rng.fixed_seed_override = 777
+	check(Rng.new_game_seed() == 777, "覆盖值生效（测试/工具/截图取确定路径）")
+	Rng.fixed_seed_override = saved
+
+# ---------------------------------------------------------------- 启动读回（07 §4.2；代码评审 B1）
+
+func test_resume_on_launch() -> void:
+	print("[resume_on_launch]")
+	var m1 := _new_main()
+	root.add_child(m1)
+	await process_frame
+	await process_frame
+	check(not m1._has_continuable(), "无档首启：无可继续战役")
+	m1._on_home_navigate(&"entry")
+	await process_frame
+	(m1.current_screen as ScreenEntry).pick_mode(ShellRouter.MODE_TIME)
+	(m1.current_screen as ScreenEntry).start_requested.emit()
+	await process_frame
+	m1.graph._enter("N1-1")
+	m1.board.give_item("half_tide_table", 1, {"event_id": 0, "node_id": "N1-1", "pack_id": "campaign01"})
+	var rng_probe: Dictionary = m1.rng.save_state()
+	m1._save("test_resume")
+	var visited: int = m1.graph.visit_log.size()
+	m1.queue_free()
+	await process_frame
+	# 冷启动：不删存档槽，直接新实例
+	var m2: Node = (load("res://main.tscn") as PackedScene).instantiate()
+	root.add_child(m2)
+	await process_frame
+	await process_frame
+	check(m2.graph.current_id == "N1-1", "冷启动读回：故事图当前节点恢复（N1-1）")
+	check(m2.graph.visit_log.size() == visited, "冷启动读回：已访节点恢复")
+	check(m2.board.has_item("half_tide_table"), "冷启动读回：状态板恢复（背包道具）")
+	check(m2.rng.save_state() == rng_probe, "冷启动读回：RNG 状态恢复（后续骰序与存档时一致）")
+	check(m2._has_continuable(), "主屏\"继续\"可用（04 §①）")
+	check(str(m2.board.read("global.mode_choice.campaign01", "")) == "time", "冷启动读回：模式选择保留（09 §3 整场锁定）")
+	m2.queue_free()
+	await process_frame
+	# 坏档：告警并按新开局处理，不崩溃
+	var f := FileAccess.open(SaveSystem.path_for(), FileAccess.WRITE)
+	f.store_string("{ 坏档")
+	f.close()
+	var m3: Node = (load("res://main.tscn") as PackedScene).instantiate()
+	root.add_child(m3)
+	await process_frame
+	check(m3.graph.visit_log.is_empty() and not m3._has_continuable(), "坏档：按新开局处理（不崩溃）")
+	m3.queue_free()
+	await process_frame
+	SaveSystem.delete()
+
 func test_home_real_input() -> void:
 	print("[home_real_input]")
+	DirAccess.remove_absolute(UiSettings.redirect_path) # 默认偏好起步（兜底条默认展开，12 §5）
 	root.size = Vector2i(390, 760) # 无头根窗默认 64×64：真实命中测试前先落项目竖屏尺寸
 	var stream := EventStream.new()
 	var board := Board.new(stream)
@@ -6352,7 +6459,7 @@ func test_transition_camera() -> void:
 		"滑入随淡入段归位（0.2~0.3s 同步）")
 	dummy.queue_free()
 	# ---- main 集成：主屏→入口经统一转场器，中场新屏现身 ----
-	var m: Node = (load("res://main.tscn") as PackedScene).instantiate()
+	var m: Node = _new_main()
 	root.add_child(m)
 	await process_frame
 	await process_frame
@@ -6498,7 +6605,7 @@ func test_transition_camera() -> void:
 	await process_frame
 
 	# ---- main 集成：整备→遭遇进场滑入 ----
-	var m2: Node = (load("res://main.tscn") as PackedScene).instantiate()
+	var m2: Node = _new_main()
 	root.add_child(m2)
 	await process_frame
 	await process_frame

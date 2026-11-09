@@ -32,4 +32,6 @@ The full doc 12 §1 vocabulary is implemented (`shell/ui/gesture_recognizer.gd` 
 
 ## Known open issues
 
-See [`../docs/en/tech/code-review-2026-11-10.md`](../docs/en/tech/code-review-2026-11-10.md): saves are never loaded on launch (B1), landscape mode only resizes a desktop window (B2), fixed RNG seed for new games (B3), tests touch the real `user://` data (B4). The fix plan is TASKS P4 (`../docs/en/framework/03-TASKS.md`).
+See [`../docs/en/tech/code-review-2026-11-10.md`](../docs/en/tech/code-review-2026-11-10.md): B1/B3/B4 are fixed (P4 Phase 0); still open: landscape mode only resizes a desktop window (B2), campaign01 hard-coding (M1), localization (M5).
+
+Screenshot tool: `godot --path game -- --home-shot` (flag table in `tools/shot_driver.gd`); reproduce a specific seed with `-- --seed=N`. The fix plan is TASKS P4 (`../docs/en/framework/03-TASKS.md`).
