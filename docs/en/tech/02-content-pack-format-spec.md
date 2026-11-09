@@ -38,10 +38,11 @@ Rules: file names are fixed and case-sensitive; the validator warns on unknown f
 - **Reference format**: `text_ref: "texts/<locale>.json#<key>"` — before `#` is the relative path inside texts/, after `#` is the key;
 - **Resolution order (runtime)**: node display text = the matching `text_variants` variant (pure presentation substitution, §3) → full text from the texts table pointed to by `text_ref` → `summary` fallback; ending cutscene text = `text_ref` → `content` fallback; Compendium body = `text_ref` (no embedded field; a missing key means no body is shown). **A missing key always falls back silently and never rejects loading** — broken links are data defects caught by extraction-completeness assertions in the test layer;
 - **Writing discipline**: texts tables only hold text, never structure; full text must not introduce flags or effects not declared in nodes/flags/encounters (semantics must match the node's effects);
+- **Convention keys (short text)**: display-text fields (`title`/`summary`/`label`/`name`/`text`/`hint`/`objective`/`content`/`role`/`source`/`lock_text`, etc.) are keyed automatically as "table.entry id.path", with no key fields added to pack JSON — e.g. `nodes.N1-1.edges.0.label`, `items.heal_potion.name`, `encounters.N2G-2.maze.beats.0.text`, `manifest.lock_text`. A target language's `texts/<locale>.json` overrides the source text by writing these keys; a missing key falls back to the source. The single source of truth for the key list is `PackLoader.text_entries()`;
 - **Multiple languages (bilingual build)**: write references as locale-independent keys `text_ref: "#<key>"`; the runtime picks `texts/<locale>.json` for the current language (the old form `texts/zh-CN.json#<key>` stays valid; the path is stripped on load). Short text fields (`title` / `summary` / `label` / `name` / `hint` / `objective`) are keyed into the tables too — the data may keep source-language text as a fallback, but every shipped language must have the key;
 - **Side-arc packs**: an arc pack can bring its own texts/ files, which are merged into the merged view on grafting; a key collision (same key, different text as the host or an already-injected pack) = a graft error (same rule as V14 namespace independence).
 
-> Implementation status: the current pack data still uses `texts/zh-CN.json#…` paths and inline short strings; migrating them is Phase 1 of `06-english-mobile-plan.md`.
+> Implementation status (P4 Phase 1): the loader overlay, `#key` references and V15 are implemented; campaign01 still uses the older `texts/zh-CN.json#…` form, which stays valid.
 
 ## 2. manifest.json
 
@@ -64,6 +65,11 @@ Rules: file names are fixed and case-sensitive; the validator warns on unknown f
 | subgame | object | sub-games | variant declaration block, see §2.5 |
 | graft | object | arc packs | graft declaration block (only `pack_type: "arc"`), see §2.6 |
 | ngplus | object | no (campaigns) | NG+ carry-over block, see §2.7; default = nothing carries over (restart = completely fresh state) |
+| start | object | no (campaigns) | Starting configuration, see §2.8; default = 0 gold, no starting items |
+| entry | bool | no (campaigns) | Default main campaign when several campaign packs coexist; default = first by folder name |
+| lock_text | string | no | Narrative locked-state text for the entry card when the entitlement isn't lit (06 §3.1); default = the framework's generic text |
+| source_locale | string | no | Language of the pack's own text; default `zh-CN` |
+| locales | string[] | no | Languages this pack promises (including the source); when declared, V15 checks text completeness for each |
 
 ### 2.1 presentation (campaign-mode declaration, whitepaper §7.1)
 
@@ -184,6 +190,16 @@ Rules: file names are fixed and case-sensitive; the validator warns on unknown f
   - `dice_skin`: the dice-skin ID granted; must be registered in the operations registry `_ops/cosmetics.json` (06 §7; granting writes `global.cosmetic.owned.*` with provenance granted_by=ngplus; pure presentation, never numeric);
 - **Not carried over**: growth (global.growth.*) / Doom Clock / alignment / reputation / loot / the ending flags themselves (rewritten at the end of each playthrough); anything not listed in this block is reset;
 - Where the presentation differences land: flags written by `per_ending.flags` are consumed by node `text_variants` (§3) for pure presentation differences such as an alternative opening monologue or a prologue filter; they never enter graph traversal or event-stream resolution.
+
+### 2.8 start (starting configuration, campaigns only)
+
+```json
+{ "gold": 30, "items": [ { "item": "heal_potion", "n": 2 } ] }
+```
+
+- `gold`: starting gold, written to `<pack_id>.gold` (07 §2 currency clause); idempotent (an existing value isn't overwritten);
+- `items`: items brought in at the start (narratively fixed, e.g. supplies carried into the Prologue); must be registered in items.json;
+- The framework hard-codes no pack's economy — changing the start is a one-line data change.
 
 ## 3. nodes.json: nodes
 

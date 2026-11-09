@@ -55,14 +55,14 @@ The logic core is genuinely well built: clean RefCounted layering, seeded RNG, p
 
 ## 3. Major findings
 
-### M1 · Framework and content are not decoupled in code (whitepaper §2 pillar 1)
+### M1 · Framework and content are not decoupled in code (whitepaper §2 pillar 1) ✅ fixed (P4 Phase 1)
 - `core/graph/story_graph.gd:230` hard-codes `GOLD_KEY := "campaign01.gold"` and `GOLD_START := 30` — in the **logic core**.
 - `core/save/save_system.gd:81-99` migration hard-codes `campaign01.*` keys.
 - `main.gd` hard-codes `PACK_DIR = res://packs/campaign01`, `global.mode_choice.campaign01`, `campaign01.cleared`, `campaign01.ngplus`, node ids `N1-1`/`N4-*`, and pack-specific key filters (`main.gd:888`, duplicated in `shell/ui/story_vm.gd:144`).
 - Consequence: "a new campaign = a new content pack, no framework change" isn't true yet; campaign02 would require editing core and main. Sub-games and side arcs *are* data-driven (`_discover_subgames`, `graft`), which shows the pattern works.
 - Fix: move gold key / starting gold / settlement-exempt keys into manifest fields; derive the campaign pack from a catalog instead of a constant.
 
-### M2 · `main.gd` is an 1,861-line god object (shot drivers moved to `tools/shot_driver.gd`; split still open)
+### M2 · `main.gd` is an 1,861-line god object (partly fixed: shot drivers → `tools/`, sub-game flow → `subgame_flow.gd`; now 1,156 lines; a campaign-flow split remains)
 It holds campaign flow, sub-game flow (a second copy of maze/battle/settle/save-quit logic, `_sub_*`), save timing, entitlements, cosmetics, and ~450 lines of screenshot/demo drivers (`_run_shots_*`, 16 CLI flags) that call private core methods (`graph._enter("N1-3")`) and write fake events into the stream. The demo code ships in the production main scene.
 - Fix: split into `CampaignFlow`, `SubgameFlow` (sharing one encounter/settle flow), `AppServices`; move shot drivers to `tools/`.
 
@@ -73,7 +73,7 @@ It holds campaign flow, sub-game flow (a second copy of maze/battle/settle/save-
 ### M4 · Effect-modifier pipeline not implemented (tech/04 §5)
 No `EffectEngine`, no `effect.attach`/`effect.expire` events, no base→add→mul→override→clamp. Correctly recorded as a known gap in TASKS; no current pack uses it. It blocks the Standard rule tier and any item with a passive modifier.
 
-### M5 · Localization is not ready for an English build
+### M5 · Localization is not ready for an English build (engine side fixed in P4 Phase 1; English text and Latin font are Phase 2/3)
 - Core emits **Chinese prose into the event stream** (`maze_runner.gd:43,90,109,111`, `encounter_sm.gd:583,717`, `story_graph.gd:288` …). The stream is persisted in saves and replayed in the History Scroll, so the text is baked into save files in one language. Events should carry a message key + params and let the shell localise.
 - UI strings live in one `TextsZh` class, referenced by name from ~25 shell files; there's no locale switch.
 - Pack JSON holds ~460 inline Chinese strings (edge labels, item/skill/enemy names, riddle hints); only campaign01 long text (52 keys, 4,322 chars) is externalised via `text_ref`.
@@ -87,6 +87,7 @@ No `EffectEngine`, no `effect.attach`/`effect.expire` events, no base→add→mu
 
 ## 4. Minor findings
 
+- **Status-bar overlap in portrait battles** (found in P4 Phase 1, present before it): the party status text at the top overlaps the enemy cards at 390×760. Check on device in Phase 3.
 - **Package size**: BGM shipped as uncompressed 16-bit WAV (2 × 2.6 MB for 30 s loops); use Ogg Vorbis (~10× smaller).
 - **No export presets**: `export_presets.cfg` is gitignored and absent; no Android/iOS build has been produced or tested (doc 14 phase 3 is honestly unchecked).
 - **Doc index was stale** (fixed): `docs/README.md` listed riddle-maze as "not started" though it is live; `game/packs/README.md` listed only campaign01 and arena.
@@ -126,7 +127,7 @@ No `EffectEngine`, no `effect.attach`/`effect.expire` events, no base→add→mu
 | Doc 14 #1 font | [x] | ✅ for Chinese | Needs a Latin face for English (M5) |
 | Doc 14 #2–#8 presentation | [x] | ✅ | Verified by tests; not checked on a device |
 | Doc 14 #9–#16 platform / ops | [ ] | [ ] | Correctly unchecked |
-| E-5 localization | "doesn't block" | ❌ for English | See M5 |
+| E-5 localization | "doesn't block" | ⚠️ engine ready (P4 Phase 1); English text pending (Phase 2) | See M5 |
 
 Both the Chinese and English checklists (TASKS, 13, 14) have been updated to these verified statuses, and the fixes are scheduled as TASKS P4.
 

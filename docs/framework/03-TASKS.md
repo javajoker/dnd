@@ -135,10 +135,11 @@
 
 **阶段 1 · 解耦与本地化引擎**
 
-- [ ] core / main 去 campaign01 硬编码（M1）；main.gd 拆分流程对象（M2）
-- [ ] 事件 msg_key + args（core 不产出文案），存档 v2→v3 迁移
-- [ ] 语言表 + `ui.locale` 设置；包文本键与语言无关（tech/02 §1.1）+ packlint V15
-- [ ] 英文长度排版（按渲染宽度，08 §1）
+- [x] core / main 去 campaign01 硬编码（M1）：主战役按包目录发现；manifest `start` / `lock_text` / `entry`；簿记键按键形判定；静态守卫测试
+- [~] main.gd 拆分（M2）：子游戏流程 → `subgame_flow.gd`、截图驱动 → `tools/shot_driver.gd`（1861 → 1156 行）；战役流程对象（CampaignFlow）留后续——测试大量直接驱动 main 的战役内部，需先改测试
+- [x] 事件 msg_key + args（core 不产出文案）；事件流全量随存档（E-3 裁决），无需 v2→v3 迁移（新增键向后兼容）
+- [x] 语言表（`Texts` + texts_zh/texts_en）+ `ui.locale` 设置 + 帮助页语言切换；包文本约定式键叠加（tech/02 §1.1）+ packlint V15（已查出 2 个包缺失 texts 文件）
+- [ ] 英文长度排版（按渲染宽度，08 §1）→ 移入阶段 2：需真实英文文本验证
 
 **阶段 2 · 英文内容**
 

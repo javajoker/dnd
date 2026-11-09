@@ -66,7 +66,8 @@ game/
 - Type annotations everywhere (`var x: int`, `func f() -> void`); core classes `PascalCase`, file names `snake_case.gd`;
 - Event = `Dictionary` (`{id, type, payload, source, node}`); event types are `StringName` constants in `core/state/event_types.gd`;
 - All randomness through a seeded instance of `core/state/rng.gd`, never bare `randi()`; **a new game gets a fresh seed** — fixed seeds are for tests and tools only;
-- UI text: keyed strings in the locale tables (`shell/ui/texts_zh.gd` today; an English table alongside it for the English build), consistent with tech/02 §1.1 / §7 i18n;
+- UI text: shells always go through `Texts` (`shell/ui/texts.gd`) — `Texts.s(&"KEY")` for strings, `Texts.lines()` for line arrays, `Texts.t()` for dictionaries; add new text to the source table `texts_zh.gd` first (constant name = key), then to `texts_en.gd`; never hard-code text in any language in UI code (a test guards this);
+- Event messages: core and the app layer emit only `{msg_key, args}` (templates use `{name}` placeholders), and shells render them with `Texts.msg(payload)`; pack text is localized at load time, never assembled in code;
 - Persistent paths (`user://saves`, `user://settings.cfg`) must be injectable; tests always use a `user://test/…` path and never touch the player's real data;
 - Debug/screenshot drivers belong in `tools/`, not in `main.gd`;
 - Commit messages: conventional commits (`feat(core): …` / `fix(shell): …` / `packs: …`), in English or Chinese to match the team's choice.

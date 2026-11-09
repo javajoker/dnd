@@ -71,7 +71,8 @@ game/
 - 随机一律走 `core/state/rng.gd` 的种子化实例，禁止裸 `randi()`；**新开局取新种子**，固定种子只用于测试与工具；
 - 持久化路径（`user://saves`、`user://settings.cfg`）必须可注入；测试一律用 `user://test/…`，不得触碰玩家真实数据；
 - 截图/演示驱动放 `tools/`，不进 `main.gd`；
-- 文本键：UI 文案集中语言表（现为 `shell/ui/texts_zh.gd`，英文版增设英文表），与 tech/02 §1.1 双语构建一致；
+- 文本：壳层一律经 `Texts`（`shell/ui/texts.gd`）取文案——`Texts.s(&"键")` 字符串、`Texts.lines()` 行数组、`Texts.t()` 字典；新文案先加到源语言表 `texts_zh.gd`（常量名即键）再补 `texts_en.gd`；禁止在界面代码里写死任何语言的文案（测试有静态守卫）；
+- 事件消息：core / 应用层只发 `{msg_key, args}`（模板用 `{name}` 具名占位），壳用 `Texts.msg(payload)` 渲染；内容包文本经加载时语言叠加，不在代码里拼；
 - 提交信息中文、约定式（`feat(core): …` / `fix(shell): …` / `packs: …`）。
 
 ## 5. 开发流程（每个任务必须走完）
