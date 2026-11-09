@@ -4045,20 +4045,20 @@ func test_subgame_flow() -> void:
 	check(_enter_buttons(acard) == 2, "入口卡：竖屏/横屏双模式参战按钮（tech/02 §2.1 choice）")
 	entry.subgame_start.emit("arena", ShellRouter.MODE_TIME)
 	await process_frame
-	check(m._sub_active and str(m.board.read("global.mode_choice.arena")) == "time",
+	check(m.sub_flow._sub_active and str(m.board.read("global.mode_choice.arena")) == "time",
 		"子游戏模式选择写板 global.mode_choice.arena（09 §3）")
-	check(m._sub.graph.current_id == "A-0" and m.graph.current_id == "",
+	check(m.sub_flow._sub.graph.current_id == "A-0" and m.graph.current_id == "",
 		"子游戏开图 A-0，战役图不受污染（命名空间/状态隔离）")
 	m._on_sub_story_edge(0) # 踏入擂台
 	await process_frame
 	check(m.current_screen is ScreenLoadout, "战斗节点 → 进场整备（09 §9.1；连战仅进场一次）")
 	(m.current_screen as ScreenLoadout)._on_confirm()
 	await create_timer(1.5).timeout
-	check(m._sub_battling and m.shell is EncounterPortrait, "整备 → 连战第一场（EncounterSM × 双壳复用）")
+	check(m.sub_flow._sub_battling and m.shell is EncounterPortrait, "整备 → 连战第一场（EncounterSM × 双壳复用）")
 	# 模拟第一场胜利（真实战斗数值由 subgame_arena runner 级断言覆盖）
 	m.stream.emit(EventTypes.COMBAT_END, {"result": &"victory", "rounds": 2}, &"core", "A-1")
 	await create_timer(1.6).timeout
-	check(not m._sub_battling, "第一场结束回战后边（不进休整态，连战无休整）")
+	check(not m.sub_flow._sub_battling, "第一场结束回战后边（不进休整态，连战无休整）")
 	check(int(m.board.read("arena.gold", 0)) == 20 and int(m.board.read("arena.wins", 0)) == 1,
 		"第一场胜利写板：金币 +20 / 胜场 +1（04 §6 硬要求）")
 	var sh := m.shell as EncounterPortrait
@@ -4077,7 +4077,7 @@ func test_subgame_flow() -> void:
 		"结算汇总：战绩/金币逐项念出（04 §⑨）")
 	(m.current_screen as ScreenSettle).go_home.emit()
 	await process_frame
-	check(m.current_screen is ScreenHome and not m._sub_active, "结算 → 回主屏（离场闭环，不新增导航项）")
+	check(m.current_screen is ScreenHome and not m.sub_flow._sub_active, "结算 → 回主屏（离场闭环，不新增导航项）")
 	m.queue_free()
 	await process_frame
 
@@ -4153,7 +4153,7 @@ func test_entitlement_flow() -> void:
 	# 硬门槛阻断：直接发参战信号被拒
 	entry.subgame_start.emit("arena", ShellRouter.MODE_TIME)
 	await process_frame
-	check(not m._sub_active, "锁定阻断进入：subgame_start 被硬门槛拒绝（tech/02 §2.2）")
+	check(not m.sub_flow._sub_active, "锁定阻断进入：subgame_start 被硬门槛拒绝（tech/02 §2.2）")
 	# 购买流程：半屏弹层 → 确认 → shop_purchase → 即时解锁无需重启
 	acquire_btn.pressed.emit()
 	await process_frame
