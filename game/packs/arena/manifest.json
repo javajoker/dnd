@@ -1,6 +1,7 @@
 {
   "pack_id": "arena",
   "name": "竞技场连战",
+  "lock_text": "竞技场的守门人只认印记——你的抄本里还没有这一页。",
   "pack_type": "subgame",
   "pack_version": 1,
   "min_framework_version": "1.0.0",

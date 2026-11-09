@@ -23,7 +23,7 @@ extends Node
 # 结局节点（E1~E4）进结局屏（tech/02 §9），战斗失败仍走 ⑨ 结算（失败即分支，09 §7）。
 const SLICE_ACTS: Array[String] = ["SL-0", "SL-1", "SL-2", "SL-3", "SL-4"]
 const LANDSCAPE_SIZE := Vector2i(1280, 720)
-const PACK_DIR := "res://packs/campaign01"
+const PACKS_ROOT := "res://packs"
 const SHELL_SCENES := {
 	&"time": "res://shell/portrait/encounter_portrait.tscn",
 	&"space": "res://shell/landscape/encounter_landscape.tscn",
@@ -54,6 +54,7 @@ var current_screen: Control = null
 var shell: Control = null
 
 # ---- 子游戏（白皮书 §10.2；04 §6：入口挂 ② 战役入口区，进出场必经 ⑨ 结算）----
+var _campaign_id := ""                # 当前主战役包 id（包目录发现，不写死）
 var _subgames: Dictionary = {}        # pack_id -> pack（pack_type=subgame 数据驱动入列，不写死 arena）
 var _sub: SubgameRunner = null        # 进行中的子游戏流程核
 var _sub_active := false
@@ -107,11 +108,16 @@ func _ready() -> void:
 	# 界面语言（tech/01 E-5）：玩家偏好 → 系统语言；内容包按同一语言加载文本
 	Texts.set_locale(Texts.detect_locale(UiSettings.load_locale()))
 	PackLoader.locale = Texts.locale
-	var res := PackLoader.load_pack(PACK_DIR)
+	var campaign_dir := _find_campaign_dir()
+	if campaign_dir == "":
+		push_error("[main] res://packs 下没有 pack_type=campaign 的内容包")
+		return
+	var res := PackLoader.load_pack(campaign_dir)
 	if not res["ok"]:
-		push_error("campaign01 加载失败：%s" % ";".join(res["errors"]))
+		push_error("%s 加载失败：%s" % [campaign_dir, ";".join(res["errors"])])
 		return
 	pack = res["pack"]
+	_campaign_id = str(pack["pack_id"])
 	_discover_subgames()
 	stream = EventStream.new()
 	audio = AudioManager.new() # 14 #5：先就位，_show_home 的翻页/潮声才有落点
@@ -141,6 +147,28 @@ func _ready() -> void:
 	if shots != null:
 		_shot_driver = shots.new(self)
 		_shot_driver.run(args)
+
+## 主战役包发现（白皮书 §10.1：框架不写死内容包）：pack_type=campaign 的包中，manifest.entry=true 者优先，
+## 否则取目录名序第一个。
+func _find_campaign_dir() -> String:
+	var found := ""
+	for sub: String in DirAccess.get_directories_at(PACKS_ROOT):
+		if sub.begins_with("_"):
+			continue
+		var raw: Variant = JSON.parse_string(FileAccess.get_file_as_string(
+			PACKS_ROOT.path_join(sub).path_join("manifest.json")))
+		if not (raw is Dictionary) or str((raw as Dictionary).get("pack_type", "")) != "campaign":
+			continue
+		if bool((raw as Dictionary).get("entry", false)):
+			return PACKS_ROOT.path_join(sub)
+		if found == "":
+			found = PACKS_ROOT.path_join(sub)
+	return found
+
+## 本战役多周目周目数键（manifest.ngplus.carries.playthrough；缺省 <id>.ngplus）。
+func _playthrough_key() -> String:
+	return str(((((pack.get("manifest", {}) as Dictionary).get("ngplus", {}) as Dictionary)
+		.get("carries", {}) as Dictionary).get("playthrough", "%s.ngplus" % _campaign_id)))
 
 ## 启动读回最近快照（07 §4.2 启动读回；代码评审 B1）：读档 → 迁移链。
 ## 无档 = 新开局；坏档/未来版本 = 告警并按新开局处理（原档保留，直到下次写档才被替换）。
@@ -351,7 +379,7 @@ func _show_entry() -> void:
 	var entry: ScreenEntry = (load(SCREEN_SCENES[&"entry"]) as PackedScene).instantiate()
 	_swap(entry)
 	var played: Array = []
-	var played_raw: Variant = board.read("global.mode_choice.campaign01")
+	var played_raw: Variant = board.read("global.mode_choice.%s" % _campaign_id)
 	if played_raw is String and str(played_raw) != "":
 		played.append(str(played_raw))
 	entry.bind(pack, played, _collect_pct())
@@ -370,7 +398,7 @@ func _show_entry() -> void:
 			"mode": str((manifest.get("presentation", {}) as Dictionary).get("mode", "choice")),
 			"stats": runner.stats(),
 			"locked": not entitlements.can_access(manifest),
-			"lock_text": Texts.s(&"LOCK_ARENA")})
+			"lock_text": str(manifest.get("lock_text", Texts.s(&"LOCK_DEFAULT")))})
 	entry.bind_subgames(cards)
 	entry.subgame_start.connect(_on_subgame_start)
 	entry.acquire_requested.connect(_on_acquire_requested)
@@ -382,8 +410,8 @@ func _show_entry() -> void:
 
 func _on_mode_chosen(mode: StringName) -> void:
 	# 模式选择 = 一次分支，写入状态板（09 §3）；全局白名单键（07 §3 v1.1）
-	board.write("global.mode_choice.campaign01", String(mode),
-		{"event_id": stream.tail(), "node_id": graph.current_id, "pack_id": "campaign01"})
+	board.write("global.mode_choice.%s" % _campaign_id, String(mode),
+		{"event_id": stream.tail(), "node_id": graph.current_id, "pack_id": _campaign_id})
 
 func _on_campaign_start(entry: ScreenEntry) -> void:
 	_mode = entry.selected_mode
@@ -402,9 +430,10 @@ func _start_campaign() -> void:
 	_campaign_tail = stream.tail()
 	graph.seed_gold()
 	graph.start()
-	# 序章带入（叙事既定）：补给药水 ×2（战役书 §4 SL-1；items.json source 登记）
-	board.give_item("heal_potion", 2,
-		{"event_id": stream.tail(), "node_id": "N1-1", "pack_id": "campaign01"})
+	# 开局带入（manifest.start.items，叙事既定；campaign01 = 补给药水 ×2，战役书 §4）
+	for it: Variant in graph.start_items():
+		board.give_item(str((it as Dictionary).get("item", "")), int((it as Dictionary).get("n", 1)),
+			{"event_id": stream.tail(), "node_id": graph.current_id, "pack_id": _campaign_id})
 	_present_node()
 
 # ---------------------------------------------------------------- 节点流程（故事图驱动；UI 只消费 StoryVM + 事件流）
@@ -547,9 +576,9 @@ func _on_hub_action(action: String, arg: String) -> void:
 func _end_slice() -> void:
 	_in_encounter = false
 	# 通关旗标 → 成就点亮路径（06 §2.1：点亮手段多样；规则表在运营配置，06 §3.2）
-	if not bool(board.read("campaign01.cleared")):
-		board.write("campaign01.cleared", true,
-			{"event_id": stream.tail(), "node_id": graph.current_id, "pack_id": "campaign01"})
+	if not bool(board.read("%s.cleared" % _campaign_id)):
+		board.write("%s.cleared" % _campaign_id, true,
+			{"event_id": stream.tail(), "node_id": graph.current_id, "pack_id": _campaign_id})
 	entitlements.check_achievements(ops_config)
 	# 成长在 xp 效果产出时已即时汇入 global.growth.*（tech/04 §8 规则1/2）；
 	# 结算界面 = 成长加点时机（11 §6；04 §⑨），此处只呈现与分配。
@@ -567,9 +596,9 @@ func _present_ending() -> void:
 	_in_encounter = false
 	_set_window_orientation(ShellRouter.MODE_TIME) # 战役结束恢复原屏幕布局（09 §8：通关路径收束于竖屏基准）
 	var eid := graph.current_id
-	if not bool(board.read("campaign01.cleared")):
-		board.write("campaign01.cleared", true,
-			{"event_id": stream.tail(), "node_id": eid, "pack_id": "campaign01"})
+	if not bool(board.read("%s.cleared" % _campaign_id)):
+		board.write("%s.cleared" % _campaign_id, true,
+			{"event_id": stream.tail(), "node_id": eid, "pack_id": _campaign_id})
 	entitlements.check_achievements(ops_config)
 	var edef := {}
 	for e: Variant in pack.get("endings", []):
@@ -584,7 +613,7 @@ func _present_ending() -> void:
 		# 结局演出全文 = text_ref 外置 → content 摘要兜底（tech/02 §9/§1.1；壳不创作）
 		"content": StoryVM.ending_text(pack.get("texts", {}), edef),
 		"hook": str(edef.get("ngplus_hook", "")),
-		"playthrough": int(board.read("campaign01.ngplus", 0)) + 1, "saved": true})
+		"playthrough": int(board.read(_playthrough_key(), 0)) + 1, "saved": true})
 	screen.ngplus_requested.connect(_on_ngplus_start)
 	screen.go_home.connect(_show_home)
 
@@ -760,7 +789,7 @@ func _apply_attr_alloc(alloc: Dictionary, _points_left: int = 0) -> bool:
 			return false # 单项 ≤+3 封顶（11 §6）
 		if n > Growth.attr_points(board):
 			return false # 未分配点数不足
-	var prov := {"event_id": stream.tail(), "node_id": graph.current_id, "pack_id": "campaign01"}
+	var prov := {"event_id": stream.tail(), "node_id": graph.current_id, "pack_id": _campaign_id}
 	for attr: String in alloc.keys():
 		for i: int in int(alloc[attr]):
 			if not growth.alloc(attr, prov):
@@ -806,8 +835,8 @@ func _battle_def(selection: Dictionary) -> Dictionary:
 	var enc := _encounter_id if not _encounter_id.is_empty() else graph.current_id
 	var res := BattleDef.assemble(pack, enc, selection, board)
 	if not bool(res["ok"]):
-		push_error("[main] 战斗定义组装失败（campaign01/%s）：%s"
-			% [enc, ";".join(res["errors"] as Array)])
+		push_error("[main] 战斗定义组装失败（%s/%s）：%s"
+			% [_campaign_id, enc, ";".join(res["errors"] as Array)])
 		return {}
 	return res["def"]
 
@@ -896,12 +925,7 @@ func _show_settle() -> void:
 			EventTypes.FLAG_WRITE:
 				var fkey := str(p.get("key", ""))
 				# 内部簿记键（成长/模式选择/金币/HP）不念给玩家（04 §⑨ 呈现语义：旗标变化摘要）
-				if fkey.begins_with("global.growth.") or fkey.begins_with("campaign01.attr") \
-						or fkey == "campaign01.xp_total" \
-						or fkey == "campaign01.gold" or fkey.begins_with("campaign01.hp.") \
-						or fkey.begins_with("campaign01.maze.") \
-						or fkey.begins_with("global.tutorial.") \
-						or fkey.begins_with("global.mode_choice."):
+				if StoryVM.is_bookkeeping_key(fkey):
 					continue
 				lines.append(Texts.s(&"SETTLE_LINE_FLAG") % fkey)
 			EventTypes.REP_CHANGE:
@@ -950,7 +974,7 @@ func _on_settle_next() -> void:
 	_present_node()
 
 func _on_settle_allocate(attr: String) -> void:
-	var prov := {"event_id": stream.tail(), "node_id": graph.current_id, "pack_id": "campaign01"}
+	var prov := {"event_id": stream.tail(), "node_id": graph.current_id, "pack_id": _campaign_id}
 	if not Growth.new(board).alloc(attr, prov):
 		return # 点数不足或单项 +3 封顶（11 §6）：拒绝并保持界面
 	_bind_settle() # 刷新可用点数与已分配值
@@ -1079,7 +1103,9 @@ func _on_subgame_start(pack_id: String, mode: StringName) -> void:
 		return
 	if not entitlements.can_access((_subgames[pack_id] as Dictionary)["manifest"]):
 		# 硬门槛（tech/02 §2.2）：叙事化提示，无"未购买"生硬弹窗（06 §3.1）
-		stream.emit(EventTypes.LOG, {"msg_key": "LOCK_ARENA", "toast": true}, &"core")
+		var lock := str(((_subgames[pack_id] as Dictionary)["manifest"] as Dictionary).get("lock_text", ""))
+		stream.emit(EventTypes.LOG, {"msg": lock, "toast": true} if lock != "" else
+			{"msg_key": "LOCK_DEFAULT", "toast": true}, &"core")
 		return
 	_sub = SubgameRunner.new(_subgames[pack_id], board, stream, rng)
 	_sub_mode = mode
@@ -1316,9 +1342,9 @@ func _sub_settle_lines(summary: Dictionary, result: StringName) -> Dictionary:
 	var gold_now := int(board.read("%s.gold" % _sub.pack_id, 0))
 	var gold_fx := gold_now - _sub_gold0 - int(summary["gold"])
 	if gold_fx != 0:
-		lines.append(Texts.s(&"SETTLE_LINE_GOLD_DELTA") % [gold_fx, _sub.pack_id, gold_now])
+		lines.append(Texts.s(&"SETTLE_LINE_GOLD_DELTA") % [gold_fx, gold_now])
 	if int(summary["gold"]) > 0:
-		lines.append(Texts.s(&"SETTLE_LINE_GOLD") % [int(summary["gold"]), _sub.pack_id,
+		lines.append(Texts.s(&"SETTLE_LINE_GOLD") % [int(summary["gold"]),
 			int(board.read("%s.gold" % _sub.pack_id, 0))])
 	lines.append(Texts.s(&"SETTLE_LINE_RECORD") % [int(summary["wins"]),
 		int((_sub.stats() as Dictionary)["wins"]), int(summary["best"])])
@@ -1369,7 +1395,7 @@ func _sub_leave_home() -> void:
 # ---------------------------------------------------------------- 存档（07 §4）
 
 func _bindings() -> Dictionary:
-	var packs := {str(pack.get("pack_id", "campaign01")):
+	var packs := {_campaign_id:
 		int((pack.get("manifest", {}) as Dictionary).get("pack_version", 1))}
 	for pid: String in _subgames: # 子游戏包版本随快照绑定（07 §4.1 三方版本解耦，tech/02 §11）
 		packs[pid] = int(((_subgames[pid] as Dictionary).get("manifest", {}) as Dictionary).get("pack_version", 1))
@@ -1380,8 +1406,8 @@ func _bindings() -> Dictionary:
 		"framework": "1.0.0"}
 
 func _meta() -> Dictionary:
-	return {"playthrough": int(board.read("campaign01.ngplus", 0)) + 1,
-		"ngplus": int(board.read("campaign01.ngplus", 0)), # 周目数随快照落档（07 §4.1 meta）
+	return {"playthrough": int(board.read(_playthrough_key(), 0)) + 1,
+		"ngplus": int(board.read(_playthrough_key(), 0)), # 周目数随快照落档（07 §4.1 meta）
 		"created_at": Time.get_datetime_string_from_system(false, true),
 		"progress": "当前节点 %s · 已访 %d 节点 · 胜场 %d" % [graph.current_id,
 			graph.visit_log.size(), _battles_won],

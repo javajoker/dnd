@@ -58,6 +58,7 @@ func _init() -> void:
 	test_new_game_seed()
 	test_texts()
 	test_pack_locale()
+	test_no_content_constants()
 	test_loadout()
 	test_growth()
 	test_quest_runtime()
@@ -3275,9 +3276,9 @@ func test_story_runtime() -> void:
 	g3.start()
 	g3.seed_gold()
 	g3.seed_gold(99)
-	check(g3.get_gold() == StoryGraph.GOLD_START, "金币播种幂等（重复不覆盖）")
+	check(g3.get_gold() == 30, "金币播种幂等（重复不覆盖）")
 	check(g3.hub_buy("half_tide_table"), "购买半页潮汐表成功")
-	check(g3.get_gold() == StoryGraph.GOLD_START - 15, "金币扣减 15（items.json price 占位）")
+	check(g3.get_gold() == 30 - 15, "金币扣减 15（items.json price 占位）")
 	check(b3.has_item("half_tide_table"), "购买 give_item 落板")
 	check(s3.query_by_type(EventTypes.FLAG_WRITE).any(func(ev: Dictionary) -> bool:
 		return str((ev["payload"] as Dictionary)["key"]) == "campaign01.gold"),
@@ -3288,7 +3289,7 @@ func test_story_runtime() -> void:
 		"金币写板带溯源（07 §1）")
 	check(not g3.hub_buy("fatedie"), "非卖品（无 price）拒绝")
 	check(g3.hub_buy("heal_potion"), "购买补给药水成功（验收裁决 B 上架，战役书 §8）")
-	check(g3.get_gold() == StoryGraph.GOLD_START - 30 and b3.item_count("heal_potion") == 1,
+	check(g3.get_gold() == 30 - 30 and b3.item_count("heal_potion") == 1,
 		"购买药水：扣 15 金 + give_item（验收裁决 B）")
 	b3.write("campaign01.gold", 5, prov)
 	check(not g3.hub_buy("half_tide_table"), "金币不足拒绝购买")
@@ -3342,7 +3343,7 @@ func test_story_vm() -> void:
 	graph.take_edge(_edge_to(graph, "N0-4"))
 	graph.take_edge(_edge_to(graph, "N1-1"))
 	vm = StoryVM.build(graph, board, pack)
-	check(str(vm["type"]) == "hub" and int(vm["gold"]) == StoryGraph.GOLD_START
+	check(str(vm["type"]) == "hub" and int(vm["gold"]) == 30
 		and (vm["stock"] as Array).size() == 2 and (vm["rumors"] as Array).size() >= 4,
 		"vm：hub 金币/货单（潮汐表+药水，裁决 B）/传闻齐备")
 	# 对话选项声望角标（N1-3：接触三方 → 目标节点 on_enter rep 效果）
@@ -5101,7 +5102,7 @@ func test_main_flow() -> void:
 	var hub_opts := sh.story_option_texts()
 	check(hub_opts.has(TextsZh.HUB_SHOP) and hub_opts.has(TextsZh.HUB_REST) and hub_opts.has(TextsZh.HUB_RUMOR),
 		"hub 渲染：商店/休整/传闻三设施（战役书 §4 N1-1）")
-	check(m.graph.get_gold() == StoryGraph.GOLD_START, "金币播种（开局 30 占位，待裁决）")
+	check(m.graph.get_gold() == 30, "金币播种（开局 30 占位，待裁决）")
 	m._on_hub_action("rumor", "")
 	await process_frame
 	check(sh.flash_label.text.contains("传闻"), "传闻 toast（战役书 §4：未择路线以传闻提及）")
@@ -5124,7 +5125,7 @@ func test_main_flow() -> void:
 		"商店半屏弹层：货单含潮汐表与药水价格（04 §3.3；验收裁决 B 上架）")
 	buy_btn.pressed.emit()
 	await process_frame
-	check(m.board.has_item("half_tide_table") and m.graph.get_gold() == StoryGraph.GOLD_START - 15,
+	check(m.board.has_item("half_tide_table") and m.graph.get_gold() == 30 - 15,
 		"购买：give_item + 金币扣减（07 §1 溯源写板）")
 	# 购买后弹层货单重建（sync_hub_popup），按钮需重新获取（真实用户视角：读新列表再点）
 	potion_btn = null
@@ -5133,12 +5134,12 @@ func test_main_flow() -> void:
 			potion_btn = child
 	potion_btn.pressed.emit()
 	await process_frame
-	check(m.board.item_count("heal_potion") == 3 and m.graph.get_gold() == StoryGraph.GOLD_START - 30,
+	check(m.board.item_count("heal_potion") == 3 and m.graph.get_gold() == 30 - 30,
 		"购买药水：扣 15 金 + give_item（序章带入 ×2 + 购买 ×1，验收裁决 B）")
 	check((m._loadout_candidates()["items"] as Array).any(func(it: Variant) -> bool:
 		return str((it as Dictionary)["id"]) == "heal_potion" and int((it as Dictionary)["count"]) == 3),
 		"药水入整备携行候选（战斗中可使用，tech/04 §4；CMD_ITEM 通道已由遭遇测试验证）")
-	check(sh.hub_popup.gold_label.text == TextsZh.HUB_GOLD % (StoryGraph.GOLD_START - 30),
+	check(sh.hub_popup.gold_label.text == TextsZh.HUB_GOLD % (30 - 30),
 		"购买后弹层金币同步刷新")
 	sh.hub_popup.hide()
 	m.board.write("campaign01.gold", 5, {"event_id": m.stream.tail(), "node_id": "N1-1", "pack_id": "campaign01"})
@@ -6040,6 +6041,33 @@ func test_texts() -> void:
 			if not Texts.has_key(Texts.SOURCE_LOCALE, StringName(m.get_string(1))):
 				bad_keys.append(m.get_string(1))
 	check(bad_keys.is_empty(), "事件 msg_key 全部有模板：%s" % ";".join(bad_keys))
+
+# ---------------------------------------------------------------- 框架零内容常量（白皮书 §2；代码评审 M1）
+
+func test_no_content_constants() -> void:
+	print("[no_content_constants]")
+	var ids := ["campaign01", "arena", "riddle_maze", "arc_tide"]
+	var hits: Array = []
+	var node_id := RegEx.create_from_string("\"(N[0-9]-[0-9A-Za-z-]*|R[0-9][a-z0-9-]*|E[0-9])\"")
+	for path: String in _gd_files(["res://core", "res://shell", "res://main.gd", "res://subgame_runner.gd"]):
+		var lines := FileAccess.get_file_as_string(path).split("\n")
+		for n: int in lines.size():
+			var code := lines[n].split("#")[0]
+			for id: String in ids:
+				if code.contains("\"%s" % id) or code.contains("%s." % id):
+					hits.append("%s:%d(%s)" % [path.get_file(), n + 1, id])
+			if node_id.search(code) != null:
+				hits.append("%s:%d(node id)" % [path.get_file(), n + 1])
+	check(hits.is_empty(), "core/shell/main 零内容包 id / 节点 id 常量：%s" % ";".join(hits))
+	check(StoryVM.is_bookkeeping_key("arena.gold") and StoryVM.is_bookkeeping_key("campaign01.hp.pc")
+		and StoryVM.is_bookkeeping_key("global.growth.xp") and not StoryVM.is_bookkeeping_key("campaign01.seen_fading"),
+		"簿记键按键形判定（任何包命名空间通用）")
+	var v1 := {"save_version": 1, "board": {"data": {"campaign02.xp_total": 350, "campaign02.seen": true},
+		"provenance": {}}}
+	var mig: Dictionary = SaveSystem.migrate(v1)["snapshot"]
+	var data: Dictionary = mig["board"]["data"]
+	check(int(data.get("global.growth.xp", 0)) == 350 and not data.has("campaign02.xp_total")
+		and bool(data.get("campaign02.seen", false)), "v1→v2 迁移按命名空间发现（不写死 campaign01）")
 
 # ---------------------------------------------------------------- 内容包多语言叠加 + V15（tech/02 §1.1/§12）
 

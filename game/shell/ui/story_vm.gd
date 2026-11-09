@@ -139,16 +139,24 @@ static func _future_rooms(pack: Dictionary, from_id: String, limit: int) -> Arra
 
 ## 状态反馈 toast 文案（事件流驱动，双壳同源）：返回 "" = 不产生 toast。
 ## 簿记键（成长/金币/HP/模式选择）不打扰玩家（与 04 §⑨ 结算过滤同一口径）。
+## 内部簿记键（成长/金币/HP/迷宫进度/教程/模式选择）：不念给玩家（04 §⑨ 与 toast 同一口径）。
+## 按键形判断，适用于任何内容包命名空间（不写死包 id）。
+static func is_bookkeeping_key(key: String) -> bool:
+	if key.begins_with("global.growth.") or key.begins_with("global.tutorial.") \
+			or key.begins_with("global.mode_choice."):
+		return true
+	if key.begins_with("global.") or not "." in key:
+		return false
+	var rest := key.get_slice(".", 1) if key.count(".") == 1 else key.substr(key.find(".") + 1)
+	return rest in ["gold", "xp_total", "level", "ngplus", "wins", "best"] or rest.begins_with("attr") \
+		or rest.begins_with("hp.") or rest.begins_with("maze.")
+
 static func toast_text(ev: Dictionary, pack: Dictionary = {}) -> String:
 	var p: Dictionary = ev.get("payload", {})
 	match StringName(ev["type"]):
 		EventTypes.FLAG_WRITE:
 			var key := str(p.get("key", ""))
-			if key.begins_with("global.growth.") or key.begins_with("campaign01.attr") \
-					or key == "campaign01.xp_total" \
-					or key == "campaign01.level" or key == "campaign01.gold" \
-					or key.begins_with("campaign01.hp.") or key.begins_with("campaign01.maze.") \
-					or key.begins_with("global.tutorial.") or key.begins_with("global.mode_choice."):
+			if is_bookkeeping_key(key):
 				return ""
 			return Texts.s(&"TOAST_FLAG") % key
 		EventTypes.REP_CHANGE:

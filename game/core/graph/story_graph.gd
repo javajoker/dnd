@@ -227,19 +227,30 @@ func next_clock_trigger() -> Dictionary:
 # ---------------------------------------------------------------- Hub 动作（战役书 §4 N1-1：休整 / 商店 / 传闻）
 # 金币：包命名空间计数型旗标 <pack>.gold（07 §2 货币条款，v1.7 补记；M2 审计 X1 裁决：合规）。
 
-const GOLD_KEY := "campaign01.gold" ## 计数型旗标（包命名空间，07 §2）
-const GOLD_START := 30              ## 开局金币占位确认值（战役书未定初始金，campaign01 README 决策记录）
+# 开局配置来自 manifest.start（tech/02 §2.8）：{gold, items:[{item, n}]}——框架不写死任何包的经济数值。
+
+## 本包金币键（<pack_id>.gold）。
+func gold_key() -> String:
+	return "%s.gold" % pack_id
+
+## manifest.start.gold（缺省 0）。
+func start_gold() -> int:
+	return int(((pack.get("manifest", {}) as Dictionary).get("start", {}) as Dictionary).get("gold", 0))
+
+## manifest.start.items（开局带入道具，叙事既定）：[{item, n}]。
+func start_items() -> Array:
+	return ((pack.get("manifest", {}) as Dictionary).get("start", {}) as Dictionary).get("items", [])
 
 func _hub_prov() -> Dictionary:
 	return {"event_id": board.stream.tail(), "node_id": current_id, "pack_id": pack_id}
 
 ## 开局播种金币（幂等：已存在不覆盖）。
-func seed_gold(amount: int = GOLD_START) -> void:
-	if not board.has(GOLD_KEY):
-		board.write(GOLD_KEY, amount, _hub_prov())
+func seed_gold(amount: int = -1) -> void:
+	if not board.has(gold_key()):
+		board.write(gold_key(), amount if amount >= 0 else start_gold(), _hub_prov())
 
 func get_gold() -> int:
-	return int(board.read(GOLD_KEY, 0))
+	return int(board.read(gold_key(), 0))
 
 ## 商店货单 = items.json 含 price 字段条目（tech/02 §7 投放声明；价格占位见 campaign01 README M2 记录）。
 func hub_stock() -> Array:
@@ -261,7 +272,7 @@ func hub_buy(item_id: String) -> bool:
 	var price := int(it["price"])
 	if get_gold() < price:
 		return false
-	board.write(GOLD_KEY, get_gold() - price, _hub_prov())
+	board.write(gold_key(), get_gold() - price, _hub_prov())
 	board.give_item(item_id, 1, _hub_prov())
 	return true
 

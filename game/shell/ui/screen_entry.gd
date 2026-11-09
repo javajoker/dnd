@@ -118,7 +118,7 @@ func bind_subgames(cards: Array) -> void:
 		if bool(c.get("locked", false)):
 			# 锁定态（06 §3.1：可见但锁定，叙事化包装）
 			var lock_label := Label.new()
-			lock_label.text = str(c.get("lock_text", Texts.s(&"LOCK_ARENA")))
+			lock_label.text = str(c.get("lock_text", Texts.s(&"LOCK_DEFAULT")))
 			lock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			lock_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			lock_label.custom_minimum_size = Vector2(340, 0)

@@ -81,11 +81,27 @@ static func _migrate_v1_to_v2(snapshot: Dictionary) -> Dictionary:
 	var board: Dictionary = (s.get("board", {}) as Dictionary).duplicate(true)
 	var data: Dictionary = board.get("data", {})
 	var prov: Dictionary = board.get("provenance", {})
-	var xp := int(data.get("campaign01.xp_total", 0))
-	var had_level_key: bool = data.has("campaign01.level")
-	var lv := int(data.get("campaign01.level", 1))
-	var points := int(data.get("campaign01.attr_points", 0))
-	var attrs: Dictionary = (data.get("campaign01.attrs", {}) as Dictionary)
+	# 旧档的成长簿记在各包命名空间下（<ns>.xp_total/level/attr_points/attrs/attr_granted）——按命名空间发现，不写死包 id
+	var namespaces := {}
+	for k: Variant in data.keys():
+		var key := str(k)
+		if key.begins_with("global.") or key.count(".") != 1:
+			continue
+		if key.get_slice(".", 1) in ["xp_total", "level", "attr_points", "attrs"]:
+			namespaces[key.get_slice(".", 0)] = true
+	for ns: String in namespaces.keys():
+		_merge_growth_v1(ns, data, prov)
+	board["data"] = data
+	board["provenance"] = prov
+	s["board"] = board
+	return s
+
+static func _merge_growth_v1(ns: String, data: Dictionary, prov: Dictionary) -> void:
+	var xp := int(data.get(ns + ".xp_total", 0))
+	var had_level_key: bool = data.has(ns + ".level")
+	var lv := int(data.get(ns + ".level", 1))
+	var points := int(data.get(ns + ".attr_points", 0))
+	var attrs: Dictionary = (data.get(ns + ".attrs", {}) as Dictionary)
 	if xp > 0:
 		data["global.growth.xp"] = int(data.get("global.growth.xp", 0)) + xp
 		lv = maxi(lv, LightV1.level_for_xp(xp)) # 门槛表重算取大（11 §6；防旧档漏升）
@@ -98,14 +114,9 @@ static func _migrate_v1_to_v2(snapshot: Dictionary) -> Dictionary:
 	for attr: Variant in attrs.keys():
 		var k := "global.growth.attrs.%s" % str(attr)
 		data[k] = int(data.get(k, 0)) + int(attrs[attr])
-	for old_key: String in ["campaign01.xp_total", "campaign01.level", "campaign01.attr_points",
-			"campaign01.attrs", "campaign01.attr_granted"]:
-		data.erase(old_key)
-		prov.erase(old_key)
-	board["data"] = data
-	board["provenance"] = prov
-	s["board"] = board
-	return s
+	for suffix: String in [".xp_total", ".level", ".attr_points", ".attrs", ".attr_granted"]:
+		data.erase(ns + suffix)
+		prov.erase(ns + suffix)
 
 ## 应用快照到运行态：Board 全量 + RNG 状态（事件流锚点由调用方记录，不重演历史）。
 static func apply(snapshot: Dictionary, board: Board, rng: Rng) -> void:

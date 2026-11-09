@@ -21,6 +21,7 @@
   "recommended_level": [1, 4],
   "estimated_hours": "6-9",
   "node_budget": 35,
+  "start": { "gold": 30, "items": [ { "item": "heal_potion", "n": 2 } ] },
   "ngplus": {
     "carries": {
       "lore": true,
