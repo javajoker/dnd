@@ -84,12 +84,12 @@ static func edge_display(e: Dictionary, graph: StoryGraph, pack: Dictionary) -> 
 	if d["type"] == "check":
 		var skill := str(e.get("skill", ""))
 		var diff := str(e.get("difficulty", "medium"))
-		d["label"] = "%s：%s（%s DC %d · 修正 %+d）" % [TextsZh.STORY_CHECK,
-			str(TextsZh.SKILL_NAMES.get(skill, skill)), str(TextsZh.DIFF_NAMES.get(diff, diff)),
+		d["label"] = Texts.s(&"FMT_CHECK_LABEL") % [Texts.s(&"STORY_CHECK"),
+			str(Texts.t(&"SKILL_NAMES").get(skill, skill)), str(Texts.t(&"DIFF_NAMES").get(diff, diff)),
 			LightV1.dc_for(diff), graph.check_mod(skill)]
 		d["check"] = true
 	if d["label"].is_empty():
-		d["label"] = TextsZh.STORY_CONTINUE
+		d["label"] = Texts.s(&"STORY_CONTINUE")
 	var factions: Array = []
 	var scan: Array = (e.get("effects", []) as Array).duplicate()
 	scan.append(e.get("requires", {}))
@@ -106,14 +106,14 @@ static func edge_display(e: Dictionary, graph: StoryGraph, pack: Dictionary) -> 
 					factions.append(f)
 	var badges: Array = []
 	for f: String in factions:
-		badges.append("%s %+d" % [str(TextsZh.FACTION_NAMES.get(f, f)), graph.board.get_rep(f)])
+		badges.append("%s %+d" % [str(Texts.t(&"FACTION_NAMES").get(f, f)), graph.board.get_rep(f)])
 	if not badges.is_empty():
-		d["label"] += "　〔%s〕" % " ".join(badges)
+		d["label"] += Texts.s(&"EDGE_BADGES") % " ".join(badges)
 	return d
 
 ## 传闻文案：只复述事件清单中已登记的名称/目标（不再创作，tech/02 §5 数据源）。
 static func rumor_text(def: Dictionary) -> String:
-	return "传闻：有人说起「%s」——%s。" % [str(def.get("name", "")), str(def.get("objective", ""))]
+	return Texts.s(&"RUMOR_LINE") % [str(def.get("name", "")), str(def.get("objective", ""))]
 
 ## 未来房间预览：沿每个节点首条边（check 取 success 目标）纯数据行走，不实例化、不写板。
 static func _future_rooms(pack: Dictionary, from_id: String, limit: int) -> Array[String]:
@@ -147,29 +147,29 @@ static func toast_text(ev: Dictionary, pack: Dictionary = {}) -> String:
 					or key.begins_with("campaign01.hp.") or key.begins_with("campaign01.maze.") \
 					or key.begins_with("global.tutorial.") or key.begins_with("global.mode_choice."):
 				return ""
-			return "旗标更新：%s" % key
+			return Texts.s(&"TOAST_FLAG") % key
 		EventTypes.REP_CHANGE:
 			var f := str(p.get("key", "")).trim_prefix("global.rep.")
-			return "声望：%s %+d（%d）" % [str(TextsZh.FACTION_NAMES.get(f, f)),
+			return Texts.s(&"TOAST_REP") % [str(Texts.t(&"FACTION_NAMES").get(f, f)),
 				int(p.get("delta", 0)), int(p.get("value", 0))]
 		EventTypes.ITEM_GAIN:
 			var iid := str(p.get("item_id", ""))
 			var name := str((pack.get("items", {}) as Dictionary).get(iid, {}).get("name", iid)) \
 				if not pack.is_empty() else iid
-			return "获得：%s ×%d" % [name, int(p.get("count", 1))]
+			return Texts.s(&"TOAST_ITEM_GAIN") % [name, int(p.get("count", 1))]
 		EventTypes.ITEM_REMOVE:
 			var iid2 := str(p.get("item_id", ""))
 			var name2 := str((pack.get("items", {}) as Dictionary).get(iid2, {}).get("name", iid2)) \
 				if not pack.is_empty() else iid2
-			return "消耗：%s ×%d" % [name2, int(p.get("count", 1))]
+			return Texts.s(&"TOAST_ITEM_LOSS") % [name2, int(p.get("count", 1))]
 		EventTypes.QUEST_TRIGGER:
-			return "事件触发：%s" % str(p.get("name", p.get("id", "")))
+			return Texts.s(&"TOAST_QUEST_TRIGGER") % str(p.get("name", p.get("id", "")))
 		EventTypes.QUEST_SETTLE:
-			return "事件完结：%s" % str(p.get("name", p.get("id", "")))
+			return Texts.s(&"TOAST_QUEST_SETTLE") % str(p.get("name", p.get("id", "")))
 		EventTypes.LORE_UNLOCK:
 			var added: Array = p.get("added", [])
-			return "" if added.is_empty() else "图鉴新增：%s" % "、".join(added)
+			return "" if added.is_empty() else Texts.s(&"TOAST_LORE") % Texts.s(&"LIST_SEP").join(added)
 		EventTypes.LOG:
 			# 内容侧显式标记 toast 的日志（hub 传闻/休整等）上浮为 toast
-			return str(p.get("msg", "")) if bool(p.get("toast", false)) else ""
+			return Texts.msg(p) if bool(p.get("toast", false)) else ""
 	return ""

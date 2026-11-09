@@ -82,7 +82,7 @@ func _build_portrait() -> void:
 	v.add_theme_constant_override("separation", 8)
 	add_child(v)
 	var title := Label.new()
-	title.text = TextsZh.LOADOUT_TITLE
+	title.text = Texts.s(&"LOADOUT_TITLE")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 24)
 	v.add_child(title)
@@ -108,11 +108,11 @@ func _build_portrait() -> void:
 	hint_label.add_theme_color_override("font_color", Color(1.0, 0.7, 0.4))
 	v.add_child(hint_label)
 	confirm_button = Button.new()
-	confirm_button.text = TextsZh.LOADOUT_CONFIRM
+	confirm_button.text = Texts.s(&"LOADOUT_CONFIRM")
 	confirm_button.pressed.connect(_on_confirm)
 	v.add_child(confirm_button)
 	back_button = Button.new()
-	back_button.text = TextsZh.COMMON_BACK
+	back_button.text = Texts.s(&"COMMON_BACK")
 	back_button.pressed.connect(func() -> void: back_requested.emit())
 	v.add_child(back_button)
 
@@ -127,7 +127,7 @@ func _build_landscape() -> void:
 	top.add_theme_constant_override("separation", 16)
 	root_v.add_child(top)
 	var title := Label.new()
-	title.text = TextsZh.LOADOUT_TITLE
+	title.text = Texts.s(&"LOADOUT_TITLE")
 	title.add_theme_font_size_override("font_size", 24)
 	top.add_child(title)
 	var top_spacer := Control.new()
@@ -167,7 +167,7 @@ func _build_landscape() -> void:
 	col_right.add_theme_constant_override("separation", 8)
 	cols.add_child(col_right)
 	var preset_title := Label.new()
-	preset_title.text = TextsZh.LOADOUT_PRESET_TITLE
+	preset_title.text = Texts.s(&"LOADOUT_PRESET_TITLE")
 	preset_title.add_theme_font_size_override("font_size", 18)
 	col_right.add_child(preset_title)
 	preset_box = VBoxContainer.new() # 系统预设一键套用（09 §9.3：预设卡可点击套用）
@@ -185,13 +185,13 @@ func _build_landscape() -> void:
 	hint_label.add_theme_color_override("font_color", Color(1.0, 0.7, 0.4))
 	col_right.add_child(hint_label)
 	confirm_button = Button.new()
-	confirm_button.text = TextsZh.LOADOUT_CONFIRM
+	confirm_button.text = Texts.s(&"LOADOUT_CONFIRM")
 	confirm_button.custom_minimum_size = Vector2(240, 72) # 大号开战按钮
 	confirm_button.add_theme_font_size_override("font_size", 22)
 	confirm_button.pressed.connect(_on_confirm)
 	col_right.add_child(confirm_button)
 	back_button = Button.new()
-	back_button.text = TextsZh.COMMON_BACK
+	back_button.text = Texts.s(&"COMMON_BACK")
 	back_button.pressed.connect(func() -> void: back_requested.emit())
 	col_right.add_child(back_button)
 
@@ -219,7 +219,7 @@ func _refresh() -> void:
 	var skill_slots := int(_config.get("skill_slots", 0))
 	var item_slots := int(_config.get("item_slots", 0))
 	var head := Label.new()
-	head.text = TextsZh.LOADOUT_SKILLS % [_skills.size(), skill_slots]
+	head.text = Texts.s(&"LOADOUT_SKILLS") % [_skills.size(), skill_slots]
 	head.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	skill_box.add_child(head)
 	for sk: Variant in _skills:
@@ -232,7 +232,7 @@ func _refresh() -> void:
 		b.pressed.connect(func() -> void: _toggle_skill(sid))
 		skill_box.add_child(b)
 	var ihead := Label.new()
-	ihead.text = TextsZh.LOADOUT_ITEMS % item_slots
+	ihead.text = Texts.s(&"LOADOUT_ITEMS") % item_slots
 	ihead.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	item_box.add_child(ihead)
 	for it: Variant in _items:
@@ -244,8 +244,8 @@ func _refresh() -> void:
 		b.disabled = not picked and _picked_items.size() >= item_slots
 		b.pressed.connect(func() -> void: _toggle_item(iid))
 		item_box.add_child(b)
-	attr_label.text = TextsZh.LOADOUT_ATTRS % _attr_points
-	var names := {"might": "力", "finesse": "敏", "wits": "智"}
+	attr_label.text = Texts.s(&"LOADOUT_ATTRS") % _attr_points
+	var names: Dictionary = Texts.t(&"ATTR_SHORT")
 	for attr: String in ["might", "finesse", "wits"]:
 		var b := Button.new()
 		b.text = "%s %+d +" % [str(names[attr]), int(_attr_alloc.get(attr, 0))]
@@ -314,7 +314,7 @@ func _apply_preset(preset: Dictionary) -> void:
 			missing.append(it)
 	_refresh()
 	if not missing.is_empty():
-		hint_label.text = TextsZh.LOADOUT_PRESET_MISSING % "、".join(missing)
+		hint_label.text = Texts.s(&"LOADOUT_PRESET_MISSING") % Texts.s(&"LIST_SEP").join(missing)
 
 ## 队伍状态条（04 §④.8 置顶；仅横屏有容器，竖屏 no-op）。
 func _refresh_party() -> void:
@@ -325,7 +325,7 @@ func _refresh_party() -> void:
 	for p: Variant in _party:
 		var d: Dictionary = p
 		var l := Label.new()
-		l.text = TextsZh.LOADOUT_PARTY_ITEM % [str(d.get("name", "")), int(d.get("hp", 0)), int(d.get("max_hp", 0))]
+		l.text = Texts.s(&"LOADOUT_PARTY_ITEM") % [str(d.get("name", "")), int(d.get("hp", 0)), int(d.get("max_hp", 0))]
 		party_bar.add_child(l)
 
 ## 预设卡 = 当前选择摘要（04 §④.8 右列「预设与开战」；命名预设的保存/调用无数据规格，待裁决）。
@@ -341,7 +341,7 @@ func _refresh_preset() -> void:
 		var d: Dictionary = it
 		if _picked_items.has(str(d["id"])):
 			names.append(str(d.get("name", d["id"])))
-	preset_label.text = "、".join(names) if not names.is_empty() else TextsZh.LOADOUT_PRESET_EMPTY
+	preset_label.text = Texts.s(&"LIST_SEP").join(names) if not names.is_empty() else Texts.s(&"LOADOUT_PRESET_EMPTY")
 
 func _toggle_skill(sid: String) -> void:
 	if _picked_skills.has(sid):
@@ -360,7 +360,7 @@ func _toggle_item(iid: String) -> void:
 func _on_confirm() -> void:
 	var reason := Loadout.validate(_config, _picked_skills, _picked_items)
 	if reason != "":
-		hint_label.text = "%s：%s" % [TextsZh.LOADOUT_FULL, reason]
+		hint_label.text = Texts.s(&"COLON_PAIR_FMT") % [Texts.s(&"LOADOUT_FULL"), reason]
 		return
 	confirmed.emit({"skills": _picked_skills.duplicate(), "items": _picked_items.duplicate(),
 		"attr_alloc": _attr_alloc.duplicate(), "attr_points_left": _attr_points})

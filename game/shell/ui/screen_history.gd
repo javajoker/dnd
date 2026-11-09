@@ -36,7 +36,7 @@ func _build() -> void:
 	v.add_theme_constant_override("separation", 6)
 	add_child(v)
 	var title := Label.new()
-	title.text = TextsZh.HISTORY_TITLE
+	title.text = Texts.s(&"HISTORY_TITLE")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 24)
 	v.add_child(title)
@@ -52,7 +52,7 @@ func _build() -> void:
 	detail_label.custom_minimum_size = Vector2(0, 110)
 	v.add_child(detail_label)
 	back_button = Button.new()
-	back_button.text = TextsZh.COMMON_BACK
+	back_button.text = Texts.s(&"COMMON_BACK")
 	back_button.pressed.connect(func() -> void: back_requested.emit())
 	v.add_child(back_button)
 	_build_replay()
@@ -71,7 +71,7 @@ func _refresh() -> void:
 	var events := _stream.all()
 	if events.is_empty():
 		var l := Label.new()
-		l.text = TextsZh.HISTORY_EMPTY
+		l.text = Texts.s(&"HISTORY_EMPTY")
 		list_box.add_child(l)
 		return
 	var shown := 0
@@ -92,7 +92,7 @@ func _refresh() -> void:
 		if StringName(ev["type"]) == EventTypes.COMBAT_START:
 			# 战报回放（04 §⑧：重要战斗的事件流重演，纯演出不可改结果）
 			var rb := Button.new()
-			rb.text = TextsZh.HISTORY_REPLAY
+			rb.text = Texts.s(&"HISTORY_REPLAY")
 			var start_id := int(ev["id"])
 			rb.pressed.connect(func() -> void: start_replay(start_id))
 			row.add_child(rb)
@@ -104,19 +104,19 @@ func _row_text(ev: Dictionary) -> String:
 	match StringName(ev["type"]):
 		EventTypes.CHECK_ROLL:
 			brief = "%s %s vs DC%d %s" % [_name(str(p.get("roller", ""))), str(p.get("keep", "?")),
-				int(p.get("dc", 0)), TextsZh.RESULT_SUCCESS if bool(p.get("success", false)) else TextsZh.RESULT_FAIL]
+				int(p.get("dc", 0)), Texts.s(&"RESULT_SUCCESS") if bool(p.get("success", false)) else Texts.s(&"RESULT_FAIL")]
 		EventTypes.BATTLE_ATTACK:
 			brief = "%s → %s %s" % [_name(str(p.get("attacker", ""))), _name(str(p.get("target", ""))),
-				"命中 %d" % int(p.get("damage", 0)) if bool(p.get("hit", false)) else "未命中"]
+				Texts.s(&"HIST_HIT") % int(p.get("damage", 0)) if bool(p.get("hit", false)) else Texts.s(&"HIST_MISS")]
 		EventTypes.FLAG_WRITE, EventTypes.REP_CHANGE, EventTypes.CLOCK_TICK, \
 		EventTypes.BOND_CHANGE, EventTypes.ALIGNMENT_SHIFT:
 			brief = str(p.get("key", ""))
 		EventTypes.QUEST_TRIGGER, EventTypes.QUEST_SETTLE:
 			brief = str(p.get("name", p.get("id", "")))
 		EventTypes.LOG:
-			brief = str(p.get("msg", "")).left(24)
+			brief = Texts.msg(p).left(24)
 		_:
-			brief = str(p.get("msg", p.get("name", p.get("state", "")))).left(24)
+			brief = (Texts.msg(p) if p.has("msg") or p.has("msg_key") else str(p.get("name", p.get("state", "")))).left(24)
 	# 注：payload.key 在旗标事件中是字符串键名，关键判定标记只在 key 为布尔 true 时点亮（09 §6）
 	var key_mark := " ★" if _is_key_roll(p) else ""
 	return "#%d [%s]%s %s" % [int(ev["id"]), str(ev["type"]), key_mark, brief]
@@ -125,30 +125,30 @@ func _row_text(ev: Dictionary) -> String:
 func _detail_text(ev: Dictionary) -> String:
 	var p: Dictionary = ev["payload"]
 	var lines: Array[String] = ["#%d [%s]%s" % [int(ev["id"]), str(ev["type"]),
-		"　" + TextsZh.HISTORY_KEY_MARK if _is_key_roll(p) else ""]]
+		"　" + Texts.s(&"HISTORY_KEY_MARK") if _is_key_roll(p) else ""]]
 	match StringName(ev["type"]):
 		EventTypes.CHECK_ROLL:
-			lines.append("检定明细：骰 %s 取 %d 修正 %+d = %d vs DC %d → %s" % [
+			lines.append(Texts.s(&"HIST_CHECK_DETAIL") % [
 				str(p.get("rolls", [])), int(p.get("keep", 0)), int(p.get("mod", 0)),
 				int(p.get("total", p.get("keep", 0))), int(p.get("dc", 0)),
-				TextsZh.RESULT_SUCCESS if bool(p.get("success", false)) else TextsZh.RESULT_FAIL])
+				Texts.s(&"RESULT_SUCCESS") if bool(p.get("success", false)) else Texts.s(&"RESULT_FAIL")])
 			if str(p.get("kind", "")) == "death_save":
-				lines.append("死亡豁免 %d 胜 %d 负" % [int(p.get("s", 0)), int(p.get("f", 0))])
+				lines.append(Texts.s(&"HIST_DEATH_SAVES") % [int(p.get("s", 0)), int(p.get("f", 0))])
 		EventTypes.BATTLE_ATTACK:
-			lines.append("攻击明细：骰 %s 取 %d（%s）修正 %+d vs AC %d → %s" % [
+			lines.append(Texts.s(&"HIST_ATTACK_DETAIL") % [
 				str(p.get("rolls", [])), int(p.get("keep", 0)), str(p.get("mode", "")),
 				int(p.get("atk_mod", 0)), int(p.get("target_ac", 0)),
-				"命中，伤害 %d %s" % [int(p.get("damage", 0)), str(p.get("damage_rolls", []))]
-					if bool(p.get("hit", false)) else "未命中"])
+				Texts.s(&"HIST_HIT_DETAIL") % [int(p.get("damage", 0)), str(p.get("damage_rolls", []))]
+					if bool(p.get("hit", false)) else Texts.s(&"HIST_MISS")])
 		EventTypes.FLAG_WRITE, EventTypes.REP_CHANGE, EventTypes.CLOCK_TICK, \
 		EventTypes.BOND_CHANGE, EventTypes.ALIGNMENT_SHIFT:
-			lines.append("旗标变化：%s　%s → %s" % [str(p.get("key", "")),
+			lines.append(Texts.s(&"HIST_FLAG_CHANGE") % [str(p.get("key", "")),
 				str(p.get("old", "")), str(p.get("value", ""))])
 	var prov: Dictionary = p.get("provenance", {})
 	if not prov.is_empty():
-		lines.append(TextsZh.HISTORY_PROV % [str(prov.get("node_id", "?")), str(prov.get("pack_id", "?"))])
+		lines.append(Texts.s(&"HISTORY_PROV") % [str(prov.get("node_id", "?")), str(prov.get("pack_id", "?"))])
 	elif str(ev.get("node", "")) != "":
-		lines.append(TextsZh.HISTORY_PROV % [str(ev["node"]), str(ev.get("source", ""))])
+		lines.append(Texts.s(&"HISTORY_PROV") % [str(ev["node"]), str(ev.get("source", ""))])
 	return "\n".join(lines)
 
 func _name(id: String) -> String:
@@ -172,7 +172,7 @@ func _build_replay() -> void:
 	v.add_theme_constant_override("separation", 6)
 	replay_panel.add_child(v)
 	var title := Label.new()
-	title.text = TextsZh.REPLAY_TITLE
+	title.text = Texts.s(&"REPLAY_TITLE")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 20)
 	v.add_child(title)
@@ -189,11 +189,11 @@ func _build_replay() -> void:
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	v.add_child(row)
 	var skip := Button.new() # 跳过 = 直接播完（不丢信息，04 §④.7 同原则）
-	skip.text = TextsZh.REPLAY_SKIP
+	skip.text = Texts.s(&"REPLAY_SKIP")
 	skip.pressed.connect(func() -> void: _replay_finish())
 	row.add_child(skip)
 	var close := Button.new()
-	close.text = TextsZh.COMMON_BACK
+	close.text = Texts.s(&"COMMON_BACK")
 	close.pressed.connect(func() -> void: _replay_close())
 	row.add_child(close)
 	_replay_timer = Timer.new()
@@ -233,7 +233,7 @@ func _replay_finish() -> void:
 	while _replay_idx < _replay_lines.size():
 		replay_view.append_text(_replay_lines[_replay_idx] + "\n")
 		_replay_idx += 1
-	replay_hint.text = TextsZh.REPLAY_DONE
+	replay_hint.text = Texts.s(&"REPLAY_DONE")
 
 func _replay_close() -> void:
 	_replay_timer.stop()

@@ -62,7 +62,7 @@ func _build() -> void:
 	v.add_theme_constant_override("separation", 6)
 	margin.add_child(v)
 	var title := Label.new()
-	title.text = TextsZh.HOME_TITLE
+	title.text = Texts.s(&"HOME_TITLE")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 24)
 	v.add_child(title)
@@ -91,7 +91,7 @@ func _build() -> void:
 	toggle_row.add_theme_constant_override("separation", 4)
 	v.add_child(toggle_row)
 	var toggle_hint := Label.new()
-	toggle_hint.text = TextsZh.HOME_BAR_HINT
+	toggle_hint.text = Texts.s(&"HOME_BAR_HINT")
 	toggle_hint.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55))
 	toggle_hint.add_theme_font_size_override("font_size", 11)
 	toggle_hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -107,24 +107,24 @@ func _build() -> void:
 	var row1 := HBoxContainer.new()
 	row1.alignment = BoxContainer.ALIGNMENT_CENTER
 	fallback_bar.add_child(row1)
-	campaign_button = _entry(row1, TextsZh.HOME_ENTRY_CAMPAIGN, &"entry")
-	quests_button = _entry(row1, TextsZh.HOME_ENTRY_QUESTS, &"quests")
-	inventory_button = _entry(row1, TextsZh.HOME_ENTRY_INVENTORY, &"inventory")
+	campaign_button = _entry(row1, Texts.s(&"HOME_ENTRY_CAMPAIGN"), &"entry")
+	quests_button = _entry(row1, Texts.s(&"HOME_ENTRY_QUESTS"), &"quests")
+	inventory_button = _entry(row1, Texts.s(&"HOME_ENTRY_INVENTORY"), &"inventory")
 	var row2 := HBoxContainer.new()
 	row2.alignment = BoxContainer.ALIGNMENT_CENTER
 	fallback_bar.add_child(row2)
-	character_button = _entry(row2, TextsZh.HOME_ENTRY_CHARACTER, &"character")
-	history_button = _entry(row2, TextsZh.HOME_ENTRY_HISTORY, &"history")
+	character_button = _entry(row2, Texts.s(&"HOME_ENTRY_CHARACTER"), &"character")
+	history_button = _entry(row2, Texts.s(&"HOME_ENTRY_HISTORY"), &"history")
 	save_button = Button.new()
-	save_button.text = TextsZh.HOME_SAVE
+	save_button.text = Texts.s(&"HOME_SAVE")
 	save_button.custom_minimum_size = Vector2(0, 44)
 	save_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	save_button.pressed.connect(func() -> void:
-		saved_label.text = TextsZh.HOME_SAVED
+		saved_label.text = Texts.s(&"HOME_SAVED")
 		save_requested.emit())
 	row2.add_child(save_button)
 	help_button = Button.new()
-	help_button.text = TextsZh.HOME_HELP
+	help_button.text = Texts.s(&"HOME_HELP")
 	help_button.custom_minimum_size = Vector2(0, 44)
 	help_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	help_button.pressed.connect(_toggle_help)
@@ -148,7 +148,7 @@ func _entry(parent: Container, label: String, screen_id: StringName) -> Button:
 func set_bar_collapsed(collapsed: bool, persist: bool) -> void:
 	_bar_collapsed = collapsed
 	fallback_bar.visible = not collapsed
-	bar_toggle.text = TextsZh.HOME_BAR_EXPAND if collapsed else TextsZh.HOME_BAR_COLLAPSE
+	bar_toggle.text = Texts.s(&"HOME_BAR_EXPAND") if collapsed else Texts.s(&"HOME_BAR_COLLAPSE")
 	if persist:
 		UiSettings.save_home_bar_collapsed(collapsed, settings_path) # UI 偏好不写状态板（12 §5）
 
@@ -159,11 +159,11 @@ func is_bar_collapsed() -> bool:
 ## 刷新（只读 Board）。quest_badge = 进行中事件数；continuable = 存在可继续的战役进度/存档；
 ## promo = 运营配置 home_promo 块（06 §6：text 非空才亮相，否则运营位整体隐藏不出空位）。
 func bind(board: Board, quest_badge: int, continuable: bool, promo: Dictionary = {}) -> void:
-	doom_label.text = TextsZh.home_doom_text(board.get_doom_clock())
-	campaign_button.text = "%s（%s）" % [TextsZh.HOME_ENTRY_CAMPAIGN, TextsZh.HOME_CONTINUE] \
-		if continuable else TextsZh.HOME_ENTRY_CAMPAIGN
-	quests_button.text = "%s ◆%d" % [TextsZh.HOME_ENTRY_QUESTS, quest_badge] \
-		if quest_badge > 0 else TextsZh.HOME_ENTRY_QUESTS
+	doom_label.text = Texts.home_doom_text(board.get_doom_clock())
+	campaign_button.text = Texts.s(&"PAREN_PAIR_FMT") % [Texts.s(&"HOME_ENTRY_CAMPAIGN"), Texts.s(&"HOME_CONTINUE")] \
+		if continuable else Texts.s(&"HOME_ENTRY_CAMPAIGN")
+	quests_button.text = "%s ◆%d" % [Texts.s(&"HOME_ENTRY_QUESTS"), quest_badge] \
+		if quest_badge > 0 else Texts.s(&"HOME_ENTRY_QUESTS")
 	scroll.set_state(board.get_doom_clock(), quest_badge) # 绘卷随状态板变化（12 §5；04 §4 ①）
 	saved_label.text = ""
 	# 运营位：文案与目标完全来自运营配置（06 §3.2/§6；壳不创作文案、不走事件流、不写板）
@@ -186,22 +186,22 @@ func _build_help() -> void:
 	v.add_theme_constant_override("separation", 6)
 	_help_overlay.add_child(v)
 	var title := Label.new()
-	title.text = TextsZh.HELP_TITLE
+	title.text = Texts.s(&"HELP_TITLE")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 22)
 	v.add_child(title)
-	for line: String in TextsZh.HELP_LINES:
+	for line: String in Texts.lines(&"HELP_LINES"):
 		var l := Label.new()
 		l.text = line
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		l.custom_minimum_size = Vector2(340, 0)
 		v.add_child(l)
 	var close := Button.new()
-	close.text = TextsZh.COMMON_BACK
+	close.text = Texts.s(&"COMMON_BACK")
 	close.pressed.connect(_toggle_help)
 	v.add_child(close)
 	var retrain := Button.new() # 重学入口（12 §4：可重学——清触发记录并重放启动卡，写板由 main 落）
-	retrain.text = TextsZh.HELP_RETRAIN
+	retrain.text = Texts.s(&"HELP_RETRAIN")
 	retrain.pressed.connect(func() -> void: retrain_requested.emit())
 	v.add_child(retrain)
 

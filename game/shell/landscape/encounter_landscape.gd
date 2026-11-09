@@ -152,11 +152,11 @@ func _build_ui() -> void:
 	speed_button.pressed.connect(func() -> void: set_speed(2 if speed == 1 else 1))
 	top_h.add_child(speed_button)
 	auto_button = Button.new()
-	auto_button.text = TextsZh.AUTO_ON
+	auto_button.text = Texts.s(&"AUTO_ON")
 	auto_button.pressed.connect(func() -> void: set_auto(not auto_on))
 	top_h.add_child(auto_button)
 	menu_button = Button.new()
-	menu_button.text = TextsZh.MENU
+	menu_button.text = Texts.s(&"MENU")
 	menu_button.pressed.connect(_open_menu)
 	top_h.add_child(menu_button) # ☰ 常驻上缘右端（09 §7）
 	# 左栏 15%：行动轮盘
@@ -167,7 +167,7 @@ func _build_ui() -> void:
 	var wheel_v := VBoxContainer.new()
 	left_wheel.add_child(wheel_v)
 	wheel_title = Label.new()
-	wheel_title.text = TextsZh.ZONE_WHEEL
+	wheel_title.text = Texts.s(&"ZONE_WHEEL")
 	wheel_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	wheel_v.add_child(wheel_title)
 	wheel_actor = Label.new()
@@ -215,7 +215,7 @@ func _build_ui() -> void:
 	var dice_v := VBoxContainer.new()
 	right_dice.add_child(dice_v)
 	var dice_title := Label.new()
-	dice_title.text = TextsZh.ZONE_DICE
+	dice_title.text = Texts.s(&"ZONE_DICE")
 	dice_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	dice_v.add_child(dice_title)
 	dice_label = Label.new()
@@ -239,7 +239,7 @@ func _build_ui() -> void:
 	log_last.clip_text = true
 	log_header.add_child(log_last)
 	log_toggle = Button.new()
-	log_toggle.text = TextsZh.LOG_EXPAND
+	log_toggle.text = Texts.s(&"LOG_EXPAND")
 	log_toggle.pressed.connect(toggle_log)
 	log_header.add_child(log_toggle)
 	log_full = RichTextLabel.new()
@@ -273,7 +273,7 @@ func _build_ui() -> void:
 	key_result_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	key_v.add_child(key_result_label)
 	var hint := Label.new()
-	hint.text = TextsZh.KEY_ROLL_HINT
+	hint.text = Texts.s(&"KEY_ROLL_HINT")
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
 	key_v.add_child(hint)
@@ -331,16 +331,16 @@ func _build_menu() -> void:
 	var v := VBoxContainer.new()
 	menu_popup.add_child(v)
 	var b_continue := Button.new()
-	b_continue.text = TextsZh.MENU_CONTINUE
+	b_continue.text = Texts.s(&"MENU_CONTINUE")
 	b_continue.pressed.connect(func() -> void: menu_popup.hide())
 	v.add_child(b_continue)
 	var confirm_quit := [false]
 	var b_save := Button.new()
-	b_save.text = TextsZh.MENU_SAVE_QUIT
+	b_save.text = Texts.s(&"MENU_SAVE_QUIT")
 	b_save.pressed.connect(func() -> void:
 		if not confirm_quit[0]:
 			confirm_quit[0] = true # 弹确认，文案明说进度影响（09 §7）
-			b_save.text = TextsZh.MENU_CONFIRM_QUIT
+			b_save.text = Texts.s(&"MENU_CONFIRM_QUIT")
 		elif on_save_quit.is_valid():
 			menu_popup.hide()
 			on_save_quit.call() # 回遭遇进入前快照（09 §7），由 main 恢复并回主屏
@@ -348,9 +348,9 @@ func _build_menu() -> void:
 			get_tree().quit())
 	v.add_child(b_save)
 	var b_help := Button.new()
-	b_help.text = TextsZh.MENU_HELP
+	b_help.text = Texts.s(&"MENU_HELP")
 	b_help.pressed.connect(func() -> void:
-		_log_line("手势帮助：%s" % "\n".join(TextsZh.HELP_LINES)))
+		_log_line(Texts.s(&"LOG_GESTURE_HELP") % "\n".join(Texts.lines(&"HELP_LINES"))))
 	v.add_child(b_help)
 	shake_button = Button.new() # 屏幕震动开关（14 #4：UI 偏好，不写状态板，12 §5 同兜底条机制）
 	shake_button.pressed.connect(func() -> void:
@@ -363,8 +363,8 @@ func _build_menu() -> void:
 	add_child(menu_popup)
 
 func _sync_shake_button() -> void:
-	shake_button.text = TextsZh.MENU_SHAKE_ON \
-		if UiSettings.load_screen_shake(juice.settings_path) else TextsZh.MENU_SHAKE_OFF
+	shake_button.text = Texts.s(&"MENU_SHAKE_ON") \
+		if UiSettings.load_screen_shake(juice.settings_path) else Texts.s(&"MENU_SHAKE_OFF")
 
 func _open_menu() -> void:
 	_sync_shake_button()
@@ -587,10 +587,10 @@ func _on_gesture_long_press(pos: Vector2) -> void:
 		return
 	var u := sm.get_unit(uid)
 	info_popup.show_info(str(u["name"]), [
-		"HP %d/%d　AC %d" % [int(u["hp"]), int(u["max_hp"]), int(u["ac"])],
-		"伤害骰 %s　攻击修正 %+d" % [str(u["damage"]), int(u["attack_mod"])],
-		"状态：%s" % ("倒地" if bool(u["downed"]) else ("死亡" if bool(u["dead"]) else "正常")),
-		"格位：%s" % str(unit_cell(uid)),
+		Texts.s(&"UNIT_CARD_HP") % [int(u["hp"]), int(u["max_hp"]), int(u["ac"])],
+		Texts.s(&"UNIT_CARD_DAMAGE") % [str(u["damage"]), int(u["attack_mod"])],
+		Texts.s(&"UNIT_CARD_STATE") % (Texts.s(&"UNIT_DOWNED") if bool(u["downed"]) else (Texts.s(&"UNIT_DEAD") if bool(u["dead"]) else Texts.s(&"UNIT_OK"))),
+		Texts.s(&"UNIT_CARD_CELL") % str(unit_cell(uid)),
 	])
 
 func _on_gesture_drag_started(info: Dictionary) -> void:
@@ -616,7 +616,7 @@ func _on_gesture_drag_updated(info: Dictionary) -> void:
 	path_line.points = PackedVector2Array([info["start"], pos])
 	var over := _unit_id_at(pos)
 	if over != "" and sm != null and str(sm.get_unit(over).get("side", "")) == &"enemy":
-		_flash(TextsZh.GESTURE_PATH_AIM % [
+		_flash(Texts.s(&"GESTURE_PATH_AIM") % [
 			str(sm.get_unit(_drag_uid)["name"]) if _drag_uid != "" else str(_drag_action.get("name", "")),
 			str(sm.get_unit(over)["name"])])
 
@@ -632,7 +632,7 @@ func _on_gesture_dragged(info: Dictionary) -> void:
 		if over != "":
 			_manual(sm.command_from_action(a, over)) # 芯片拖到目标 = 指定使用（12 §3.6）
 		else:
-			_flash(TextsZh.GESTURE_CANCEL) # 落空 = 取消
+			_flash(Texts.s(&"GESTURE_CANCEL")) # 落空 = 取消
 		return
 	var uid := _drag_uid
 	_drag_uid = ""
@@ -651,7 +651,7 @@ func _on_gesture_dragged(info: Dictionary) -> void:
 				_moved_cells[uid] = cell
 				_refresh_grid()
 				return
-	_flash(TextsZh.GESTURE_CANCEL) # 不可达/被拒/落空 = 取消（12 §3.2/§3.5）
+	_flash(Texts.s(&"GESTURE_CANCEL")) # 不可达/被拒/落空 = 取消（12 §3.2/§3.5）
 
 ## 拖动经过 ≥2 语义目标且终点落敌 = 轨迹施法（12 §1 path；与平拖同一出口）。
 func _on_gesture_path(info: Dictionary) -> void:
@@ -752,7 +752,7 @@ func _on_event(ev: Dictionary) -> void:
 			init_bar.visible = true # 先攻顺序条战斗时展开（09 §4）
 		EventTypes.TURN_START:
 			if str(ev["payload"].get("side", "")) == "party":
-				round_label.text = "第 %d 轮" % int(ev["payload"]["round"])
+				round_label.text = Texts.s(&"ROUND_FMT") % int(ev["payload"]["round"])
 		EventTypes.BATTLE_ATTACK:
 			_tray_roll(ev["payload"])
 		EventTypes.COMBAT_END:
@@ -775,7 +775,7 @@ func show_story(vm: Dictionary) -> void:
 	story_panel.visible = true
 	story_title.text = str(vm["title"])
 	story_text.text = str(vm["text"])
-	wheel_title.text = TextsZh.TAB_ACTION
+	wheel_title.text = Texts.s(&"TAB_ACTION")
 	_refresh_story_status()
 	_refresh_story_options()
 
@@ -789,14 +789,14 @@ func show_combat_layout() -> void:
 	round_label.visible = true
 	auto_button.visible = true
 	speed_button.visible = true
-	wheel_title.text = TextsZh.ZONE_WHEEL
+	wheel_title.text = Texts.s(&"ZONE_WHEEL")
 
 func _refresh_story_status() -> void:
-	clock_chip.text = TextsZh.STORY_CLOCK % int(_vm.get("clock", 0))
+	clock_chip.text = Texts.s(&"STORY_CLOCK") % int(_vm.get("clock", 0))
 	var fc: Dictionary = _vm.get("forecast", {})
 	if not fc.is_empty():
-		clock_chip.text += " " + TextsZh.STORY_CLOCK_NEXT % [str(fc.get("name", "")), int(fc.get("at", 0))]
-	quest_chip.text = TextsZh.STORY_QUEST_BADGE % int(_vm.get("quest_badge", 0))
+		clock_chip.text += " " + Texts.s(&"STORY_CLOCK_NEXT") % [str(fc.get("name", "")), int(fc.get("at", 0))]
+	quest_chip.text = Texts.s(&"STORY_QUEST_BADGE") % int(_vm.get("quest_badge", 0))
 	for child: Node in party_chips.get_children():
 		child.queue_free()
 	for p: Variant in _vm.get("party", []):
@@ -821,12 +821,12 @@ func _refresh_story_options() -> void:
 		wheel_box.add_child(b)
 		idx += 1
 	if str(_vm.get("type", "")) == "hub": # hub 三设施（战役书 §4 N1-1）
-		_add_story_chip(TextsZh.HUB_SHOP, func() -> void: hub_popup.open(
+		_add_story_chip(Texts.s(&"HUB_SHOP"), func() -> void: hub_popup.open(
 			int(_vm.get("gold", 0)), _vm.get("stock", [])))
-		_add_story_chip(TextsZh.HUB_REST, func() -> void:
+		_add_story_chip(Texts.s(&"HUB_REST"), func() -> void:
 			if story_cb.has("hub"):
 				story_cb["hub"].call("rest", ""))
-		_add_story_chip(TextsZh.HUB_RUMOR, func() -> void:
+		_add_story_chip(Texts.s(&"HUB_RUMOR"), func() -> void:
 			if story_cb.has("hub"):
 				story_cb["hub"].call("rumor", ""))
 
@@ -845,11 +845,11 @@ func sync_hub_popup(vm: Dictionary) -> void:
 func _open_forecast() -> void:
 	var lines: Array = []
 	for f: Variant in _vm.get("forecasts", []):
-		lines.append("%s —— 时钟 %d 格触发（%s）" % [str((f as Dictionary).get("name", "")),
+		lines.append(Texts.s(&"DOOM_PREVIEW_LINE") % [str((f as Dictionary).get("name", "")) if str((f as Dictionary).get("name", "")) != "" else Texts.s(&"TIME_EDGE_DEFAULT"),
 			int((f as Dictionary).get("at", 0)), str((f as Dictionary).get("objective", ""))])
 	if lines.is_empty():
-		lines.append(TextsZh.STORY_FORECAST_EMPTY)
-	info_popup.show_info(TextsZh.STORY_FORECAST_TITLE, lines)
+		lines.append(Texts.s(&"STORY_FORECAST_EMPTY"))
+	info_popup.show_info(Texts.s(&"STORY_FORECAST_TITLE"), lines)
 
 func _flash(text: String) -> void:
 	flash_label.text = text
@@ -876,10 +876,10 @@ func _refresh_wheel() -> void:
 	if actions.is_empty():
 		wheel_actor.text = ""
 		return
-	wheel_actor.text = "【%s】" % str(sm.get_unit(sm.current_actor_id())["name"])
+	wheel_actor.text = Texts.s(&"BRACKET_FMT") % str(sm.get_unit(sm.current_actor_id())["name"])
 	for a: Dictionary in actions:
 		var b := Button.new()
-		b.text = TextsZh.action_label(a)
+		b.text = Texts.action_label(a)
 		b.disabled = bool(a["disabled"])
 		b.set_meta("action", a) # 芯片拖动 = 指定目标使用（12 §3.6）
 		var action := a
@@ -928,7 +928,7 @@ func _manual(cmd: Dictionary) -> bool:
 
 func set_auto(on: bool) -> void:
 	auto_on = on
-	auto_button.text = TextsZh.AUTO_OFF if on else TextsZh.AUTO_ON
+	auto_button.text = Texts.s(&"AUTO_OFF") if on else Texts.s(&"AUTO_ON")
 	if on:
 		auto_timer.start()
 	else:
@@ -984,9 +984,9 @@ func _tray_roll(p: Dictionary) -> void:
 	pop.tween_property(dice_label, "scale", Vector2(1.35, 1.35), 0.08)
 	pop.tween_property(dice_label, "scale", Vector2.ONE, 0.14)
 	var rolls: Array = p.get("rolls", [])
-	dice_detail.text = "骰 %s 修正 %+d 合计 %d（%s）" % [str(rolls), int(p.get("mod", p.get("atk_mod", 0))),
+	dice_detail.text = Texts.s(&"DICE_DETAIL") % [str(rolls), int(p.get("mod", p.get("atk_mod", 0))),
 		int(p.get("total", p.get("keep", 0))),
-		TextsZh.RESULT_SUCCESS if bool(p.get("success", p.get("hit", false))) else TextsZh.RESULT_FAIL]
+		Texts.s(&"RESULT_SUCCESS") if bool(p.get("success", p.get("hit", false))) else Texts.s(&"RESULT_FAIL")]
 	_tray_rolling = false
 
 ## 关键：全屏 3D 物理演出（14 清单 #2 / 09 §6，与竖屏同一事件源；长按 ≥400ms 跳过）。
@@ -1015,11 +1015,11 @@ func _play_key_roll(p: Dictionary) -> void:
 		var ok := bool(q.get("success", false))
 		var extreme := bool(q.get("extreme", false))
 		if extreme:
-			key_result_label.text = TextsZh.RESULT_CRIT if ok else TextsZh.RESULT_FUMBLE # nat20/1 追加一档（09 §6）
+			key_result_label.text = Texts.s(&"RESULT_CRIT") if ok else Texts.s(&"RESULT_FUMBLE") # nat20/1 追加一档（09 §6）
 		else:
-			key_result_label.text = TextsZh.RESULT_SUCCESS if ok else TextsZh.RESULT_FAIL
+			key_result_label.text = Texts.s(&"RESULT_SUCCESS") if ok else Texts.s(&"RESULT_FAIL")
 		if str(q.get("kind", "")) == "death_save":
-			key_result_label.text += "\n死亡豁免 %d 胜 %d 负" % [int(q.get("s", 0)), int(q.get("f", 0))]
+			key_result_label.text += Texts.s(&"KEY_DEATH_SAVE_TALLY") % [int(q.get("s", 0)), int(q.get("f", 0))]
 		if not _key_skip:
 			_poll_key_hold() # 落定后也尊重长按（滚动已播完但按住仍生效）
 		if not _key_skip:
@@ -1057,11 +1057,11 @@ func toggle_log() -> void:
 		_set_rect(log_band, 0.0, LOG_EXPANDED_TOP, 1.0, 1.0) # 09 §4：展开至半屏
 		log_full.visible = true
 		log_full.text = "\n".join(_log_lines)
-		log_toggle.text = TextsZh.LOG_COLLAPSE
+		log_toggle.text = Texts.s(&"LOG_COLLAPSE")
 	else:
 		_set_rect(log_band, 0.0, 1.0 - RATIO_BOTTOM, 1.0, 1.0)
 		log_full.visible = false
-		log_toggle.text = TextsZh.LOG_EXPAND
+		log_toggle.text = Texts.s(&"LOG_EXPAND")
 
 func _log_line(text: String) -> void:
 	if text == "":

@@ -21,7 +21,7 @@ func _build() -> void:
 	v.add_theme_constant_override("separation", 6)
 	add_child(v)
 	var title := Label.new()
-	title.text = TextsZh.QUESTS_TITLE
+	title.text = Texts.s(&"QUESTS_TITLE")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 24)
 	v.add_child(title)
@@ -32,7 +32,7 @@ func _build() -> void:
 	list_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(list_box)
 	back_button = Button.new()
-	back_button.text = TextsZh.COMMON_BACK
+	back_button.text = Texts.s(&"COMMON_BACK")
 	back_button.pressed.connect(func() -> void: back_requested.emit())
 	v.add_child(back_button)
 
@@ -42,29 +42,29 @@ func bind(quests: Array) -> void:
 		child.queue_free()
 	if quests.is_empty():
 		var l := Label.new()
-		l.text = TextsZh.QUESTS_EMPTY
+		l.text = Texts.s(&"QUESTS_EMPTY")
 		list_box.add_child(l)
 		return
 	for q: Variant in quests:
 		var d: Dictionary = q
 		var st := str(d["state"])
-		var state_name := TextsZh.QUESTS_ACTIVE
+		var state_name := Texts.s(&"QUESTS_ACTIVE")
 		if st == "settled":
-			state_name = TextsZh.QUESTS_DONE
+			state_name = Texts.s(&"QUESTS_DONE")
 		elif st == "abandoned":
-			state_name = TextsZh.QUESTS_ABANDONED
+			state_name = Texts.s(&"QUESTS_ABANDONED")
 		var row := HBoxContainer.new()
 		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		list_box.add_child(row)
 		var l := Label.new()
-		l.text = "◆ %s —— %s\n　%s（%s）" % [str(d["name"]), state_name, str(d["objective"]), str(d["node"])]
+		l.text = Texts.s(&"QUEST_LINE") % [str(d["name"]), state_name, str(d["objective"]), str(d["node"])]
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(l)
 		if st == "triggered" and bool(d.get("optional", false)):
 			# 放弃可选事件（04 §⑤：写旗标 → 归档历史卷轴）
 			var b := Button.new()
-			b.text = TextsZh.QUESTS_ABANDON
+			b.text = Texts.s(&"QUESTS_ABANDON")
 			var qid := str(d["id"])
 			b.pressed.connect(func() -> void: abandon_requested.emit(qid))
 			row.add_child(b)
@@ -74,6 +74,6 @@ func abandon_button_count() -> int:
 	var n := 0
 	for row: Node in list_box.get_children():
 		for child: Node in row.get_children():
-			if child is Button and (child as Button).text == TextsZh.QUESTS_ABANDON:
+			if child is Button and (child as Button).text == Texts.s(&"QUESTS_ABANDON"):
 				n += 1
 	return n

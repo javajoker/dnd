@@ -1,4 +1,6 @@
-# UI 文案集中（godot-dev §4；tech/02 §7 i18n 预留：首版内嵌中文，键名即文本 ID）
+# zh-CN 语言表（源语言）：常量名即文本键，经 Texts.t(&"键") 按当前语言取值（tech/01 E-5 双语构建）。
+# 新增文案先加到本表，再补其它语言表（texts_en.gd）；缺键时 Texts 回退到本表。
+# 消息模板（MSG_*）用 {name} 具名占位，由 Texts.msg() 以事件 args 填充。
 class_name TextsZh
 extends RefCounted
 
@@ -12,6 +14,7 @@ const TAB_CHAR := "角色"
 const CHIP_ATTACK := "攻击"
 const CHIP_FIRST_AID := "急救"
 const CHIP_END_TURN := "结束回合"
+const CHIP_ITEM_FMT := "%s ×%d"
 const CHIP_MOVE := "移动" # 移动段（11 §4；12 §2.1 拖动移动的按钮等价路径）
 
 ## 指令集条目 → 芯片/轮盘按钮文案（两壳同源排版；次数余量实时呈现，09 §9.2）。
@@ -27,7 +30,7 @@ static func action_label(a: Dictionary) -> String:
 				label += " ×%d" % int(a["uses"])
 			return label
 		EncounterSM.CMD_ITEM:
-			return "%s ×%d" % [str(a.get("name", a.get("item", ""))), int(a.get("count", 0))]
+			return CHIP_ITEM_FMT % [str(a.get("name", a.get("item", ""))), int(a.get("count", 0))]
 		EncounterSM.CMD_FIRST_AID:
 			return CHIP_FIRST_AID
 		EncounterSM.CMD_END_TURN:
@@ -117,7 +120,6 @@ const ENDING_NGPLUS := "开始二周目"
 const ENDING_HOME := "回主屏"
 const ENDING_SAVED := "抄本已记录。" # 07 §4.2 结局快照（同上）
 const ENDING_PLAYTHROUGH := "—— 第 %d 周目 完 ——"
-const RESUMED := "抄本翻回上次落笔的那一页。"
 const NGPLUS_TOAST := "你带着抄本残页回到潮醒之前。织命者残简 ×1 随行，图鉴与权利如故。"
 # Hub（战役书 §4 N1-1：休整 / 商店 / 传闻；04 §3.3 半屏弹层）
 const HUB_SHOP := "商店"
@@ -147,10 +149,13 @@ const HOME_BAR_EXPAND := "▴ 展开入口条"
 ## 营地图景随褪墨度（global.doom_clock 0~10）变化（04 §①：状态板的可视化）。
 static func home_doom_text(clock: int) -> String:
 	if clock <= 3:
-		return "营火尚旺。墨迹在天边，像一场还没下定的雨。"
+		return HOME_DOOM_LOW
 	if clock <= 6:
-		return "街名又淡了一分。营地的人开始把重要的事写在手上。"
-	return "褪墨逼近。抄本的纸页发凉——能留下的，只有你写下的部分。"
+		return HOME_DOOM_MID
+	return HOME_DOOM_HIGH
+const HOME_DOOM_LOW := "营火尚旺。墨迹在天边，像一场还没下定的雨。"
+const HOME_DOOM_MID := "街名又淡了一分。营地的人开始把重要的事写在手上。"
+const HOME_DOOM_HIGH := "褪墨逼近。抄本的纸页发凉——能留下的，只有你写下的部分。"
 
 # ② 战役入口（04 §②、09 §3）
 const ENTRY_TITLE := "战役入口"
@@ -179,7 +184,8 @@ const SHOP_CONFIRM := "确认获取"
 const SHOP_CANCEL := "再想想"
 ## 购买弹层文案（叙事化包装：商品名 + 价格 + 一句叙事；购买即解锁无需重启，06 §3.1）。
 static func shop_line(pack_name: String, price_text: String) -> String:
-	return "《%s》——%s。守门人收下印记，擂台的门就会为你翻开。" % [pack_name, price_text]
+	return SHOP_LINE % [pack_name, price_text]
+const SHOP_LINE := "《%s》——%s。守门人收下印记，擂台的门就会为你翻开。"
 
 # 整备（09 §9.1）
 const LOADOUT_TITLE := "整备"
@@ -243,17 +249,22 @@ static func cosmetic_source_line(def: Dictionary) -> String:
 	var g: Dictionary = def.get("grant", {})
 	match str(g.get("kind", "")):
 		"default":
-			return "起手即有"
+			return COSMETIC_SRC_DEFAULT
 		"codex_series":
-			return "图鉴「命骰考」集齐奖励"
+			return COSMETIC_SRC_CODEX
 		"shop":
-			return "守门人的印龛 · %s" % str((def.get("shop", {}) as Dictionary).get("price_text", ""))
+			return COSMETIC_SRC_SHOP % str((def.get("shop", {}) as Dictionary).get("price_text", ""))
 		"ngplus_ending":
-			return "多周目继承 · 结局 %s 专属" % str(g.get("ending", ""))
+			return COSMETIC_SRC_NGPLUS % str(g.get("ending", ""))
 	return ""
+const COSMETIC_SRC_DEFAULT := "起手即有"
+const COSMETIC_SRC_CODEX := "图鉴「命骰考」集齐奖励"
+const COSMETIC_SRC_SHOP := "守门人的印龛 · %s"
+const COSMETIC_SRC_NGPLUS := "多周目继承 · 结局 %s 专属"
 ## 皮肤购买弹层文案（与战役购买同一叙事化手法，06 §3.1；shop_line 是战役句式，皮肤另起一句）。
 static func cosmetic_shop_line(skin_name: String, price_text: String) -> String:
-	return "「%s」——%s。守门人拓下一枚新印，骰面从此换一种光。" % [skin_name, price_text]
+	return COSMETIC_SHOP_LINE % [skin_name, price_text]
+const COSMETIC_SHOP_LINE := "「%s」——%s。守门人拓下一枚新印，骰面从此换一种光。"
 
 # ⑧ 战报回放（04 §⑧：事件流重演，纯演出不可改结果；最小版 = 节拍日志重演）
 const HISTORY_REPLAY := "重演"
@@ -307,3 +318,139 @@ const TUT_CARDS: Array[String] = [
 const TUT_HINT_COMBAT := "拖动己方单位 = 移动；拖到敌方 = 轨迹施法；双指点击 = 结束回合；双指捏合 = 缩放战场。"
 const TUT_HINT_CHECK := "双指点击 = 一键快掷；点按检定按钮亦可。关键判定演出可长按跳过。"
 const TUT_HINT_KEY := "关键判定演出：长按 ≥0.4 秒跳过，跳过不丢信息（内容同步写入日志与卷轴）。"
+
+# 事件流消息模板（core/应用层只发 msg_key + args，壳按当前语言渲染；tech/01 E-5）
+const MSG_REST := "你在广场的篝火边休整。伤口被重新誊写，技能次数已恢复。"
+const MSG_ACHIEVEMENT := "成就达成：{label}"
+const MSG_SKIN_CODEX := "图鉴集齐——骰子皮肤「{skin}」已到账。（纯演出，不动骰运）"
+const MSG_SKIN_SHOP := "守门人拓下新印——骰子皮肤「{skin}」已到手。（纯演出，不动骰运）"
+const MSG_MAZE_START := "探索开始（{beats} 拍）"
+const MSG_MAZE_AMBUSH := "伏击！（{enemy}）"
+const MSG_MAZE_LOOT := "拾取：{item} ×{n}"
+const MSG_MAZE_DONE := "探索完成"
+const MSG_SKILL_USED := "{unit} 发动了「{skill}」"
+const MSG_ENCOUNTER_END := "遭遇结束：{result}（{rounds} 回合）"
+const MSG_SUB_STAGE_WIN := "第 {stage} 场告捷：金币 +{gold}（连胜无休整，下一场带伤上阵）"
+const MSG_SUB_CLEAR := "通关记录 +1"
+const MSG_RESUMED := "抄本翻回上次落笔的那一页。"
+const MSG_REWIND_BATTLE := "你合上抄本。这一页的雨，被轻轻翻回了开头。"
+const MSG_REWIND_STORY := "你合上抄本。这一程就讲到这里。"
+const MSG_REWIND_SUB := "你合上抄本。擂台的墨锣声远去了。"
+const MSG_PURCHASED := "守门人收下印记——《{pack}》的门开了。（购买即解锁，无需重启）"
+const MSG_SAVED := "抄本已记录。"
+const MSG_STORY_ECHO := "【{title}】{text}"
+
+# 语言设置（tech/01 E-5：UI 偏好 ui.locale；切换后回到主屏重载）
+const LANG_BUTTON := "语言：中文"
+
+# 壳层格式串（原各界面内嵌文案，tech/01 E-5 统一入表）
+const FMT_CHECK_LABEL := "%s：%s（%s DC %d · 修正 %+d）"
+const SETTLE_LINE_ITEM := "获得：%s ×%d（已入背包）"
+const SETTLE_LINE_FLAG := "旗标：%s"
+const SETTLE_LINE_REP := "声望：%s %+d"
+const SETTLE_LINE_LOADOUT := "整备：技能 %s / 道具 %s"
+const SETTLE_LINE_XP := "经验 +%d"
+const LOG_XP := "经验 +%d"
+const SETTLE_LINE_LEVEL := "等级：Lv.%d（11 §6 成长表）"
+const SETTLE_LINE_ATTR := "成长：属性点 +%d"
+const SETTLE_LINE_CLOCK := "时间钟：%d 格"
+const SETTLE_LINE_ITEM_SHARED := "获得：%s ×%d（已入背包，global.inv 互通）"
+const SETTLE_LINE_LORE := "图鉴新增：%s（global.lore 互通，04 §⑥）"
+const SETTLE_LINE_GOLD_DELTA := "金币 %+d（%s.gold 累计 %d）"
+const SETTLE_LINE_GOLD := "金币 +%d（%s.gold 累计 %d）"
+const SETTLE_LINE_RECORD := "战绩：本次 %d 胜 · 累计 %d 胜 · 最佳连战 %d"
+const SETTLE_LINE_FLAWLESS := "全胜谢幕：擂台为你留名（arena.flawless 已落板）"
+const SETTLE_SUB_TITLE := "连战结算"
+const LOG_GESTURE_HELP := "手势帮助：%s"
+const UNIT_CARD_HP := "HP %d/%d　AC %d"
+const UNIT_CARD_DAMAGE := "伤害骰 %s　攻击修正 %+d"
+const UNIT_CARD_STATE := "状态：%s"
+const UNIT_DOWNED := "倒地"
+const UNIT_DEAD := "死亡"
+const UNIT_OK := "正常"
+const UNIT_CARD_CELL := "格位：%s"
+const UNIT_CARD_INIT := "先攻位次：%d"
+const ROUND_FMT := "第 %d 轮"
+const TIME_EDGE_DEFAULT := "时间边"
+const DOOM_PREVIEW_LINE := "%s —— 时钟 %d 格触发（%s）"
+const BRACKET_FMT := "【%s】"
+const DICE_DETAIL := "骰 %s 修正 %+d 合计 %d（%s）"
+const KEY_DEATH_SAVE_TALLY := "\n死亡豁免 %d 胜 %d 负"
+const REVIEW_EMPTY := "（尚无已过房间）"
+const REVIEW_DETAIL := "【%s】\n%s"
+const FLASH_COMBAT_START := "遭遇战开始！"
+const FLASH_DOWNED := "%s 倒地！"
+const FLASH_TARGET := "目标：%s"
+const CHAR_TAB_DEAD := "（死亡）"
+const CHAR_TAB_DOWNED := "（倒地 豁%d/%d）"
+const CHAR_TAB_LINE := "%s  HP %d/%d  AC %d  力%+.0f 敏%+.0f 智%+.0f%s"
+const LOG_AUTO_TAG := "（托管）"
+const LOG_DEATH_SAVE := "%s 死亡豁免：%d → %s（%d胜%d负）"
+const LOG_SAVE := "%s 豁免：%d%+d=%d vs %d → %s（伤 %d）"
+const LOG_FIRST_AID := "%s 急救 %s：%d → %s"
+const LOG_CHECK := "检定·%s：%d%+d=%d vs %d → %s"
+const LOG_CHECK_TOTAL := "检定：%d"
+const LOG_ATTACK := "%s 攻击 %s：%s"
+const LOG_HIT_DAMAGE := "命中 %d 点"
+const LOG_MISS := "失手"
+const LOG_CRIT_TAG := "（暴击！）"
+const LOG_FUMBLE_TAG := "（大失败）"
+const LOG_STATE_ENTER := "—— 进入「%s」——"
+const LOG_COMBAT_START := "战斗开始，先攻序：%s"
+const LOG_SKILL := "%s 发动「%s」%s"
+const LOG_SUMMON_TAG := "：召唤 ×%d"
+const LOG_ATK_MOD_TAG := "（攻击修正 → %+d）"
+const LOG_SKILL_EXTRA := "%s 发动「%s」%s%s"
+const LOG_ITEM_USE := "%s 使用「%s」→ %s（回复 %d）%s"
+const LOG_DOWNED := "⚠ %s 倒地！"
+const LOG_DIED := "✝ %s 消散。"
+const LOG_REVIVED := "%s 重新站起（1 HP，%s）。"
+const LOG_CMD_REJECTED := "（命令被拒：%s）"
+const LOG_COMBAT_END := "—— 战斗结束：%s ——"
+const LOG_ITEM_GAIN := "获得物品：%s ×%d"
+const PAREN_PAIR_FMT := "%s（%s）"
+const HUB_SHOP_LINE := "%s —— %d 金币%s"
+const HUB_OWNED_TAG := "（持有 ×%d）"
+const PAREN_FMT := "（%s）"
+const CHAR_WIP_LINE := "（法术位 / 装备槽 / 状态效果 %s）"
+const CHAR_ROSTER_LINE := "%s　HP %d/%d　力%+.0f 敏%+.0f 智%+.0f\n　技能：%s"
+const ENTRY_SUBGAME_NAME := "%s《%s》 %s"
+const BOOK_TITLE_FMT := "《%s》"
+const ENTRY_LEVEL_HOURS := "推荐等级 %s · 预计时长 %s"
+const ENTRY_ACTS := "幕构成：%s"
+const ENTRY_RECOMMEND_TAG := "\n〔框架推荐〕"
+const HIST_HIT := "命中 %d"
+const HIST_MISS := "未命中"
+const HIST_CHECK_DETAIL := "检定明细：骰 %s 取 %d 修正 %+d = %d vs DC %d → %s"
+const HIST_DEATH_SAVES := "死亡豁免 %d 胜 %d 负"
+const HIST_ATTACK_DETAIL := "攻击明细：骰 %s 取 %d（%s）修正 %+d vs AC %d → %s"
+const HIST_HIT_DETAIL := "命中，伤害 %d %s"
+const HIST_FLAG_CHANGE := "旗标变化：%s　%s → %s"
+const INV_ITEM_LINE := "%s ×%d　%s"
+const TAG_FMT := "〔%s〕"
+const INV_ROLES := "身份：%s"
+const INV_USE_HEAL := "使用：恢复 %s HP（附赠动作）"
+const INV_CONSUMABLE := "消耗品"
+const INV_CHECK_MOD := "检定修正：携带即生效（检定工具）"
+const INV_PRICE := "价格：%d 金币"
+const INV_LORE_LINE := "📜 %s（%s）"
+const INV_LORE_SOURCE := "来源：%s"
+const COLON_PAIR_FMT := "%s：%s"
+const QUEST_LINE := "◆ %s —— %s\n　%s（%s）"
+const SETTLE_HEAD := "【%s】%s —— %s"
+const SETTLE_ATTR_AVAIL := "%s（可用 %d）"
+const EDGE_BADGES := "　〔%s〕"
+const RUMOR_LINE := "传闻：有人说起「%s」——%s。"
+const TOAST_FLAG := "旗标更新：%s"
+const TOAST_REP := "声望：%s %+d（%d）"
+const TOAST_ITEM_GAIN := "获得：%s ×%d"
+const TOAST_ITEM_LOSS := "消耗：%s ×%d"
+const TOAST_QUEST_TRIGGER := "事件触发：%s"
+const TOAST_QUEST_SETTLE := "事件完结：%s"
+const TOAST_LORE := "图鉴新增：%s"
+const LIST_SEP := "、"
+const STATE_NAMES := {"enter": "进场", "explore": "探索", "discover": "发现", "combat": "战斗",
+	"settle": "结算", "rest": "休整", "exit": "出场"}
+const ATTR_SHORT := {"might": "力", "finesse": "敏", "wits": "智"}
+const NOTICE_FORCED_TIME := "这一段记忆只能以碎片的方式回放——它按自己的节奏展开。"
+const NOTICE_FORCED_SPACE := "这一幕无法从内部讲述，只能以全局的视野摊开。"

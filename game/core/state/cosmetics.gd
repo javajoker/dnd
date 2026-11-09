@@ -132,7 +132,7 @@ func check_codex_rewards(lore_defs: Array) -> Array:
 			if grant(skin_id, {"granted_by": "codex", "series": series}):
 				granted.append(skin_id)
 				stream.emit(EventTypes.LOG,
-					{"msg": "图鉴集齐——骰子皮肤「%s」已到账。（纯演出，不动骰运）" % skin_name(skin_id),
+					{"msg_key": "MSG_SKIN_CODEX", "args": {"skin": skin_name(skin_id)},
 						"toast": true}, &"core")
 	return granted
 

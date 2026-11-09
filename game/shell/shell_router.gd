@@ -10,10 +10,11 @@ const MODE_SPACE := &"space" # 横屏·空间形态（04 §③）
 const MODE_TIME := &"time"   # 竖屏·时间形态（04 §④）
 
 ## 强制形态的叙事化包装文案（09 §3：禁止系统腔）。
-const NOTICE_FORCED := {
-	MODE_TIME: "这一段记忆只能以碎片的方式回放——它按自己的节奏展开。",
-	MODE_SPACE: "这一幕无法从内部讲述，只能以全局的视野摊开。",
-}
+const NOTICE_FORCED := {MODE_TIME: &"NOTICE_FORCED_TIME", MODE_SPACE: &"NOTICE_FORCED_SPACE"}
+
+## 强制形态提示文案（按当前语言）。
+static func forced_notice(mode: StringName) -> String:
+	return str(Texts.t(NOTICE_FORCED[mode])) if NOTICE_FORCED.has(mode) else ""
 
 var _locked := false
 var locked_mode: StringName = &""
@@ -24,7 +25,7 @@ static func resolve(presentation: Dictionary, cli_args: PackedStringArray, story
 	var forced: Dictionary = presentation.get("forced", {})
 	if forced.has(story_line_id):
 		var m := StringName(str(forced[story_line_id]))
-		return {"mode": m, "forced": true, "notice": str(NOTICE_FORCED.get(m, ""))}
+		return {"mode": m, "forced": true, "notice": forced_notice(m)}
 	match str(presentation.get("mode", "time")):
 		"space":
 			return {"mode": MODE_SPACE, "forced": true, "notice": ""}

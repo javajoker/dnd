@@ -36,7 +36,7 @@ func _build() -> void:
 	v.add_theme_constant_override("separation", 8)
 	add_child(v)
 	var title := Label.new()
-	title.text = TextsZh.ENTRY_TITLE
+	title.text = Texts.s(&"ENTRY_TITLE")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 24)
 	v.add_child(title)
@@ -54,9 +54,9 @@ func _build() -> void:
 	cards.alignment = BoxContainer.ALIGNMENT_CENTER
 	cards.add_theme_constant_override("separation", 12)
 	v.add_child(cards)
-	mode_time_button = _mode_card(cards, TextsZh.ENTRY_MODE_TIME, TextsZh.ENTRY_MODE_TIME_DESC,
+	mode_time_button = _mode_card(cards, Texts.s(&"ENTRY_MODE_TIME"), Texts.s(&"ENTRY_MODE_TIME_DESC"),
 		ShellRouter.MODE_TIME)
-	mode_space_button = _mode_card(cards, TextsZh.ENTRY_MODE_SPACE, TextsZh.ENTRY_MODE_SPACE_DESC,
+	mode_space_button = _mode_card(cards, Texts.s(&"ENTRY_MODE_SPACE"), Texts.s(&"ENTRY_MODE_SPACE_DESC"),
 		ShellRouter.MODE_SPACE)
 	played_label = Label.new()
 	played_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -65,12 +65,12 @@ func _build() -> void:
 	collect_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(collect_label)
 	start_button = Button.new()
-	start_button.text = TextsZh.ENTRY_START
+	start_button.text = Texts.s(&"ENTRY_START")
 	start_button.disabled = true # 未选模式禁用开始（任务书 TP4）
 	start_button.pressed.connect(func() -> void: start_requested.emit())
 	v.add_child(start_button)
 	back_button = Button.new()
-	back_button.text = TextsZh.COMMON_BACK
+	back_button.text = Texts.s(&"COMMON_BACK")
 	back_button.pressed.connect(func() -> void: back_requested.emit())
 	v.add_child(back_button)
 	# 子游戏卡区（04 §6：pack_type=subgame 即入列，数据驱动；无子游戏包时保持为空不占位）
@@ -92,7 +92,7 @@ func bind_subgames(cards: Array) -> void:
 	if cards.is_empty():
 		return
 	var head := Label.new()
-	head.text = TextsZh.ENTRY_SUBGAME_SECTION
+	head.text = Texts.s(&"ENTRY_SUBGAME_SECTION")
 	head.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	subgame_box.add_child(head)
 	for card: Variant in cards:
@@ -105,27 +105,27 @@ func bind_subgames(cards: Array) -> void:
 		card_box.add_theme_constant_override("separation", 6)
 		subgame_box.add_child(card_box)
 		var name_label := Label.new()
-		name_label.text = "%s《%s》 %s" % [TextsZh.ENTRY_SUBGAME_TAG, str(c.get("name", c.get("pack_id", ""))),
-			TextsZh.SUBGAME_LEVEL % int(c.get("level_min", 1))]
+		name_label.text = Texts.s(&"ENTRY_SUBGAME_NAME") % [Texts.s(&"ENTRY_SUBGAME_TAG"), str(c.get("name", c.get("pack_id", ""))),
+			Texts.s(&"SUBGAME_LEVEL") % int(c.get("level_min", 1))]
 		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		card_box.add_child(name_label)
 		var stats_label := Label.new()
 		var st: Dictionary = c.get("stats", {})
-		stats_label.text = TextsZh.SUBGAME_STATS % [int(st.get("wins", 0)), int(st.get("best", 0))]
+		stats_label.text = Texts.s(&"SUBGAME_STATS") % [int(st.get("wins", 0)), int(st.get("best", 0))]
 		stats_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		stats_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
 		card_box.add_child(stats_label)
 		if bool(c.get("locked", false)):
 			# 锁定态（06 §3.1：可见但锁定，叙事化包装）
 			var lock_label := Label.new()
-			lock_label.text = str(c.get("lock_text", TextsZh.LOCK_ARENA))
+			lock_label.text = str(c.get("lock_text", Texts.s(&"LOCK_ARENA")))
 			lock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			lock_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			lock_label.custom_minimum_size = Vector2(340, 0)
 			lock_label.add_theme_color_override("font_color", Color(0.75, 0.68, 0.5))
 			card_box.add_child(lock_label)
 			var acquire_button := Button.new()
-			acquire_button.text = TextsZh.LOCK_ACQUIRE
+			acquire_button.text = Texts.s(&"LOCK_ACQUIRE")
 			acquire_button.custom_minimum_size = Vector2(150, 40)
 			acquire_button.pressed.connect(func() -> void: acquire_requested.emit(pid))
 			card_box.add_child(acquire_button)
@@ -137,13 +137,13 @@ func bind_subgames(cards: Array) -> void:
 		var mode := str(c.get("mode", "choice"))
 		if mode != "space":
 			var bt := Button.new()
-			bt.text = TextsZh.SUBGAME_ENTER_TIME
+			bt.text = Texts.s(&"SUBGAME_ENTER_TIME")
 			bt.custom_minimum_size = Vector2(150, 40)
 			bt.pressed.connect(func() -> void: subgame_start.emit(pid, ShellRouter.MODE_TIME))
 			row.add_child(bt)
 		if mode != "time":
 			var bs := Button.new()
-			bs.text = TextsZh.SUBGAME_ENTER_SPACE
+			bs.text = Texts.s(&"SUBGAME_ENTER_SPACE")
 			bs.custom_minimum_size = Vector2(150, 40)
 			bs.pressed.connect(func() -> void: subgame_start.emit(pid, ShellRouter.MODE_SPACE))
 			row.add_child(bs)
@@ -170,8 +170,8 @@ func _mode_card(parent: Container, name: String, desc: String, mode: StringName)
 func pick_mode(mode: StringName) -> void:
 	selected_mode = mode
 	start_button.disabled = false
-	var chosen := TextsZh.ENTRY_MODE_TIME if mode == ShellRouter.MODE_TIME else TextsZh.ENTRY_MODE_SPACE
-	mode_hint.text = "%s%s" % [TextsZh.ENTRY_MODE_CHOSEN, chosen]
+	var chosen := Texts.s(&"ENTRY_MODE_TIME") if mode == ShellRouter.MODE_TIME else Texts.s(&"ENTRY_MODE_SPACE")
+	mode_hint.text = "%s%s" % [Texts.s(&"ENTRY_MODE_CHOSEN"), chosen]
 	mode_time_button.modulate = Color(1, 1, 0.6) if mode == ShellRouter.MODE_TIME else Color(1, 1, 1)
 	mode_space_button.modulate = Color(1, 1, 0.6) if mode == ShellRouter.MODE_SPACE else Color(1, 1, 1)
 	mode_chosen.emit(mode)
@@ -181,10 +181,10 @@ func bind(pack: Dictionary, played_modes: Array, collect_pct: float) -> void:
 	var manifest: Dictionary = pack["manifest"]
 	var level: Array = manifest.get("recommended_level", [])
 	var lines: Array[String] = [
-		"《%s》" % str(manifest.get("name", pack.get("pack_id", ""))),
-		"推荐等级 %s · 预计时长 %s" % ["~".join(level.map(func(x: Variant) -> String: return str(x))),
+		Texts.s(&"BOOK_TITLE_FMT") % str(manifest.get("name", pack.get("pack_id", ""))),
+		Texts.s(&"ENTRY_LEVEL_HOURS") % ["~".join(level.map(func(x: Variant) -> String: return str(x))),
 			str(manifest.get("estimated_hours", "?"))],
-		"幕构成：%s" % " / ".join((pack.get("acts", []) as Array).map(
+		Texts.s(&"ENTRY_ACTS") % " / ".join((pack.get("acts", []) as Array).map(
 			func(a: Variant) -> String: return str((a as Dictionary).get("title", "")))),
 	]
 	card_label.text = "\n".join(lines)
@@ -192,14 +192,14 @@ func bind(pack: Dictionary, played_modes: Array, collect_pct: float) -> void:
 	var pres: Dictionary = manifest.get("presentation", {})
 	var recommend: Dictionary = pres.get("recommend", {})
 	if str(pres.get("mode", "time")) == "choice":
-		mode_hint.text = TextsZh.ENTRY_MODE_PICK
+		mode_hint.text = Texts.s(&"ENTRY_MODE_PICK")
 		mode_time_button.visible = true
 		mode_space_button.visible = true
 		if recommend.values().has("space"):
-			mode_space_button.text += "\n〔框架推荐〕"
+			mode_space_button.text += Texts.s(&"ENTRY_RECOMMEND_TAG")
 	else:
 		var forced := ShellRouter.MODE_TIME if str(pres.get("mode", "time")) == "time" else ShellRouter.MODE_SPACE
-		mode_hint.text = str(ShellRouter.NOTICE_FORCED.get(forced, "")) # 叙事化包装（09 §3）
+		mode_hint.text = ShellRouter.forced_notice(forced) # 叙事化包装（09 §3）
 		mode_time_button.visible = false
 		mode_space_button.visible = false
 		pick_mode(forced)
@@ -207,6 +207,6 @@ func bind(pack: Dictionary, played_modes: Array, collect_pct: float) -> void:
 		played_label.text = ""
 	else:
 		var names: Array = played_modes.map(func(m: Variant) -> String:
-			return TextsZh.ENTRY_MODE_TIME if StringName(str(m)) == ShellRouter.MODE_TIME else TextsZh.ENTRY_MODE_SPACE)
-		played_label.text = "%s%s" % [TextsZh.ENTRY_PLAYED, "、".join(names)]
-	collect_label.text = "%s %.0f%%" % [TextsZh.ENTRY_COLLECT, collect_pct]
+			return Texts.s(&"ENTRY_MODE_TIME") if StringName(str(m)) == ShellRouter.MODE_TIME else Texts.s(&"ENTRY_MODE_SPACE"))
+		played_label.text = "%s%s" % [Texts.s(&"ENTRY_PLAYED"), Texts.s(&"LIST_SEP").join(names)]
+	collect_label.text = "%s %.0f%%" % [Texts.s(&"ENTRY_COLLECT"), collect_pct]

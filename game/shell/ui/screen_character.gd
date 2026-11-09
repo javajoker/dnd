@@ -19,7 +19,7 @@ func _build() -> void:
 	v.add_theme_constant_override("separation", 6)
 	add_child(v)
 	var title := Label.new()
-	title.text = TextsZh.CHAR_TITLE
+	title.text = Texts.s(&"CHAR_TITLE")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 24)
 	v.add_child(title)
@@ -30,12 +30,12 @@ func _build() -> void:
 	list_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(list_box)
 	var wip := Label.new()
-	wip.text = "（法术位 / 装备槽 / 状态效果 %s）" % TextsZh.COMMON_WIP
+	wip.text = Texts.s(&"CHAR_WIP_LINE") % Texts.s(&"COMMON_WIP")
 	wip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	wip.add_theme_color_override("font_color", Color(0.55, 0.55, 0.6))
 	v.add_child(wip)
 	back_button = Button.new()
-	back_button.text = TextsZh.COMMON_BACK
+	back_button.text = Texts.s(&"COMMON_BACK")
 	back_button.pressed.connect(func() -> void: back_requested.emit())
 	v.add_child(back_button)
 
@@ -49,12 +49,12 @@ func bind(party: Array, bonds: Dictionary, growth: Dictionary = {}) -> void:
 		var lv := int(growth.get("level", 1))
 		var xp := int(growth.get("xp", 0))
 		var next := int(growth.get("next", 0))
-		gl.text = TextsZh.CHAR_GROWTH_MAX % [lv, xp] if next <= 0 \
-			else TextsZh.CHAR_GROWTH % [lv, xp, str(next)]
+		gl.text = Texts.s(&"CHAR_GROWTH_MAX") % [lv, xp] if next <= 0 \
+			else Texts.s(&"CHAR_GROWTH") % [lv, xp, str(next)]
 		list_box.add_child(gl)
 		var ga := Label.new()
 		var attrs: Dictionary = growth.get("attrs", {})
-		ga.text = TextsZh.CHAR_GROWTH_ATTRS % [int(attrs.get("might", 0)), int(attrs.get("finesse", 0)),
+		ga.text = Texts.s(&"CHAR_GROWTH_ATTRS") % [int(attrs.get("might", 0)), int(attrs.get("finesse", 0)),
 			int(attrs.get("wits", 0)), int(growth.get("attr_points", 0))]
 		ga.add_theme_color_override("font_color", Color(0.75, 0.75, 0.8))
 		list_box.add_child(ga)
@@ -64,14 +64,14 @@ func bind(party: Array, bonds: Dictionary, growth: Dictionary = {}) -> void:
 		var skill_names: Array = (d.get("skills", []) as Array).map(
 			func(s: Variant) -> String: return str((s as Dictionary).get("name", "")))
 		var l := Label.new()
-		l.text = "%s　HP %d/%d　力%+.0f 敏%+.0f 智%+.0f\n　技能：%s" % [
+		l.text = Texts.s(&"CHAR_ROSTER_LINE") % [
 			str(d.get("name", d.get("id", "?"))), int(d.get("hp", 0)), int(d.get("max_hp", 0)),
 			float(attrs.get("might", 0)), float(attrs.get("finesse", 0)), float(attrs.get("wits", 0)),
-			"、".join(skill_names) if not skill_names.is_empty() else "—"]
+			Texts.s(&"LIST_SEP").join(skill_names) if not skill_names.is_empty() else "—"]
 		list_box.add_child(l)
 	if not bonds.is_empty():
 		var head := Label.new()
-		head.text = "【%s】" % TextsZh.CHAR_BOND
+		head.text = Texts.s(&"BRACKET_FMT") % Texts.s(&"CHAR_BOND")
 		list_box.add_child(head)
 		for npc: String in bonds.keys():
 			var l := Label.new()

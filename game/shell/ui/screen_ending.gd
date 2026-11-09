@@ -50,19 +50,19 @@ func _build() -> void:
 	saved_label.add_theme_color_override("font_color", Color(0.6, 0.8, 0.6))
 	v.add_child(saved_label)
 	ngplus_button = Button.new()
-	ngplus_button.text = TextsZh.ENDING_NGPLUS
+	ngplus_button.text = Texts.s(&"ENDING_NGPLUS")
 	ngplus_button.pressed.connect(func() -> void: ngplus_requested.emit())
 	v.add_child(ngplus_button)
 	home_button = Button.new()
-	home_button.text = TextsZh.ENDING_HOME
+	home_button.text = Texts.s(&"ENDING_HOME")
 	home_button.pressed.connect(func() -> void: go_home.emit())
 	v.add_child(home_button)
 
 ## d = {ending_id, title, content, hook, playthrough, saved}。
 func bind(d: Dictionary) -> void:
-	title_label.text = TextsZh.ENDING_TITLE % str(d.get("title", ""))
-	playthrough_label.text = TextsZh.ENDING_PLAYTHROUGH % int(d.get("playthrough", 1))
+	title_label.text = Texts.s(&"ENDING_TITLE") % str(d.get("title", ""))
+	playthrough_label.text = Texts.s(&"ENDING_PLAYTHROUGH") % int(d.get("playthrough", 1))
 	content_text.text = str(d.get("content", ""))
-	hook_label.text = TextsZh.ENDING_HOOK % str(d.get("hook", "")) \
+	hook_label.text = Texts.s(&"ENDING_HOOK") % str(d.get("hook", "")) \
 		if str(d.get("hook", "")) != "" else ""
-	saved_label.text = TextsZh.ENDING_SAVED if bool(d.get("saved", false)) else ""
+	saved_label.text = Texts.s(&"ENDING_SAVED") if bool(d.get("saved", false)) else ""

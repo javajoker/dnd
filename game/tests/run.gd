@@ -12,6 +12,7 @@ func _isolate_user_data() -> void:
 	SaveSystem.save_dir = TEST_DIR.path_join("saves")
 	UiSettings.redirect_path = TEST_DIR.path_join("settings.cfg")
 	Rng.fixed_seed_override = 20260009 # 新开局种子固定：main 集成测试依赖确定的主线检定路径
+	Texts.set_locale(Texts.SOURCE_LOCALE) # 语言固定为源语言：断言与系统语言无关
 
 ## 新 main 实例（新开局）：先删测试存档槽——main 启动即读回存档（07 §4.2），集成测试默认从零开始。
 func _new_main() -> Node:
@@ -54,6 +55,7 @@ func _init() -> void:
 	test_shell_router()
 	test_save_system()
 	test_new_game_seed()
+	test_texts()
 	test_loadout()
 	test_growth()
 	test_quest_runtime()
@@ -5173,7 +5175,7 @@ func test_main_flow() -> void:
 	m._on_story_edge(0) # 继续 → N1-7 battle
 	await process_frame
 	var new_logs: Array = m.stream.query_by_type(EventTypes.LOG)
-	check(new_logs.size() > logs_before and str(new_logs.back()["payload"]["msg"]).contains("誊写庭接触"),
+	check(new_logs.size() > logs_before and Texts.msg(new_logs.back()["payload"]).contains("誊写庭接触"),
 		"对话选项回复进日志")
 	# ---- battle（N1-7）：整备 → 遭遇；遭遇进行中不存档；☰ 恢复快照 ----
 	check(m.current_screen is ScreenLoadout, "battle 节点 → 整备界面（09 §9.1）")
@@ -5997,6 +5999,63 @@ func _core_code_mentions(ids: Array) -> Array:
 					if code.contains(id):
 						hits.append("%s:%d(%s)" % [fname, n + 1, id])
 	return hits
+
+# ---------------------------------------------------------------- 文本层（tech/01 E-5 双语构建）
+
+func test_texts() -> void:
+	print("[texts]")
+	check(Texts.s(&"HOME_TITLE") == TextsZh.HOME_TITLE, "源语言取值 = zh 表常量")
+	check(Texts.msg({"msg_key": "MSG_MAZE_LOOT", "args": {"item": "潮汐表", "n": 2}}) == "拾取：潮汐表 ×2",
+		"msg_key + args 按当前语言渲染")
+	check(Texts.msg({"msg": "内容包文本"}) == "内容包文本", "无 msg_key：原样显示 payload.msg（内容包数据文本）")
+	check(Texts.set_locale("xx-YY") == Texts.SOURCE_LOCALE, "不支持的语言回落源语言")
+	check(Texts.lines(&"TUT_CARDS").size() == TextsZh.TUT_CARDS.size(), "行数组键类型化取值")
+	# 静态守卫：代码里用到的每个文本键都在源语言表里（缺键 = 界面出现键名）
+	var missing: Array = []
+	var used := 0
+	var re := RegEx.create_from_string("Texts\\.(?:s|t|lines|fmt)\\(&\"(\\w+)\"")
+	for path: String in _gd_files(["res://shell", "res://main.gd", "res://subgame_runner.gd"]):
+		if path.get_file() == "texts.gd":
+			continue # 文本层自身（注释示例）不计
+		for m: RegExMatch in re.search_all(FileAccess.get_file_as_string(path)):
+			used += 1
+			if not Texts.has_key(Texts.SOURCE_LOCALE, StringName(m.get_string(1))):
+				missing.append("%s:%s" % [path.get_file(), m.get_string(1)])
+	check(used > 200 and missing.is_empty(), "代码引用的 %d 处文本键全部在源语言表：%s" % [used, ";".join(missing)])
+	# core 不产出玩家可见文案：只发 msg_key（tech/01 E-5）
+	var raw_msgs: Array = []
+	for path: String in _gd_files(["res://core"]):
+		var lines := FileAccess.get_file_as_string(path).split("\n")
+		for n: int in lines.size():
+			if lines[n].split("#")[0].contains("\"msg\":"):
+				raw_msgs.append("%s:%d" % [path.get_file(), n + 1])
+	check(raw_msgs.is_empty(), "core 零写死消息文案（只发 msg_key）：%s" % ";".join(raw_msgs))
+	var core_keys := RegEx.create_from_string("\"msg_key\": \"(\\w+)\"")
+	var bad_keys: Array = []
+	for path: String in _gd_files(["res://core", "res://main.gd", "res://subgame_runner.gd"]):
+		for m: RegExMatch in core_keys.search_all(FileAccess.get_file_as_string(path)):
+			if not Texts.has_key(Texts.SOURCE_LOCALE, StringName(m.get_string(1))):
+				bad_keys.append(m.get_string(1))
+	check(bad_keys.is_empty(), "事件 msg_key 全部有模板：%s" % ";".join(bad_keys))
+
+## 收集 .gd 文件（目录递归 / 单文件）。
+func _gd_files(roots: Array) -> Array:
+	var out: Array = []
+	var stack: Array = roots.duplicate()
+	while not stack.is_empty():
+		var path: String = stack.pop_back()
+		if path.ends_with(".gd"):
+			out.append(path)
+			continue
+		var d := DirAccess.open(path)
+		if d == null:
+			continue
+		for sub: String in d.get_directories():
+			stack.append(path.path_join(sub))
+		for f: String in d.get_files():
+			if f.ends_with(".gd"):
+				out.append(path.path_join(f))
+	return out
 
 # ---------------------------------------------------------------- 新开局种子（tech/01 §5.2；代码评审 B3）
 

@@ -214,7 +214,7 @@ func clock_forecasts() -> Array:
 			# objective 上屏文本取节点标题（节点 id 是内部寻址，不上屏——M2 审计 G7）
 			var node_title := str((pack["nodes"] as Dictionary).get(
 				str(rec["node_id"]), {}).get("title", ""))
-			out.append({"id": "", "name": str(edge.get("label", "时间边")),
+			out.append({"id": "", "name": str(edge.get("label", "")), # 无文案时由壳按语言兜底（TIME_EDGE_DEFAULT）
 				"at": at, "objective": node_title})
 	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["at"]) < int(b["at"]))
 	return out
@@ -285,7 +285,7 @@ func hub_rest() -> Dictionary:
 		board.write("%s.hp.%s" % [pack_id, cid], max_hp, _hub_prov())
 		restored[cid] = max_hp
 	board.stream.emit(EventTypes.LOG,
-		{"msg": "你在广场的篝火边休整。伤口被重新誊写，技能次数已恢复。", "toast": true},
+		{"msg_key": "MSG_REST", "toast": true},
 		&"graph", current_id)
 	return restored
 

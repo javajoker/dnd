@@ -32,7 +32,7 @@ func _ready() -> void:
 	v.add_theme_constant_override("separation", 10)
 	panel.add_child(v)
 	var title := Label.new()
-	title.text = TextsZh.SHOP_TITLE
+	title.text = Texts.s(&"SHOP_TITLE")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 20)
 	v.add_child(title)
@@ -45,14 +45,14 @@ func _ready() -> void:
 	line_label.add_theme_color_override("font_color", Color(0.75, 0.72, 0.66))
 	v.add_child(line_label)
 	confirm_button = Button.new()
-	confirm_button.text = TextsZh.SHOP_CONFIRM
+	confirm_button.text = Texts.s(&"SHOP_CONFIRM")
 	confirm_button.custom_minimum_size = Vector2(0, 44)
 	confirm_button.pressed.connect(func() -> void:
 		hide()
 		purchase_confirmed.emit(_pack_id))
 	v.add_child(confirm_button)
 	cancel_button = Button.new()
-	cancel_button.text = TextsZh.SHOP_CANCEL
+	cancel_button.text = Texts.s(&"SHOP_CANCEL")
 	cancel_button.pressed.connect(hide)
 	v.add_child(cancel_button)
 	hide()
@@ -62,5 +62,5 @@ func _ready() -> void:
 func open(pack_id: String, pack_name: String, price_text: String, line_override: String = "") -> void:
 	_pack_id = pack_id
 	goods_label.text = "%s · %s" % [pack_name, price_text]
-	line_label.text = line_override if line_override != "" else TextsZh.shop_line(pack_name, price_text)
+	line_label.text = line_override if line_override != "" else Texts.shop_line(pack_name, price_text)
 	visible = true

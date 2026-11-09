@@ -46,12 +46,12 @@ static func number_spec(ev: Dictionary) -> Dictionary:
 				var crit := bool(p.get("crit", false))
 				return {"unit": str(p["target"]), "attacker": str(p["attacker"]),
 					"text": str(int(p["damage"])),
-					"tag": TextsZh.JUICE_CRIT if crit else "",
+					"tag": Texts.s(&"JUICE_CRIT") if crit else "",
 					"color": COLOR_CRIT if crit else COLOR_DAMAGE,
 					"scale": CRIT_SCALE if crit else 1.0,
 					"kind": "crit" if crit else "damage"}
 			return {"unit": str(p["target"]), "attacker": str(p.get("attacker", "")),
-				"text": TextsZh.JUICE_MISS, "tag": "", "color": COLOR_MISS,
+				"text": Texts.s(&"JUICE_MISS"), "tag": "", "color": COLOR_MISS,
 				"scale": 1.0, "kind": "miss"}
 		EventTypes.ITEM_USE:
 			if int(p.get("healed", 0)) > 0:

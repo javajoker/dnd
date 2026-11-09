@@ -78,7 +78,7 @@ func check_achievements(ops_config: Dictionary) -> Array:
 			if achievement_grant(pack_id, str(r.get("id", ""))):
 				granted.append(pack_id)
 				stream.emit(EventTypes.LOG,
-					{"msg": "成就达成：%s" % str(r.get("label", r.get("id", ""))), "toast": true},
+					{"msg_key": "MSG_ACHIEVEMENT", "args": {"label": str(r.get("label", r.get("id", "")))}, "toast": true},
 					&"core")
 	return granted
 

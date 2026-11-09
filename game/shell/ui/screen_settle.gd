@@ -74,14 +74,14 @@ func _make_common_widgets() -> void:
 	keep_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	keep_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
 	next_button = Button.new()
-	next_button.text = TextsZh.SETTLE_NEXT
+	next_button.text = Texts.s(&"SETTLE_NEXT")
 	next_button.visible = false # 仅胜利结算显示（bind 按 summary.has_next 控制）
 	next_button.pressed.connect(func() -> void: go_next.emit())
 	home_button = Button.new()
-	home_button.text = TextsZh.SETTLE_HOME
+	home_button.text = Texts.s(&"SETTLE_HOME")
 	home_button.pressed.connect(func() -> void: go_home.emit())
 	history_button = Button.new()
-	history_button.text = TextsZh.SETTLE_HISTORY
+	history_button.text = Texts.s(&"SETTLE_HISTORY")
 	history_button.pressed.connect(func() -> void: go_history.emit())
 
 ## 竖屏：居中纵列（§④.8：竖屏布局不变）。
@@ -146,7 +146,7 @@ func _build_landscape() -> void:
 	side_zone.add_child(history_button)
 	# 胜利演出：横铺中央后收拢（04 §④.8）；覆盖层不吞输入
 	victory_banner = Label.new()
-	victory_banner.text = TextsZh.SETTLE_VICTORY
+	victory_banner.text = Texts.s(&"SETTLE_VICTORY")
 	victory_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	victory_banner.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	victory_banner.add_theme_font_size_override("font_size", 72)
@@ -159,14 +159,14 @@ func _build_landscape() -> void:
 ## summary = {title, result, lines[], saved, attr_points, attrs{}, has_next?, celebrate?}。
 func bind(summary: Dictionary) -> void:
 	next_button.visible = bool(summary.get("has_next", false)) # 下一遭遇出口：仅胜利结算（04 §⑨）
-	var result_name: String = {"victory": TextsZh.SETTLE_VICTORY, "defeat": TextsZh.SETTLE_DEFEAT,
-		"retreat": TextsZh.SETTLE_RETREAT, "slice": TextsZh.SETTLE_SLICE}.get(
+	var result_name: String = {"victory": Texts.s(&"SETTLE_VICTORY"), "defeat": Texts.s(&"SETTLE_DEFEAT"),
+		"retreat": Texts.s(&"SETTLE_RETREAT"), "slice": Texts.s(&"SETTLE_SLICE")}.get(
 			str(summary.get("result", "")), str(summary.get("result", "")))
-	var lines: Array[String] = ["【%s】%s —— %s" % [TextsZh.SETTLE_TITLE,
+	var lines: Array[String] = [Texts.s(&"SETTLE_HEAD") % [Texts.s(&"SETTLE_TITLE"),
 		str(summary.get("title", "")), result_name], ""]
 	lines.append_array(summary.get("lines", []))
 	summary_text.text = "\n".join(lines)
-	saved_label.text = TextsZh.SETTLE_SAVED if bool(summary.get("saved", false)) else ""
+	saved_label.text = Texts.s(&"SETTLE_SAVED") if bool(summary.get("saved", false)) else ""
 	_refresh_attrs(int(summary.get("attr_points", 0)), summary.get("attrs", {}))
 	if form == ShellRouter.MODE_SPACE:
 		_render_landscape_lines(lines)
@@ -218,15 +218,15 @@ func _refresh_attrs(points: int, attrs: Dictionary) -> void:
 	attr_label.visible = points > 0
 	attr_box.visible = points > 0
 	keep_label.visible = points > 0
-	attr_label.text = "%s（可用 %d）" % [TextsZh.SETTLE_ATTR_TITLE, points]
-	var names := {"might": "力", "finesse": "敏", "wits": "智"}
+	attr_label.text = Texts.s(&"SETTLE_ATTR_AVAIL") % [Texts.s(&"SETTLE_ATTR_TITLE"), points]
+	var names: Dictionary = Texts.t(&"ATTR_SHORT")
 	for attr: String in ["might", "finesse", "wits"]:
 		var b := Button.new()
 		b.text = "%s %+d +" % [str(names[attr]), int(attrs.get(attr, 0))]
 		b.disabled = points <= 0 or int(attrs.get(attr, 0)) >= LightV1.ATTR_POINT_CAP # 单项 +3 封顶（11 §6）
 		b.pressed.connect(func() -> void: allocate.emit(attr))
 		attr_box.add_child(b)
-	keep_label.text = TextsZh.SETTLE_ATTR_KEEP if points > 0 else ""
+	keep_label.text = Texts.s(&"SETTLE_ATTR_KEEP") if points > 0 else ""
 
 ## 布局形态探针（04 §④.8：横屏双区）。
 func is_landscape_layout() -> bool:

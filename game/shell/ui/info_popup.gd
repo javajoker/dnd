@@ -36,7 +36,7 @@ func _ready() -> void:
 	body_label.scroll_following = false
 	v.add_child(body_label)
 	close_button = Button.new()
-	close_button.text = TextsZh.HUB_CLOSE
+	close_button.text = Texts.s(&"HUB_CLOSE")
 	close_button.pressed.connect(hide)
 	v.add_child(close_button)
 	hide()

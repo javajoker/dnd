@@ -40,7 +40,7 @@ func begin(p_encounter_id: String, beats: Array, p_mod_fn: Callable, p_node_id: 
 	_idx = clampi(int(board.read(_progress_key(), 0)), 0, _beats.size())
 	_mod_fn = p_mod_fn
 	if _idx == 0:
-		stream.emit(EventTypes.LOG, {"msg": "探索开始（%s，%d 拍）" % [encounter_id, _beats.size()]},
+		stream.emit(EventTypes.LOG, {"msg_key": "MSG_MAZE_START", "args": {"encounter": encounter_id, "beats": _beats.size()}},
 			&"core", node_id)
 
 func _progress_key() -> String:
@@ -87,7 +87,7 @@ func resolve() -> Dictionary:
 			"extreme": bool(res["nat20"]) or bool(res["nat1"]),
 			"source": &"core"}, &"core", node_id)
 		if btype == BEAT_AMBUSH and str(beat.get("enemy", "")) != "":
-			stream.emit(EventTypes.LOG, {"msg": "伏击！（%s）" % str(beat["enemy"])},
+			stream.emit(EventTypes.LOG, {"msg_key": "MSG_MAZE_AMBUSH", "args": {"enemy": str(beat["enemy"])}},
 				&"core", node_id)
 		if not success and bool(beat.get("retry_on_fail", false)):
 			out["retry"] = true
@@ -106,9 +106,9 @@ func resolve() -> Dictionary:
 		board.give_item(item, n, prov)
 		out["item"] = item
 		out["n"] = n
-		stream.emit(EventTypes.LOG, {"msg": "拾取：%s ×%d" % [item, n]}, &"core", node_id)
+		stream.emit(EventTypes.LOG, {"msg_key": "MSG_MAZE_LOOT", "args": {"item": item, "n": n}}, &"core", node_id)
 	if is_done():
-		stream.emit(EventTypes.LOG, {"msg": "探索完成（%s）" % encounter_id}, &"core", node_id)
+		stream.emit(EventTypes.LOG, {"msg_key": "MSG_MAZE_DONE", "args": {"encounter": encounter_id}}, &"core", node_id)
 	return out
 
 ## 节拍效果 = 效果 DSL 同一通道（tech/02 §4.6；纳入 packlint V4/V5/V11/V12 闭环）。

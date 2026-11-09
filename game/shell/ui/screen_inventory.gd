@@ -42,7 +42,7 @@ func _build() -> void:
 	v.add_theme_constant_override("separation", 6)
 	add_child(v)
 	var title := Label.new()
-	title.text = TextsZh.INV_TITLE
+	title.text = Texts.s(&"INV_TITLE")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 24)
 	v.add_child(title)
@@ -51,9 +51,9 @@ func _build() -> void:
 	filter_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	filter_row.add_theme_constant_override("separation", 6)
 	v.add_child(filter_row)
-	_add_filter(TextsZh.INV_FILTER_ALL, "")
+	_add_filter(Texts.s(&"INV_FILTER_ALL"), "")
 	for r: String in ROLE_ORDER:
-		_add_filter(str(TextsZh.INV_ROLE_NAMES[r]), r)
+		_add_filter(str(Texts.t(&"INV_ROLE_NAMES")[r]), r)
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.add_child(scroll)
@@ -61,31 +61,31 @@ func _build() -> void:
 	cols.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(cols)
 	var bag_head := Label.new()
-	bag_head.text = "【%s】" % TextsZh.INV_BAG
+	bag_head.text = Texts.s(&"BRACKET_FMT") % Texts.s(&"INV_BAG")
 	bag_box = VBoxContainer.new()
 	bag_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bag_box.add_child(bag_head)
 	cols.add_child(bag_box)
 	var codex_head := Label.new()
-	codex_head.text = "【%s】" % TextsZh.INV_CODEX
+	codex_head.text = Texts.s(&"BRACKET_FMT") % Texts.s(&"INV_CODEX")
 	codex_box = VBoxContainer.new()
 	codex_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	codex_box.add_child(codex_head)
 	cols.add_child(codex_box)
 	# 外观页（06 §3/§6：外观商品挂在 ⑥ 背包图鉴外观页，不新增全局导航）
 	var cos_head := Label.new()
-	cos_head.text = "【%s】" % TextsZh.INV_COSMETIC
+	cos_head.text = Texts.s(&"BRACKET_FMT") % Texts.s(&"INV_COSMETIC")
 	cos_box = VBoxContainer.new()
 	cos_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	cos_box.add_child(cos_head)
 	var cos_note := Label.new()
-	cos_note.text = TextsZh.COSMETIC_PURE_NOTE
+	cos_note.text = Texts.s(&"COSMETIC_PURE_NOTE")
 	cos_note.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
 	cos_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	cos_box.add_child(cos_note)
 	cols.add_child(cos_box)
 	back_button = Button.new()
-	back_button.text = TextsZh.COMMON_BACK
+	back_button.text = Texts.s(&"COMMON_BACK")
 	back_button.pressed.connect(func() -> void: back_requested.emit())
 	v.add_child(back_button)
 	info_popup = InfoPopup.new()
@@ -127,9 +127,9 @@ func _render_bag() -> void:
 			continue
 		var b := Button.new()
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.text = "%s ×%d　%s" % [str(def.get("name", item_id)), int(_inv[item_id]),
-			"〔%s〕" % "/".join(roles.map(func(r: Variant) -> String:
-				return str(TextsZh.INV_ROLE_NAMES.get(str(r), str(r))))) if not roles.is_empty() else ""]
+		b.text = Texts.s(&"INV_ITEM_LINE") % [str(def.get("name", item_id)), int(_inv[item_id]),
+			Texts.s(&"TAG_FMT") % "/".join(roles.map(func(r: Variant) -> String:
+				return str(Texts.t(&"INV_ROLE_NAMES").get(str(r), str(r))))) if not roles.is_empty() else ""]
 		var iid := item_id
 		b.pressed.connect(func() -> void: show_item_detail(iid))
 		bag_box.add_child(b)
@@ -140,20 +140,20 @@ func show_item_detail(item_id: String) -> void:
 	var roles: Array = def.get("roles", [])
 	var lines: Array[String] = []
 	if not roles.is_empty():
-		lines.append("身份：%s" % " / ".join(roles.map(func(r: Variant) -> String:
-			return str(TextsZh.INV_ROLE_NAMES.get(str(r), str(r))))))
+		lines.append(Texts.s(&"INV_ROLES") % " / ".join(roles.map(func(r: Variant) -> String:
+			return str(Texts.t(&"INV_ROLE_NAMES").get(str(r), str(r))))))
 	if def.has("use"):
 		var use: Dictionary = def["use"]
 		if use.has("heal"):
-			lines.append("使用：恢复 %s HP（附赠动作）" % str(use["heal"]))
+			lines.append(Texts.s(&"INV_USE_HEAL") % str(use["heal"]))
 		if bool(use.get("consume", false)):
-			lines.append("消耗品")
+			lines.append(Texts.s(&"INV_CONSUMABLE"))
 	if roles.has("check_mod"):
-		lines.append("检定修正：携带即生效（检定工具）")
+		lines.append(Texts.s(&"INV_CHECK_MOD"))
 	if roles.has("branch_key"):
-		lines.append(TextsZh.INV_BRANCH_HINT) # 分支提示（04 §⑥ 示例句式）
+		lines.append(Texts.s(&"INV_BRANCH_HINT")) # 分支提示（04 §⑥ 示例句式）
 	if def.has("price"):
-		lines.append("价格：%d 金币" % int(def["price"]))
+		lines.append(Texts.s(&"INV_PRICE") % int(def["price"]))
 	if lines.is_empty():
 		lines.append(str(def.get("name", item_id)))
 	info_popup.show_info(str(def.get("name", item_id)), lines)
@@ -161,9 +161,9 @@ func show_item_detail(item_id: String) -> void:
 ## 图鉴页：四系列进度 + 集齐奖励预告（10 §4 白名单）+ 已解锁 Lore 条目（lore.json × global.lore）。
 func _render_codex() -> void:
 	for child: Node in codex_box.get_children():
-		if child is Label and (child as Label).text != "【%s】" % TextsZh.INV_CODEX:
+		if child is Label and (child as Label).text != Texts.s(&"BRACKET_FMT") % Texts.s(&"INV_CODEX"):
 			child.queue_free()
-	for series_id: String in TextsZh.CODEX_SERIES:
+	for series_id: String in Texts.t(&"CODEX_SERIES"):
 		var total := 0
 		var got := 0
 		for e: Variant in _lore_defs:
@@ -172,11 +172,11 @@ func _render_codex() -> void:
 				if _lore_ids.has(str((e as Dictionary).get("id", ""))):
 					got += 1
 		var l := Label.new()
-		l.text = TextsZh.CODEX_PROGRESS % [str(TextsZh.CODEX_SERIES[series_id]), got, total]
+		l.text = Texts.s(&"CODEX_PROGRESS") % [str(Texts.t(&"CODEX_SERIES")[series_id]), got, total]
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		codex_box.add_child(l)
 		var r := Label.new()
-		r.text = TextsZh.CODEX_REWARD_LINE % str(TextsZh.CODEX_REWARDS.get(series_id, ""))
+		r.text = Texts.s(&"CODEX_REWARD_LINE") % str(Texts.t(&"CODEX_REWARDS").get(series_id, ""))
 		r.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
 		r.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		codex_box.add_child(r)
@@ -187,13 +187,13 @@ func _render_codex() -> void:
 			# 已解锁条目 = 按钮等价路径（12 §1），点按弹正文（tech/02 §10 text_ref 外置，§1.1 解析）
 			var b := Button.new()
 			b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-			b.text = "📜 %s（%s）" % [str(d.get("title", lid)), str(d.get("source", ""))]
+			b.text = Texts.s(&"INV_LORE_LINE") % [str(d.get("title", lid)), str(d.get("source", ""))]
 			b.pressed.connect(func() -> void: show_lore_detail(lid))
 			codex_box.add_child(b)
 		else:
 			var l2 := Label.new()
 			l2.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			l2.text = "📜 %s" % TextsZh.CODEX_LOCKED_TITLE
+			l2.text = "📜 %s" % Texts.s(&"CODEX_LOCKED_TITLE")
 			l2.modulate = Color(0.5, 0.5, 0.55)
 			codex_box.add_child(l2)
 
@@ -203,7 +203,7 @@ func show_lore_detail(lore_id: String) -> void:
 		var d: Dictionary = e
 		if str(d.get("id", "")) != lore_id:
 			continue
-		var lines: Array = ["来源：%s" % str(d.get("source", ""))]
+		var lines: Array = [Texts.s(&"INV_LORE_SOURCE") % str(d.get("source", ""))]
 		var body := StoryVM.lore_text(_texts, d)
 		if body != "":
 			lines.append(body)
@@ -258,27 +258,27 @@ func _render_cosmetics() -> void:
 		name_l.text = str(def.get("name", skin_id))
 		text_v.add_child(name_l)
 		var src_l := Label.new()
-		src_l.text = TextsZh.cosmetic_source_line(def)
+		src_l.text = Texts.cosmetic_source_line(def)
 		src_l.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
 		text_v.add_child(src_l)
 		row.add_child(text_v)
 		var btn := Button.new()
 		if owned and skin_id == _skin_equipped:
-			btn.text = TextsZh.COSMETIC_UNEQUIP
+			btn.text = Texts.s(&"COSMETIC_UNEQUIP")
 			btn.pressed.connect(func() -> void: unequip_requested.emit())
 		elif owned:
-			btn.text = TextsZh.COSMETIC_EQUIP
+			btn.text = Texts.s(&"COSMETIC_EQUIP")
 			var sid := skin_id
 			btn.pressed.connect(func() -> void: equip_requested.emit(sid))
 		elif str((def.get("grant", {}) as Dictionary).get("kind", "")) == "shop":
 			var price := str((def.get("shop", {}) as Dictionary).get("price_text", ""))
-			btn.text = "%s %s" % [TextsZh.LOCK_ACQUIRE, price]
+			btn.text = "%s %s" % [Texts.s(&"LOCK_ACQUIRE"), price]
 			var sid2 := skin_id
 			btn.pressed.connect(func() -> void:
 				skin_popup.open(sid2, str(def.get("name", sid2)), price,
-					TextsZh.cosmetic_shop_line(str(def.get("name", sid2)), price)))
+					Texts.cosmetic_shop_line(str(def.get("name", sid2)), price)))
 		else:
-			btn.text = TextsZh.COSMETIC_NOT_OWNED
+			btn.text = Texts.s(&"COSMETIC_NOT_OWNED")
 			btn.disabled = true # 未获得灰显（非卖途径：呈现获得条件，不出购买入口）
 		row.add_child(btn)
 		if not owned:

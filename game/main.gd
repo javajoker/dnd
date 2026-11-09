@@ -130,7 +130,7 @@ func _ready() -> void:
 	_discover_arcs()
 	if not resumed.is_empty(): # 故事图进度在支线注入后恢复（合并视图含支线事件定义）
 		graph.deserialize((resumed.get("meta", {}) as Dictionary).get("graph", {}))
-		stream.emit(EventTypes.LOG, {"msg": TextsZh.RESUMED}, &"core")
+		stream.emit(EventTypes.LOG, {"msg_key": "MSG_RESUMED"}, &"core")
 	stream.subscribe(_on_event)
 	_show_home()
 	if shots != null:
@@ -358,7 +358,7 @@ func _show_entry() -> void:
 			"mode": str((manifest.get("presentation", {}) as Dictionary).get("mode", "choice")),
 			"stats": runner.stats(),
 			"locked": not entitlements.can_access(manifest),
-			"lock_text": TextsZh.LOCK_ARENA})
+			"lock_text": Texts.s(&"LOCK_ARENA")})
 	entry.bind_subgames(cards)
 	entry.subgame_start.connect(_on_subgame_start)
 	entry.acquire_requested.connect(_on_acquire_requested)
@@ -422,7 +422,7 @@ func _present_story_node() -> void:
 	# 情境教程：首次检定（12 §4：双指点击快掷；可跳过不丢信息）
 	for e: Variant in vm["edges"]:
 		if bool((e as Dictionary).get("check", false)):
-			_context_hint("first_check", TextsZh.TUT_HINT_CHECK)
+			_context_hint("first_check", Texts.s(&"TUT_HINT_CHECK"))
 			break
 
 func _story_show(vm: Dictionary) -> void:
@@ -452,7 +452,7 @@ func _shell_mode() -> StringName:
 
 ## 故事壳就位：实例化/复用同一壳（09 §8 一局一壳），绑定故事回调（唯一指令通道）。
 ## 强制幕换壳（09 §3 内容驱动，非玩家切换——router 的玩家切换锁不变）：形态不一致即重建壳，
-## 并以叙事化提示呈现（09 §3：禁止系统腔；锁定用 NOTICE_FORCED，解锁用 TextsZh.STORY_MODE_UNLOCK）。
+## 并以叙事化提示呈现（09 §3：禁止系统腔；锁定用 NOTICE_FORCED，解锁用 Texts.s(&"STORY_MODE_UNLOCK")）。
 func _ensure_story_shell() -> void:
 	var want := _story_mode()
 	var notice := ""
@@ -461,8 +461,8 @@ func _ensure_story_shell() -> void:
 		shell.queue_free()
 		shell = null
 		router = ShellRouter.new() # 换壳重开一局壳锁定（09 §8：锁管玩家切换，不管内容驱动换壳）
-		notice = str(ShellRouter.NOTICE_FORCED.get(want, "")) if want != _mode \
-			else TextsZh.STORY_MODE_UNLOCK
+		notice = ShellRouter.forced_notice(want) if want != _mode \
+			else Texts.s(&"STORY_MODE_UNLOCK")
 	var created := false
 	if shell == null:
 		shell = (load(SHELL_SCENES[want]) as PackedScene).instantiate()
@@ -502,8 +502,9 @@ func _on_story_edge(idx: int) -> void:
 		return
 	var edge: Dictionary = edges[idx]
 	if str(graph.current().get("type", "")) == "dialog":
-		stream.emit(EventTypes.LOG, {"msg": "【%s】%s" % [str(graph.current().get("title", "")),
-			str(edge.get("label", TextsZh.STORY_CONTINUE))]}, &"core", graph.current_id)
+		stream.emit(EventTypes.LOG, {"msg_key": "MSG_STORY_ECHO", "args": {
+			"title": str(graph.current().get("title", "")),
+			"text": str(edge.get("label", Texts.s(&"STORY_CONTINUE")))}}, &"core", graph.current_id)
 	if str(edge.get("type", "")) == "check":
 		var res := graph.roll_check(edge)
 		await get_tree().create_timer(2.3 if bool(res.get("key", false)) else 0.8).timeout # 等演出落定
@@ -516,7 +517,7 @@ func _on_hub_action(action: String, arg: String) -> void:
 	match action:
 		"buy":
 			if not graph.hub_buy(arg):
-				stream.emit(EventTypes.LOG, {"msg": TextsZh.HUB_NO_GOLD, "toast": true}, &"core", graph.current_id)
+				stream.emit(EventTypes.LOG, {"msg_key": "HUB_NO_GOLD", "toast": true}, &"core", graph.current_id)
 			var vm := StoryVM.build(graph, board, pack)
 			_story_show(vm)
 			shell.sync_hub_popup(vm)
@@ -527,7 +528,7 @@ func _on_hub_action(action: String, arg: String) -> void:
 			shell.sync_hub_popup(vm2)
 		"rumor":
 			var rumors: Array = graph.hub_rumors()
-			var msg := StoryVM.rumor_text(rumors[0]) if not rumors.is_empty() else TextsZh.HUB_RUMOR_NONE
+			var msg := StoryVM.rumor_text(rumors[0]) if not rumors.is_empty() else Texts.s(&"HUB_RUMOR_NONE")
 			stream.emit(EventTypes.LOG, {"msg": msg, "toast": true}, &"core", graph.current_id)
 
 ## 切片终点（出 SL-0/SL-1 范围或结局节点）：结算快照落盘（07 §4.2 主快照点）+ ⑨结算屏。
@@ -594,7 +595,7 @@ func _on_ngplus_start() -> void:
 		shell = null
 	router = ShellRouter.new()
 	_battles_won = 0
-	stream.emit(EventTypes.LOG, {"msg": TextsZh.NGPLUS_TOAST, "toast": true}, &"core")
+	stream.emit(EventTypes.LOG, {"msg_key": "NGPLUS_TOAST", "toast": true}, &"core")
 	_start_campaign()
 
 # ---------------------------------------------------------------- 迷宫探索序列（tech/02 §6 maze 块；04 §④.3）
@@ -633,21 +634,21 @@ func _show_maze_beat() -> void:
 		return
 	var vm := StoryVM.build(graph, board, pack)
 	vm["type"] = "explore"
-	vm["title"] = TextsZh.MAZE_TITLE % [str(graph.current().get("title", graph.current_id)),
+	vm["title"] = Texts.s(&"MAZE_TITLE") % [str(graph.current().get("title", graph.current_id)),
 		_maze.beat_index() + 1, _maze.beat_count()]
 	vm["text"] = _maze_outcome + str(beat.get("text", ""))
-	var label := TextsZh.STORY_CONTINUE
+	var label := Texts.s(&"STORY_CONTINUE")
 	var btype := str(beat.get("type", ""))
 	if btype == "check" or btype == "ambush":
 		var skill := str(beat.get("skill", "perception"))
 		var diff := str(beat.get("difficulty", "medium"))
-		label = "%s：%s（%s DC %d · 修正 %+d）" % [TextsZh.STORY_CHECK,
-			str(TextsZh.SKILL_NAMES.get(skill, skill)), str(TextsZh.DIFF_NAMES.get(diff, diff)),
+		label = Texts.s(&"FMT_CHECK_LABEL") % [Texts.s(&"STORY_CHECK"),
+			str(Texts.t(&"SKILL_NAMES").get(skill, skill)), str(Texts.t(&"DIFF_NAMES").get(diff, diff)),
 			LightV1.dc_for(diff), graph.check_mod(skill)]
 		if btype == "ambush":
-			label = TextsZh.MAZE_AMBUSH_PREFIX + label
+			label = Texts.s(&"MAZE_AMBUSH_PREFIX") + label
 	elif btype == "loot":
-		label = TextsZh.MAZE_LOOT % [_item_name(str(beat.get("item", ""))), int(beat.get("n", 1))]
+		label = Texts.s(&"MAZE_LOOT") % [_item_name(str(beat.get("item", ""))), int(beat.get("n", 1))]
 	vm["edges"] = [{"type": "choice", "label": label}]
 	_ensure_story_shell()
 	_story_show(vm)
@@ -658,13 +659,13 @@ func _on_maze_advance() -> void:
 	var res := _maze.resolve()
 	if bool(res.get("retry", false)):
 		# 解谜房：失败给提示原地重试（tech/02 §6 retry_on_fail/hint；campaign01 迷宫未声明，通用能力）
-		_maze_outcome = "%s %s\n\n" % [TextsZh.MAZE_BEAT_FAIL, str(res.get("hint", ""))]
+		_maze_outcome = "%s %s\n\n" % [Texts.s(&"MAZE_BEAT_FAIL"), str(res.get("hint", ""))]
 	elif str(res.get("type", "")) == "loot":
-		_maze_outcome = "%s\n\n" % TextsZh.MAZE_LOOT % [_item_name(str(res.get("item", ""))),
+		_maze_outcome = "%s\n\n" % Texts.s(&"MAZE_LOOT") % [_item_name(str(res.get("item", ""))),
 			int(res.get("n", 1))]
 	else:
-		_maze_outcome = (TextsZh.MAZE_BEAT_OK if bool(res.get("success", false)) \
-			else TextsZh.MAZE_BEAT_FAIL) + "\n\n"
+		_maze_outcome = (Texts.s(&"MAZE_BEAT_OK") if bool(res.get("success", false)) \
+			else Texts.s(&"MAZE_BEAT_FAIL")) + "\n\n"
 	await get_tree().create_timer(0.8).timeout
 	_show_maze_beat()
 
@@ -807,13 +808,13 @@ func _on_save_quit() -> void:
 			shell = null
 		SaveSystem.apply(_encounter_snapshot, board, rng) # 恢复遭遇进入前的世界状态（战斗不写板，RNG 归位）
 		graph.deserialize(_encounter_snapshot["meta"].get("graph", {}))
-		stream.emit(EventTypes.LOG, {"msg": "你合上抄本。这一页的雨，被轻轻翻回了开头。"}, &"core")
+		stream.emit(EventTypes.LOG, {"msg_key": "MSG_REWIND_BATTLE"}, &"core")
 		_in_encounter = false
 		_save("quit_home") # 恢复后的世界状态落档（遭遇外时机，07 §4.2）
 		_show_home()
 		return
 	_save("quit_home") # 故事态：节点进度在 meta.graph 内随快照落档
-	stream.emit(EventTypes.LOG, {"msg": "你合上抄本。这一程就讲到这里。"}, &"core")
+	stream.emit(EventTypes.LOG, {"msg_key": "MSG_REWIND_STORY"}, &"core")
 	_show_home()
 
 # ---------------------------------------------------------------- 结算（04 §⑨；07 §4.2 主快照点）
@@ -827,10 +828,10 @@ func _on_event(ev: Dictionary) -> void:
 		return
 	if ev["type"] == EventTypes.COMBAT_START:
 		# 情境教程：首次战斗（12 §4：拖动移动 + 轨迹施法 + 双指点击结束回合 + 捏合缩放）
-		_context_hint("combat", TextsZh.TUT_HINT_COMBAT)
+		_context_hint("combat", Texts.s(&"TUT_HINT_COMBAT"))
 	if ev["type"] == EventTypes.CHECK_ROLL and bool(ev["payload"].get("key", false)):
 		# 情境教程：首次关键判定（可跳过演出，04 §④.7 长按跳过）
-		_context_hint("key_roll", TextsZh.TUT_HINT_KEY)
+		_context_hint("key_roll", Texts.s(&"TUT_HINT_KEY"))
 	if ev["type"] == EventTypes.COMBAT_END and _in_encounter:
 		_encounter_result = ev["payload"]["result"]
 		_show_settle_deferred()
@@ -878,7 +879,7 @@ func _show_settle() -> void:
 			EventTypes.LEVEL_UP:
 				attr_gained += int(p.get("attr_points", 0)) # 升级即发放（tech/04 §8 规则2）
 			EventTypes.ITEM_GAIN:
-				lines.append("获得：%s ×%d（已入背包）" % [_item_name(str(p.get("item_id", ""))),
+				lines.append(Texts.s(&"SETTLE_LINE_ITEM") % [_item_name(str(p.get("item_id", ""))),
 					int(p.get("count", 1))])
 			EventTypes.FLAG_WRITE:
 				var fkey := str(p.get("key", ""))
@@ -890,20 +891,20 @@ func _show_settle() -> void:
 						or fkey.begins_with("global.tutorial.") \
 						or fkey.begins_with("global.mode_choice."):
 					continue
-				lines.append("旗标：%s" % fkey)
+				lines.append(Texts.s(&"SETTLE_LINE_FLAG") % fkey)
 			EventTypes.REP_CHANGE:
-				lines.append("声望：%s %+d" % [str(p.get("key", "")).trim_prefix("global.rep."),
+				lines.append(Texts.s(&"SETTLE_LINE_REP") % [str(p.get("key", "")).trim_prefix("global.rep."),
 					int(p.get("delta", 0))])
 			EventTypes.LOADOUT_CONFIRM:
-				lines.append("整备：技能 %s / 道具 %s" % [str(p.get("skills", [])), str(p.get("items", []))])
+				lines.append(Texts.s(&"SETTLE_LINE_LOADOUT") % [str(p.get("skills", [])), str(p.get("items", []))])
 	if xp > 0:
-		lines.insert(0, "经验 +%d" % xp)
+		lines.insert(0, Texts.s(&"SETTLE_LINE_XP") % xp)
 	var level := Growth.level(board)
 	if level > 1:
-		lines.append("等级：Lv.%d（11 §6 成长表）" % level)
+		lines.append(Texts.s(&"SETTLE_LINE_LEVEL") % level)
 	if attr_gained > 0:
-		lines.append("成长：属性点 +%d" % attr_gained)
-	lines.append("时间钟：%d 格" % board.get_doom_clock())
+		lines.append(Texts.s(&"SETTLE_LINE_ATTR") % attr_gained)
+	lines.append(Texts.s(&"SETTLE_LINE_CLOCK") % board.get_doom_clock())
 	_settle_lines = lines
 	_settle_celebrated = false # 新一场结算：胜利演出恢复首播（04 §④.8）
 	_bind_settle()
@@ -913,7 +914,7 @@ func _bind_settle() -> void:
 	var screen: ScreenSettle = (load(SCREEN_SCENES[&"settle"]) as PackedScene).instantiate()
 	screen.set_form(_story_mode()) # 结算横屏专版（04 §④.8：左念板列表 + 右加点与出口）
 	_swap(screen)
-	screen.bind({"title": TextsZh.STORY_SLICE_END if _encounter_result == &"slice" else _battle_title,
+	screen.bind({"title": Texts.s(&"STORY_SLICE_END") if _encounter_result == &"slice" else _battle_title,
 		"result": String(_encounter_result), "lines": _settle_lines,
 		"saved": true, "attr_points": Growth.attr_points(board),
 		"attrs": Growth.attrs_map(board),
@@ -990,7 +991,7 @@ func _on_skin_purchase(skin_id: String) -> void:
 	if not cosmetics.shop_purchase(skin_id, receipt_id):
 		return
 	stream.emit(EventTypes.LOG,
-		{"msg": "守门人拓下新印——骰子皮肤「%s」已到手。（纯演出，不动骰运）" % cosmetics.skin_name(skin_id),
+		{"msg_key": "MSG_SKIN_SHOP", "args": {"skin": cosmetics.skin_name(skin_id)},
 			"toast": true}, &"core")
 	_show_inventory()
 
@@ -1058,7 +1059,7 @@ func _on_purchase_confirmed(pack_id: String) -> void:
 		return
 	var pack_name := str((_subgames.get(pack_id, {}) as Dictionary).get("manifest", {}).get("name", pack_id))
 	stream.emit(EventTypes.LOG,
-		{"msg": "守门人收下印记——《%s》的门开了。（购买即解锁，无需重启）" % pack_name, "toast": true}, &"core")
+		{"msg_key": "MSG_PURCHASED", "args": {"pack": pack_name}, "toast": true}, &"core")
 	_show_entry()
 
 func _on_subgame_start(pack_id: String, mode: StringName) -> void:
@@ -1066,7 +1067,7 @@ func _on_subgame_start(pack_id: String, mode: StringName) -> void:
 		return
 	if not entitlements.can_access((_subgames[pack_id] as Dictionary)["manifest"]):
 		# 硬门槛（tech/02 §2.2）：叙事化提示，无"未购买"生硬弹窗（06 §3.1）
-		stream.emit(EventTypes.LOG, {"msg": TextsZh.LOCK_ARENA, "toast": true}, &"core")
+		stream.emit(EventTypes.LOG, {"msg_key": "LOCK_ARENA", "toast": true}, &"core")
 		return
 	_sub = SubgameRunner.new(_subgames[pack_id], board, stream, rng)
 	_sub_mode = mode
@@ -1132,21 +1133,21 @@ func _sub_show_maze_beat() -> void:
 		return
 	var vm := StoryVM.build(_sub.graph, board, _sub.pack)
 	vm["type"] = "explore"
-	vm["title"] = TextsZh.MAZE_TITLE % [str(_sub.current().get("title", _sub.graph.current_id)),
+	vm["title"] = Texts.s(&"MAZE_TITLE") % [str(_sub.current().get("title", _sub.graph.current_id)),
 		_sub_maze.beat_index() + 1, _sub_maze.beat_count()]
 	vm["text"] = _sub_maze_outcome + str(beat.get("text", ""))
-	var label := TextsZh.STORY_CONTINUE
+	var label := Texts.s(&"STORY_CONTINUE")
 	var btype := str(beat.get("type", ""))
 	if btype == "check" or btype == "ambush":
 		var skill := str(beat.get("skill", "perception"))
 		var diff := str(beat.get("difficulty", "medium"))
-		label = "%s：%s（%s DC %d · 修正 %+d）" % [TextsZh.STORY_CHECK,
-			str(TextsZh.SKILL_NAMES.get(skill, skill)), str(TextsZh.DIFF_NAMES.get(diff, diff)),
+		label = Texts.s(&"FMT_CHECK_LABEL") % [Texts.s(&"STORY_CHECK"),
+			str(Texts.t(&"SKILL_NAMES").get(skill, skill)), str(Texts.t(&"DIFF_NAMES").get(diff, diff)),
 			LightV1.dc_for(diff), _sub.graph.check_mod(skill)]
 		if btype == "ambush":
-			label = TextsZh.MAZE_AMBUSH_PREFIX + label
+			label = Texts.s(&"MAZE_AMBUSH_PREFIX") + label
 	elif btype == "loot":
-		label = TextsZh.MAZE_LOOT % [_sub_item_name(str(beat.get("item", ""))), int(beat.get("n", 1))]
+		label = Texts.s(&"MAZE_LOOT") % [_sub_item_name(str(beat.get("item", ""))), int(beat.get("n", 1))]
 	vm["edges"] = [{"type": "choice", "label": label}]
 	_ensure_sub_shell()
 	_story_show(vm)
@@ -1158,13 +1159,13 @@ func _sub_item_name(item_id: String) -> String:
 func _on_sub_maze_advance() -> void:
 	var res := _sub_maze.resolve()
 	if bool(res.get("retry", false)):
-		_sub_maze_outcome = "%s %s\n\n" % [TextsZh.MAZE_BEAT_FAIL, str(res.get("hint", ""))]
+		_sub_maze_outcome = "%s %s\n\n" % [Texts.s(&"MAZE_BEAT_FAIL"), str(res.get("hint", ""))]
 	elif str(res.get("type", "")) == "loot":
-		_sub_maze_outcome = "%s\n\n" % TextsZh.MAZE_LOOT % [_sub_item_name(str(res.get("item", ""))),
+		_sub_maze_outcome = "%s\n\n" % Texts.s(&"MAZE_LOOT") % [_sub_item_name(str(res.get("item", ""))),
 			int(res.get("n", 1))]
 	else:
-		_sub_maze_outcome = (TextsZh.MAZE_BEAT_OK if bool(res.get("success", false)) \
-			else TextsZh.MAZE_BEAT_FAIL) + "\n\n"
+		_sub_maze_outcome = (Texts.s(&"MAZE_BEAT_OK") if bool(res.get("success", false)) \
+			else Texts.s(&"MAZE_BEAT_FAIL")) + "\n\n"
 	await get_tree().create_timer(0.8).timeout
 	_sub_show_maze_beat()
 
@@ -1290,29 +1291,29 @@ func _sub_settle_lines(summary: Dictionary, result: StringName) -> Dictionary:
 				xp += int(p.get("amount", 0))
 			EventTypes.ITEM_GAIN:
 				var iid := str(p.get("item_id", ""))
-				lines.append("获得：%s ×%d（已入背包，global.inv 互通）" % [
+				lines.append(Texts.s(&"SETTLE_LINE_ITEM_SHARED") % [
 					str((_sub.pack.get("items", {}) as Dictionary).get(iid, {}).get("name", iid)),
 					int(p.get("count", 1))])
 			EventTypes.LORE_UNLOCK:
 				var added: Array = p.get("added", [])
 				if not added.is_empty():
-					lines.append("图鉴新增：%s（global.lore 互通，04 §⑥）" % "、".join(added))
+					lines.append(Texts.s(&"SETTLE_LINE_LORE") % Texts.s(&"LIST_SEP").join(added))
 	if xp > 0:
-		lines.append("经验 +%d" % xp)
+		lines.append(Texts.s(&"SETTLE_LINE_XP") % xp)
 	# 效果投放金币（tech/02 §4.6 gold：解谜通关等非战斗奖励）：总量增量 - 连战胜利已报部分
 	var gold_now := int(board.read("%s.gold" % _sub.pack_id, 0))
 	var gold_fx := gold_now - _sub_gold0 - int(summary["gold"])
 	if gold_fx != 0:
-		lines.append("金币 %+d（%s.gold 累计 %d）" % [gold_fx, _sub.pack_id, gold_now])
+		lines.append(Texts.s(&"SETTLE_LINE_GOLD_DELTA") % [gold_fx, _sub.pack_id, gold_now])
 	if int(summary["gold"]) > 0:
-		lines.append("金币 +%d（%s.gold 累计 %d）" % [int(summary["gold"]), _sub.pack_id,
+		lines.append(Texts.s(&"SETTLE_LINE_GOLD") % [int(summary["gold"]), _sub.pack_id,
 			int(board.read("%s.gold" % _sub.pack_id, 0))])
-	lines.append("战绩：本次 %d 胜 · 累计 %d 胜 · 最佳连战 %d" % [int(summary["wins"]),
+	lines.append(Texts.s(&"SETTLE_LINE_RECORD") % [int(summary["wins"]),
 		int((_sub.stats() as Dictionary)["wins"]), int(summary["best"])])
 	if bool(summary["flawless"]):
-		lines.append("全胜谢幕：擂台为你留名（arena.flawless 已落板）")
+		lines.append(Texts.s(&"SETTLE_LINE_FLAWLESS"))
 	return {"title": "%s · %s" % [str((_sub.pack["manifest"] as Dictionary).get("name", _sub.pack_id)),
-			str(_sub.current().get("title", "连战结算"))],
+			str(_sub.current().get("title", Texts.s(&"SETTLE_SUB_TITLE")))],
 		"result": String(result), "lines": lines, "saved": true,
 		# 成长簿记归框架全局键（tech/04 §8）：子游戏结算屏同口径呈现与分配
 		"attr_points": Growth.attr_points(board), "attrs": Growth.attrs_map(board)}
@@ -1342,7 +1343,7 @@ func _sub_bind_settle() -> void:
 func _on_sub_save_quit() -> void:
 	if _sub_battling:
 		SaveSystem.apply(_sub_snapshot, board, rng)
-		stream.emit(EventTypes.LOG, {"msg": "你合上抄本。擂台的墨锣声远去了。"}, &"core")
+		stream.emit(EventTypes.LOG, {"msg_key": "MSG_REWIND_SUB"}, &"core")
 	_save("quit_home")
 	_sub_leave_home()
 
@@ -1382,7 +1383,7 @@ func _save(reason: String) -> void:
 		return
 	var snap := SaveSystem.make_snapshot(board, stream, rng, _bindings(), _meta())
 	if SaveSystem.write(snap):
-		stream.emit(EventTypes.LOG, {"msg": "抄本已记录（%s）。" % reason}, &"core")
+		stream.emit(EventTypes.LOG, {"msg_key": "MSG_SAVED", "args": {"reason": reason}}, &"core")
 
 func _save_home() -> void:
 	_save("home_manual")

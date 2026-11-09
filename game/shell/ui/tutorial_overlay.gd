@@ -46,7 +46,7 @@ func _ready() -> void:
 	cv.add_theme_constant_override("separation", 14)
 	_card_panel.add_child(cv)
 	var title := Label.new()
-	title.text = TextsZh.HELP_TITLE
+	title.text = Texts.s(&"HELP_TITLE")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 24)
 	cv.add_child(title)
@@ -64,12 +64,12 @@ func _ready() -> void:
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	cv.add_child(row)
 	_next_button = Button.new()
-	_next_button.text = TextsZh.TUT_NEXT
+	_next_button.text = Texts.s(&"TUT_NEXT")
 	_next_button.custom_minimum_size = Vector2(140, 44) # 12 §6 可触目标 ≥44pt
 	_next_button.pressed.connect(next_page)
 	row.add_child(_next_button)
 	var skip := Button.new()
-	skip.text = TextsZh.TUT_SKIP # 「跳过」常驻（12 §4）
+	skip.text = Texts.s(&"TUT_SKIP") # 「跳过」常驻（12 §4）
 	skip.custom_minimum_size = Vector2(140, 44)
 	skip.pressed.connect(finish_launch)
 	row.add_child(skip)
@@ -89,7 +89,7 @@ func _ready() -> void:
 	_hint_label.add_theme_font_size_override("font_size", 16)
 	hv.add_child(_hint_label)
 	var dismiss := Label.new()
-	dismiss.text = TextsZh.TUT_DISMISS
+	dismiss.text = Texts.s(&"TUT_DISMISS")
 	dismiss.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	dismiss.add_theme_color_override("font_color", Color(0.65, 0.65, 0.7))
 	hv.add_child(dismiss)
@@ -133,7 +133,7 @@ func show_launch() -> void:
 	_render_page()
 
 func next_page() -> void:
-	if _page + 1 >= TextsZh.TUT_CARDS.size():
+	if _page + 1 >= Texts.lines(&"TUT_CARDS").size():
 		finish_launch()
 		return
 	_page += 1
@@ -147,9 +147,9 @@ func is_launch_visible() -> bool:
 	return _card_panel.visible
 
 func _render_page() -> void:
-	_card_label.text = TextsZh.TUT_CARDS[_page]
-	_page_label.text = "%d / %d" % [_page + 1, TextsZh.TUT_CARDS.size()]
-	_next_button.text = TextsZh.TUT_NEXT if _page + 1 < TextsZh.TUT_CARDS.size() else TextsZh.TUT_SKIP
+	_card_label.text = Texts.lines(&"TUT_CARDS")[_page]
+	_page_label.text = "%d / %d" % [_page + 1, Texts.lines(&"TUT_CARDS").size()]
+	_next_button.text = Texts.s(&"TUT_NEXT") if _page + 1 < Texts.lines(&"TUT_CARDS").size() else Texts.s(&"TUT_SKIP")
 
 # ---------------------------------------------------------------- 情境提示（首次进入某情境，每类一次，12 §4 第二层）
 

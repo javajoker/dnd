@@ -78,10 +78,10 @@ func on_victory() -> void:
 	run_wins += 1
 	board.write(_stat_key("wins"), int(board.read(_stat_key("wins"), 0)) + 1, _prov())
 	if gold > 0:
-		stream.emit(EventTypes.LOG, {"msg": "第 %d 场告捷：金币 +%d（连胜无休整，下一场带伤上阵）" % [run_wins, gold],
+		stream.emit(EventTypes.LOG, {"msg_key": "MSG_SUB_STAGE_WIN", "args": {"stage": run_wins, "gold": gold},
 			"toast": true}, &"core", graph.current_id)
 	else:
-		stream.emit(EventTypes.LOG, {"msg": "通关记录 +1（clear_as_win，tech/02 §2.5）",
+		stream.emit(EventTypes.LOG, {"msg_key": "MSG_SUB_CLEAR",
 			"toast": true}, &"core", graph.current_id)
 
 ## 抵达结局节点即通关记 1 胜（tech/02 §2.5 clear_as_win：无战斗子游戏——解谜回廊没有 EncounterSM

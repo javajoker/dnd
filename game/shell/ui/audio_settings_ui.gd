@@ -8,9 +8,9 @@ extends RefCounted
 static func append_to(container: VBoxContainer, settings_path: String = UiSettings.PATH) -> Dictionary:
 	var out := {}
 	var defs := [
-		[UiSettings.KEY_VOL_MASTER, TextsZh.MENU_VOL_MASTER],
-		[UiSettings.KEY_VOL_BGM, TextsZh.MENU_VOL_BGM],
-		[UiSettings.KEY_VOL_SFX, TextsZh.MENU_VOL_SFX],
+		[UiSettings.KEY_VOL_MASTER, Texts.s(&"MENU_VOL_MASTER")],
+		[UiSettings.KEY_VOL_BGM, Texts.s(&"MENU_VOL_BGM")],
+		[UiSettings.KEY_VOL_SFX, Texts.s(&"MENU_VOL_SFX")],
 	]
 	for d: Array in defs:
 		var key := String(d[0])

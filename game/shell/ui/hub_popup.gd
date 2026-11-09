@@ -31,7 +31,7 @@ func _ready() -> void:
 	v.add_theme_constant_override("separation", 6)
 	panel.add_child(v)
 	var title := Label.new()
-	title.text = TextsZh.HUB_SHOP
+	title.text = Texts.s(&"HUB_SHOP")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 20)
 	v.add_child(title)
@@ -46,28 +46,28 @@ func _ready() -> void:
 	stock_box.add_theme_constant_override("separation", 4)
 	scroll.add_child(stock_box)
 	rest_button = Button.new()
-	rest_button.text = "%s（%s）" % [TextsZh.HUB_REST, TextsZh.HUB_REST_HINT]
+	rest_button.text = Texts.s(&"PAREN_PAIR_FMT") % [Texts.s(&"HUB_REST"), Texts.s(&"HUB_REST_HINT")]
 	rest_button.pressed.connect(func() -> void: rest_requested.emit())
 	v.add_child(rest_button)
 	close_button = Button.new()
-	close_button.text = TextsZh.HUB_CLOSE
+	close_button.text = Texts.s(&"HUB_CLOSE")
 	close_button.pressed.connect(hide)
 	v.add_child(close_button)
 	hide()
 
 ## 填充货单与金币（数据来自 StoryVM.build 的 vm.stock / vm.gold）。
 func bind(gold: int, stock: Array) -> void:
-	gold_label.text = TextsZh.HUB_GOLD % gold
+	gold_label.text = Texts.s(&"HUB_GOLD") % gold
 	for child: Node in stock_box.get_children():
 		child.queue_free()
 	for item: Variant in stock:
 		var it: Dictionary = item
 		var b := Button.new()
-		b.text = "%s —— %d 金币%s" % [str(it.get("name", "")), int(it.get("price", 0)),
-			"（持有 ×%d）" % int(it["owned"]) if int(it.get("owned", 0)) > 0 else ""]
+		b.text = Texts.s(&"HUB_SHOP_LINE") % [str(it.get("name", "")), int(it.get("price", 0)),
+			Texts.s(&"HUB_OWNED_TAG") % int(it["owned"]) if int(it.get("owned", 0)) > 0 else ""]
 		b.disabled = not bool(it.get("affordable", false))
 		if b.disabled:
-			b.text += "（%s）" % TextsZh.HUB_NO_GOLD.trim_suffix("。")
+			b.text += Texts.s(&"PAREN_FMT") % Texts.s(&"HUB_NO_GOLD").trim_suffix("。")
 		var iid := str(it.get("id", ""))
 		b.pressed.connect(func() -> void: buy_requested.emit(iid))
 		stock_box.add_child(b)

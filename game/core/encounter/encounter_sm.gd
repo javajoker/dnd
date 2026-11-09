@@ -580,7 +580,7 @@ func _resolve_skill(u: Dictionary, cmd: Dictionary, src: StringName) -> void:
 			st["id"] = str(sk["id"])
 			st["until_round"] = _round + int(st.get("duration_rounds", 0))
 			(u["statuses"] as Array).append(st)
-			stream.emit(EventTypes.LOG, {"msg": "%s 发动了「%s」" % [u["name"], str(sk.get("name", sk["id"]))],
+			stream.emit(EventTypes.LOG, {"msg_key": "MSG_SKILL_USED", "args": {"unit": str(u["name"]), "skill": str(sk.get("name", sk["id"]))},
 				"unit": u["id"], "skill": sk["id"], "source": src}, &"core", node_id)
 
 func _resolve_item(u: Dictionary, cmd: Dictionary, src: StringName) -> void:
@@ -714,7 +714,7 @@ func _finish(result: StringName) -> void:
 			var hp_write := 0 if bool(u["dead"]) else maxi(int(u["hp"]), 1)
 			board.write("%s.hp.%s" % [pack_id, char_id], hp_write, prov)
 	_set_state(S_SETTLE)
-	stream.emit(EventTypes.LOG, {"msg": "遭遇结束：%s（%d 回合）" % [result, _round],
+	stream.emit(EventTypes.LOG, {"msg_key": "MSG_ENCOUNTER_END", "args": {"result": str(result), "rounds": _round},
 		"result": result, "xp": _xp, "loot": _loot.duplicate(true)}, &"core", node_id)
 
 # ---------------------------------------------------------------- 只读访问（壳唯一数据通道：事件流 + 这些 getter）
