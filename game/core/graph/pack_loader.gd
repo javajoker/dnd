@@ -192,7 +192,9 @@ static var locale: String = ""
 const DEFAULT_SOURCE_LOCALE := "zh-CN"
 ## 视为显示文本的字段名（其余字段即使是字符串也不成键：id、条件、效果等）。
 const TEXT_FIELDS := ["title", "summary", "label", "name", "text", "hint", "objective", "content",
-	"ngplus_hook", "desc", "description", "role", "source", "lock_text"]
+	"ngplus_hook", "desc", "description", "role", "source", "lock_text", "price_text"]
+## 运营侧数据（packs/_ops，非内容包）的语言表：同一约定式键，前缀 = 文件名（ops / cosmetics）。
+const OPS_TEXTS_DIR := "res://packs/_ops/texts"
 ## 参与成键的表：表名 → 条目定位（"dict" = 以 id 为键的字典表，"list" = 带 id 的数组表）。
 const TEXT_TABLES := {"acts": "list", "nodes": "dict", "events": "list", "encounters": "dict",
 	"items": "dict", "flags": "list", "endings": "list", "lore": "list", "characters": "dict",
@@ -222,6 +224,24 @@ static func text_ref_keys(pack: Dictionary) -> Array:
 ## text_ref → 键：兼容 "texts/zh-CN.json#键" 与与语言无关的 "#键" / "键"。
 static func text_key(ref: String) -> String:
 	return ref.get_slice("#", 1) if "#" in ref else ref
+
+## 运营侧数据按当前语言叠加（ops_config / cosmetics 注册表；tech/02 §1.1 同一约定式键，前缀 = prefix）。
+static func localize_ops(doc: Variant, prefix: String) -> Variant:
+	if locale == "":
+		return doc
+	var path := OPS_TEXTS_DIR.path_join("%s.json" % locale)
+	if not FileAccess.file_exists(path):
+		return doc
+	var table: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+	if table is Dictionary:
+		_walk_node(doc, prefix, table, {}, true)
+	return doc
+
+## 运营侧数据的全部文本键 → 原文（抽取与完整性检查口径）。
+static func ops_text_entries(doc: Variant, prefix: String) -> Dictionary:
+	var out := {}
+	_walk_node(doc, prefix, {}, out, false)
+	return out
 
 static func _apply_locale(pack: Dictionary) -> void:
 	var manifest: Dictionary = pack.get("manifest", {})

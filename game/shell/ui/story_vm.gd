@@ -167,6 +167,14 @@ static func is_bookkeeping_key(key: String) -> bool:
 	return rest in ["gold", "xp_total", "level", "ngplus", "wins", "best"] or rest.begins_with("attr") \
 		or rest.begins_with("hp.") or rest.begins_with("maze.")
 
+## 旗标显示名：flags.json 的 name（已按语言叠加）；找不到时退回键名（不上屏内部键是目标，缺名属数据缺陷）。
+static func flag_display(key: String, pack: Dictionary) -> String:
+	var fid := key.get_slice(".", key.get_slice_count(".") - 1)
+	for f: Variant in pack.get("flags", []):
+		if str((f as Dictionary).get("id", "")) == fid and str((f as Dictionary).get("name", "")) != "":
+			return str((f as Dictionary)["name"])
+	return key
+
 static func toast_text(ev: Dictionary, pack: Dictionary = {}) -> String:
 	var p: Dictionary = ev.get("payload", {})
 	match StringName(ev["type"]):
@@ -174,7 +182,7 @@ static func toast_text(ev: Dictionary, pack: Dictionary = {}) -> String:
 			var key := str(p.get("key", ""))
 			if is_bookkeeping_key(key):
 				return ""
-			return Texts.s(&"TOAST_FLAG") % key
+			return Texts.s(&"TOAST_FLAG") % flag_display(key, pack)
 		EventTypes.REP_CHANGE:
 			var f := str(p.get("key", "")).trim_prefix("global.rep.")
 			return Texts.s(&"TOAST_REP") % [str(Texts.t(&"FACTION_NAMES").get(f, f)),

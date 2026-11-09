@@ -93,7 +93,7 @@ static func load_ops_config(path: String = OPS_CONFIG_PATH) -> Dictionary:
 	if raw == null or not raw is Dictionary:
 		push_error("[entitlements] 运营配置 JSON 解析失败：%s" % path)
 		return {}
-	return raw
+	return PackLoader.localize_ops(raw, "ops") # 投放文案按当前语言（_ops/texts/<locale>.json）
 
 ## 应用活动开关：enabled=true 的活动点亮对应权利（运营轨不动内容包的证明：只写 Board）。
 ## 返回本次点亮的活动 id 列表。

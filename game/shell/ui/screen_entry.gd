@@ -60,9 +60,13 @@ func _build() -> void:
 		ShellRouter.MODE_SPACE)
 	played_label = Label.new()
 	played_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	played_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	played_label.custom_minimum_size = Vector2(340, 0)
 	v.add_child(played_label)
 	collect_label = Label.new()
 	collect_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	collect_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	collect_label.custom_minimum_size = Vector2(340, 0)
 	v.add_child(collect_label)
 	start_button = Button.new()
 	start_button.text = Texts.s(&"ENTRY_START")
@@ -108,6 +112,8 @@ func bind_subgames(cards: Array) -> void:
 		name_label.text = Texts.s(&"ENTRY_SUBGAME_NAME") % [Texts.s(&"ENTRY_SUBGAME_TAG"), str(c.get("name", c.get("pack_id", ""))),
 			Texts.s(&"SUBGAME_LEVEL") % int(c.get("level_min", 1))]
 		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART # 英文更长：单行会把整列撑出屏宽
+		name_label.custom_minimum_size = Vector2(340, 0)
 		card_box.add_child(name_label)
 		var stats_label := Label.new()
 		var st: Dictionary = c.get("stats", {})
@@ -182,7 +188,7 @@ func bind(pack: Dictionary, played_modes: Array, collect_pct: float) -> void:
 	var level: Array = manifest.get("recommended_level", [])
 	var lines: Array[String] = [
 		Texts.s(&"BOOK_TITLE_FMT") % str(manifest.get("name", pack.get("pack_id", ""))),
-		Texts.s(&"ENTRY_LEVEL_HOURS") % ["~".join(level.map(func(x: Variant) -> String: return str(x))),
+		Texts.s(&"ENTRY_LEVEL_HOURS") % ["~".join(level.map(func(x: Variant) -> String: return str(int(x)))),
 			str(manifest.get("estimated_hours", "?"))],
 		Texts.s(&"ENTRY_ACTS") % " / ".join((pack.get("acts", []) as Array).map(
 			func(a: Variant) -> String: return str((a as Dictionary).get("title", "")))),

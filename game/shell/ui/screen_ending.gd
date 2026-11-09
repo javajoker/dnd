@@ -43,6 +43,8 @@ func _build() -> void:
 	v.add_child(content_text)
 	hook_label = Label.new()
 	hook_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hook_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART # 文案随语言变长：换行而不撑宽屏幕
+	hook_label.custom_minimum_size = Vector2(340, 0)
 	hook_label.add_theme_color_override("font_color", Color(0.75, 0.7, 0.5))
 	v.add_child(hook_label)
 	saved_label = Label.new()

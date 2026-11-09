@@ -82,6 +82,7 @@ func _build() -> void:
 	promo_button = Button.new()
 	promo_button.visible = false
 	promo_button.custom_minimum_size = Vector2(0, 44) # 12 §6：可触目标最小 44×44pt
+	promo_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART # 文案随语言变长：换行而不撑宽屏幕
 	promo_button.add_theme_color_override("font_color", Color(0.75, 0.68, 0.5))
 	promo_button.pressed.connect(func() -> void:
 		if _promo_target != "":
@@ -182,11 +183,22 @@ func _build_help() -> void:
 	_help_overlay = PanelContainer.new()
 	_help_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_help_overlay.visible = false
+	var help_bg := StyleBoxFlat.new() # 不透明底：帮助表不与主屏绘卷叠字
+	help_bg.bg_color = Color(0.06, 0.06, 0.1, 0.97)
+	help_bg.content_margin_left = 12
+	help_bg.content_margin_right = 12
+	help_bg.content_margin_top = 12
+	help_bg.content_margin_bottom = 12
+	_help_overlay.add_theme_stylebox_override("panel", help_bg)
 	add_child(_help_overlay)
+	var help_scroll := ScrollContainer.new() # 帮助表随语言变长（英文换行更多）：超高时可滚动，按钮永远可达
+	help_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_help_overlay.add_child(help_scroll)
 	var v := VBoxContainer.new()
 	v.alignment = BoxContainer.ALIGNMENT_CENTER
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.add_theme_constant_override("separation", 6)
-	_help_overlay.add_child(v)
+	help_scroll.add_child(v)
 	var title := Label.new()
 	title.text = Texts.s(&"HELP_TITLE")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

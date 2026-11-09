@@ -920,7 +920,7 @@ func _show_settle() -> void:
 				# 内部簿记键（成长/模式选择/金币/HP）不念给玩家（04 §⑨ 呈现语义：旗标变化摘要）
 				if StoryVM.is_bookkeeping_key(fkey):
 					continue
-				lines.append(Texts.s(&"SETTLE_LINE_FLAG") % fkey)
+				lines.append(Texts.s(&"SETTLE_LINE_FLAG") % StoryVM.flag_display(fkey, pack))
 			EventTypes.REP_CHANGE:
 				lines.append(Texts.s(&"SETTLE_LINE_REP") % [str(p.get("key", "")).trim_prefix("global.rep."),
 					int(p.get("delta", 0))])

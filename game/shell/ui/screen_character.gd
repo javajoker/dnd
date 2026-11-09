@@ -32,6 +32,8 @@ func _build() -> void:
 	var wip := Label.new()
 	wip.text = Texts.s(&"CHAR_WIP_LINE") % Texts.s(&"COMMON_WIP")
 	wip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	wip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	wip.custom_minimum_size = Vector2(340, 0)
 	wip.add_theme_color_override("font_color", Color(0.55, 0.55, 0.6))
 	v.add_child(wip)
 	back_button = Button.new()

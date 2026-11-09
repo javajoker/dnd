@@ -36,6 +36,7 @@ static func load_registry(path: String = REGISTRY_PATH) -> Array:
 	if raw == null or not raw is Dictionary or not (raw as Dictionary).get("dice_skins") is Array:
 		push_error("[cosmetics] 皮肤注册表 JSON 解析失败或缺 dice_skins 数组：%s" % path)
 		return []
+	PackLoader.localize_ops(raw, "cosmetics") # 皮肤名/说明/价签按当前语言（_ops/texts/<locale>.json）
 	var out: Array = []
 	for e: Variant in (raw as Dictionary)["dice_skins"]:
 		if e is Dictionary and not str((e as Dictionary).get("id", "")).is_empty():

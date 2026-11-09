@@ -13,14 +13,14 @@
     {
       "id": "faded_ink_gray",
       "name": "褪墨灰",
-      "desc": "命骰考集齐奖励（10 文档 §4）——被撤销者的骰子，墨色褪尽仍是墨色。",
+      "desc": "命骰考集齐奖励——被撤销者的骰子，墨色褪尽仍是墨色。",
       "grant": {"kind": "codex_series", "series": "fatedie_study"},
       "palette": {"face": "#b9b6ae", "edge": "#4a4a52", "pip": "#1d1d24"}
     },
     {
       "id": "salvage_copper",
       "name": "拾遗铜辉",
-      "desc": "商店外观商品（06 §7 占位定价）——烬港拾遗人从雾码头捞起的铜光。",
+      "desc": "商店外观商品——烬港拾遗人从雾码头捞起的铜光。",
       "grant": {"kind": "shop"},
       "shop": {"price_text": "¥6"},
       "palette": {"face": "#d08a4e", "edge": "#5e3a1e", "pip": "#2a160b"}
@@ -28,7 +28,7 @@
     {
       "id": "scribe_dice",
       "name": "执笔者之骰",
-      "desc": "NG+ E3 新篇专属授予（战役书 §11：隐藏结局的奖励是身份与演出，不给属性）——新执笔者的第一副骰面，墨未干。",
+      "desc": "「新篇」结局专属——新执笔者的第一副骰面，墨未干。",
       "grant": {"kind": "ngplus_ending", "ending": "E3"},
       "palette": {"face": "#f4efe0", "edge": "#2e3a5c", "pip": "#8c1f2f"}
     }

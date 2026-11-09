@@ -68,7 +68,8 @@ var party_row: HBoxContainer
 var flash_label: Label
 var console_panel: PanelContainer
 var tabs: TabContainer
-var quickbar: HBoxContainer
+const CHIP_WRAP_CHARS := 22 # 超过即视为长文案芯片（独占一行换行）
+var quickbar: HFlowContainer
 var dice_label: Label
 var dice_detail: Label
 var log_view: RichTextLabel
@@ -128,14 +129,24 @@ func _build_ui() -> void:
 	status_band.add_child(band_h)
 	clock_chip = Button.new() # 时间钟总览格：按下弹时间边预告（04 §3.1 例外交互）
 	clock_chip.visible = false
+	# 文案随语言变长（英文）：超宽截断加省略号，完整预告点按弹层查看——状态带永不撑出屏宽
+	clock_chip.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	clock_chip.custom_minimum_size = Vector2(120, 0)
+	clock_chip.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	clock_chip.pressed.connect(_open_forecast)
 	band_h.add_child(clock_chip)
 	quest_chip = Label.new() # 事件中心角标（04 §⑤）
 	quest_chip.visible = false
 	band_h.add_child(quest_chip)
+	# 队伍芯片放进横向滚动容器：芯片总宽超出时可横滑查看，不把状态带撑出屏宽（英文名更长）
+	var party_scroll := ScrollContainer.new()
+	party_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	party_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	party_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER # 可横滑，不显示滚动条
+	band_h.add_child(party_scroll)
 	party_chips = HBoxContainer.new()
 	party_chips.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	band_h.add_child(party_chips)
+	party_scroll.add_child(party_chips)
 	round_label = Label.new()
 	band_h.add_child(round_label)
 	speed_button = Button.new()
@@ -149,6 +160,7 @@ func _build_ui() -> void:
 	# ② 主视野（含房间推进条，04 §④.2：推进条在主视野顶部）
 	main_view = PanelContainer.new()
 	main_view.name = "MainView"
+	main_view.clip_contents = true # 镜头 lane 滚动对焦会把内容上移：裁在主视野内，不压到状态带上
 	add_child(main_view)
 	# 镜头 lane（14 清单 #8）：主视野内容层套一层普通 Control——镜头平移施加在 main_v 上，
 	# 不经容器排序（PanelContainer 只对直接子代贴合），lane 滚动对焦的位移不被重建冲掉
@@ -203,8 +215,9 @@ func _build_ui() -> void:
 	var tab_action := VBoxContainer.new()
 	tab_action.name = Texts.s(&"TAB_ACTION")
 	tabs.add_child(tab_action)
-	quickbar = HBoxContainer.new()
-	quickbar.add_theme_constant_override("separation", 6)
+	quickbar = HFlowContainer.new() # 芯片按行流式排布：选项文案（尤其英文）超宽时换行而不出屏
+	quickbar.add_theme_constant_override("h_separation", 6)
+	quickbar.add_theme_constant_override("v_separation", 6)
 	tab_action.add_child(quickbar)
 	var tab_dice := VBoxContainer.new()
 	tab_dice.name = Texts.s(&"TAB_DICE")
@@ -849,6 +862,10 @@ func _add_chip(label: String, disabled: bool, on_press: Callable) -> Button:
 	var b := Button.new()
 	b.text = label
 	b.disabled = disabled
+	b.custom_minimum_size = Vector2(0, 44) # 12 §6：可触目标最小 44pt
+	if label.length() > CHIP_WRAP_CHARS: # 长文案（剧情选项）：独占一行、按词换行
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		b.custom_minimum_size = Vector2(get_viewport_rect().size.x - 16, 44)
 	b.pressed.connect(on_press)
 	quickbar.add_child(b)
 	return b

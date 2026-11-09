@@ -1,0 +1,16 @@
+{
+  "ops.home_promo.text": "Arena Gauntlet — the gatekeeper is calling for the Unwritten",
+  "ops.shop.arena.name": "Arena Gauntlet",
+  "ops.shop.arena.price_text": "$1.99",
+  "ops.activities.0.label": "Free this weekend: Arena Gauntlet",
+  "ops.achievements.0.label": "Ashenport clearers enter free",
+  "cosmetics.dice_skins.0.name": "Gilded Ink",
+  "cosmetics.dice_skins.0.desc": "The Unwritten's first die face — the ink of the Age of the Codex at its beginning.",
+  "cosmetics.dice_skins.1.name": "Faded Ink Grey",
+  "cosmetics.dice_skins.1.desc": "Reward for completing the Treatise on the Fatedie — a die of the Revoked: its ink has faded, and it is still ink.",
+  "cosmetics.dice_skins.2.name": "Salvage Bronze Glow",
+  "cosmetics.dice_skins.2.desc": "A shop cosmetic — the bronze light Ashenport's salvagers haul up from Fog Wharf.",
+  "cosmetics.dice_skins.2.shop.price_text": "$0.99",
+  "cosmetics.dice_skins.3.name": "The Penbearer's Die",
+  "cosmetics.dice_skins.3.desc": "Granted for the hidden ending A New Page — the new Penbearer's first die, the ink still wet."
+}

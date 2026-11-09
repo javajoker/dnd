@@ -5800,7 +5800,7 @@ func test_gap_features() -> void:
 	# 帮助页：手势图鉴全表 + 重学入口（12 §4 第三层）
 	home._toggle_help()
 	var help_text := ""
-	for child: Node in home._help_overlay.get_child(0).get_children():
+	for child: Node in home._help_overlay.get_child(0).get_child(0).get_children():
 		if child is Label:
 			help_text += (child as Label).text
 	check(help_text.contains("拖动") and help_text.contains("双指点击") and help_text.contains("捏合")
@@ -5809,7 +5809,7 @@ func test_gap_features() -> void:
 	var retrain: Array = []
 	home.retrain_requested.connect(func() -> void: retrain.append(true))
 	var retrain_btn: Button = null
-	for child: Node in home._help_overlay.get_child(0).get_children():
+	for child: Node in home._help_overlay.get_child(0).get_child(0).get_children():
 		if child is Button and (child as Button).text == TextsZh.HELP_RETRAIN:
 			retrain_btn = child
 	check(retrain_btn != null, "帮助页：重学入口存在（12 §4 可重学）")
@@ -6083,6 +6083,17 @@ func test_texts_en() -> void:
 			mismatched.append("%s(行数)" % key)
 	check(missing.is_empty(), "英文表覆盖全部源语言键：缺 %s" % ";".join(missing))
 	check(mismatched.is_empty(), "中英格式占位逐键一致（%%/具名占位、类型、字典键、行数）：%s" % ";".join(mismatched))
+	# 运营侧数据（_ops，非内容包）同样全量英文：投放文案 / 价签 / 皮肤名与说明
+	var ops_en: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://packs/_ops/texts/en.json"))
+	var ops_keys := PackLoader.ops_text_entries(JSON.parse_string(FileAccess.get_file_as_string("res://packs/_ops/ops_config.json")), "ops")
+	ops_keys.merge(PackLoader.ops_text_entries(JSON.parse_string(FileAccess.get_file_as_string("res://packs/_ops/cosmetics.json")), "cosmetics"))
+	var ops_missing: Array = ops_keys.keys().filter(func(k: String) -> bool: return str(ops_keys[k]) != "" and str(ops_en.get(k, "")) == "")
+	check(ops_missing.is_empty(), "运营侧数据英文齐全（_ops/texts/en.json）：缺 %s" % ";".join(ops_missing))
+	PackLoader.locale = "en"
+	check(str((Entitlements.load_ops_config()["home_promo"] as Dictionary)["text"]).begins_with("Arena Gauntlet"),
+		"运营位文案按语言叠加")
+	check(str((Cosmetics.load_registry()[2] as Dictionary)["name"]) == "Salvage Bronze Glow", "皮肤名按语言叠加")
+	PackLoader.locale = ""
 	Texts.set_locale("en")
 	check(Texts.msg({"msg_key": "MSG_MAZE_LOOT", "args": {"item": "Tide Chart", "n": 2}}) == "Picked up: Tide Chart ×2",
 		"英文消息模板渲染")
