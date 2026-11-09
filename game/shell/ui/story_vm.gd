@@ -48,12 +48,15 @@ static func build(graph: StoryGraph, board: Board, pack: Dictionary) -> Dictiona
 
 ## 长文本解析（tech/02 §1.1 text_ref 机制）：ref = "texts/<locale>.json#<键>"；
 ## 命中 texts 表取全文；未声明 / 键缺失一律静默回退 fallback（不报错——断链由测试层抽取完整性断言兜底）。
+## 解析表优先 texts["_active"]（加载时按当前语言合成，PackLoader._apply_locale），否则回落 ref 指名的文件。
 static func resolve_text(texts: Dictionary, ref: String, fallback: String) -> String:
-	if ref.is_empty() or not "#" in ref:
+	if ref.is_empty():
 		return fallback
-	var file := ref.get_slice("#", 0)
-	var key := ref.get_slice("#", 1)
-	var table: Dictionary = texts.get(file, {})
+	var key := PackLoader.text_key(ref)
+	var active: Dictionary = texts.get("_active", {})
+	if active.has(key) and str(active[key]) != "":
+		return str(active[key])
+	var table: Dictionary = texts.get(ref.get_slice("#", 0), {}) if "#" in ref else {}
 	return str(table.get(key, fallback))
 
 ## 节点呈现文本（tech/02 §3/§1.1 解析顺序）：text_variants 旗标变体（纯呈现替换，优先）

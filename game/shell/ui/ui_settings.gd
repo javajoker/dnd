@@ -11,6 +11,7 @@ const KEY_SCREEN_SHAKE := "screen_shake"
 const KEY_VOL_MASTER := "vol_master" # 14 清单 #5：音量三档（UI 偏好，不写状态板）
 const KEY_VOL_BGM := "vol_bgm"
 const KEY_VOL_SFX := "vol_sfx"
+const KEY_LOCALE := "locale" # tech/01 E-5：界面语言（UI 偏好，不写状态板）；"" = 跟随系统
 
 ## 默认偏好文件重定向（可注入）：非空时，凡传入 PATH 的读写改走此路径——测试与工具据此隔离，
 ## 不触碰玩家真实设置；显式传入的其它路径不受影响。
@@ -48,6 +49,16 @@ static func load_volume(key: String, path: String = PATH) -> float:
 
 static func save_volume(key: String, value: float, path: String = PATH) -> void:
 	_save_key(key, clampf(value, 0.0, 1.0), path)
+
+## 界面语言偏好；未设置返回 ""（跟随系统语言）。
+static func load_locale(path: String = PATH) -> String:
+	var cfg := ConfigFile.new()
+	if cfg.load(_resolve(path)) != OK:
+		return ""
+	return str(cfg.get_value(SECTION, KEY_LOCALE, ""))
+
+static func save_locale(l: String, path: String = PATH) -> void:
+	_save_key(KEY_LOCALE, l, path)
 
 ## 写盘合并既有键，不覆盖其它设置。
 static func _save_key(key: String, value: Variant, path: String) -> void:

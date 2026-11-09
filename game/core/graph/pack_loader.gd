@@ -177,7 +177,101 @@ static func load_pack(dir_path: String) -> Dictionary:
 			table[eid] = d
 		pack[fname.trim_suffix(".json")] = table
 
+	_apply_locale(pack)
 	return {"ok": errors.is_empty(), "errors": errors, "warnings": warnings, "pack": pack}
+
+# ---------------------------------------------------------------- 多语言（tech/02 §1.1 双语构建；tech/01 E-5）
+# 约定式文本键：显示文本字段按"表.条目id.路径"成键（如 nodes.N0-2.edges.0.label），内容包 JSON 不加键字段；
+# texts/<locale>.json 同时承载长文本（node.<id>.text 等 text_ref 键）与这些短文本键。
+# 加载时：源语言 = 包内文本原文；目标语言 = 以 texts/<locale>.json 覆盖命中的字段（缺键保留原文兜底）；
+# text_ref 解析表 = texts["_active"]（源语言长文本表 ⊕ 目标语言表）。
+
+## 当前语言（壳在加载包前设置；"" = 源语言）。只决定加载哪份文本数据，core 不产出任何文案。
+static var locale: String = ""
+
+const DEFAULT_SOURCE_LOCALE := "zh-CN"
+## 视为显示文本的字段名（其余字段即使是字符串也不成键：id、条件、效果等）。
+const TEXT_FIELDS := ["title", "summary", "label", "name", "text", "hint", "objective", "content",
+	"ngplus_hook", "desc", "description", "role", "source", "lock_text"]
+## 参与成键的表：表名 → 条目定位（"dict" = 以 id 为键的字典表，"list" = 带 id 的数组表）。
+const TEXT_TABLES := {"acts": "list", "nodes": "dict", "events": "list", "encounters": "dict",
+	"items": "dict", "flags": "list", "endings": "list", "lore": "list", "characters": "dict",
+	"skills": "dict", "effects": "dict", "enemies": "dict"}
+
+## 包内全部显示文本键 → 原文（V15 完整性检查与文本抽取的唯一口径）。
+static func text_entries(pack: Dictionary) -> Dictionary:
+	var out := {}
+	_walk_texts(pack, {}, out, false)
+	return out
+
+## text_ref 键（长文本）：节点 / 结局 / 图鉴声明的 text_ref 去掉文件前缀后的键。
+static func text_ref_keys(pack: Dictionary) -> Array:
+	var keys: Array = []
+	var refs: Array = []
+	for n: Variant in (pack.get("nodes", {}) as Dictionary).values():
+		refs.append(str((n as Dictionary).get("text_ref", "")))
+	for e: Variant in pack.get("endings", []):
+		refs.append(str((e as Dictionary).get("text_ref", "")))
+	for l: Variant in pack.get("lore", []):
+		refs.append(str((l as Dictionary).get("text_ref", "")))
+	for r: String in refs:
+		if r != "":
+			keys.append(text_key(r))
+	return keys
+
+## text_ref → 键：兼容 "texts/zh-CN.json#键" 与与语言无关的 "#键" / "键"。
+static func text_key(ref: String) -> String:
+	return ref.get_slice("#", 1) if "#" in ref else ref
+
+static func _apply_locale(pack: Dictionary) -> void:
+	var manifest: Dictionary = pack.get("manifest", {})
+	var source := str(manifest.get("source_locale", DEFAULT_SOURCE_LOCALE))
+	var texts: Dictionary = pack.get("texts", {})
+	var target := locale if locale != "" and texts.has("texts/%s.json" % locale) else source
+	var active: Dictionary = (texts.get("texts/%s.json" % source, {}) as Dictionary).duplicate()
+	if target != source:
+		var table: Dictionary = texts["texts/%s.json" % target]
+		for k: String in table.keys():
+			if str(table[k]) != "":
+				active[k] = table[k]
+		_walk_texts(pack, table, {}, true)
+	texts["_active"] = active
+	pack["texts"] = texts
+	pack["source_locale"] = source
+	pack["locale"] = target
+
+static func _walk_texts(pack: Dictionary, table: Dictionary, out: Dictionary, apply: bool) -> void:
+	_walk_node(pack.get("manifest", {}), "manifest", table, out, apply)
+	for tname: String in TEXT_TABLES.keys():
+		var t: Variant = pack.get(tname)
+		if t is Dictionary:
+			for id: Variant in (t as Dictionary).keys():
+				_walk_node((t as Dictionary)[id], "%s.%s" % [tname, str(id)], table, out, apply)
+		elif t is Array:
+			for entry: Variant in (t as Array):
+				if entry is Dictionary:
+					_walk_node(entry, "%s.%s" % [tname, str((entry as Dictionary).get("id", ""))], table, out, apply)
+
+static func _walk_node(node: Variant, path: String, table: Dictionary, out: Dictionary, apply: bool) -> void:
+	if node is Dictionary:
+		var d: Dictionary = node
+		for k: Variant in d.keys():
+			var key := str(k)
+			if key.begins_with("_"):
+				continue # 合并视图内部键（_ns/_graft）不成键
+			var v: Variant = d[k]
+			var p := "%s.%s" % [path, key]
+			if v is String and TEXT_FIELDS.has(key):
+				out[p] = v
+				if apply and table.has(p) and str(table[p]) != "":
+					d[k] = table[p]
+			elif v is Dictionary or v is Array:
+				_walk_node(v, p, table, out, apply)
+	elif node is Array:
+		var a: Array = node
+		for i: int in a.size():
+			if a[i] is Dictionary or a[i] is Array:
+				_walk_node(a[i], "%s.%d" % [path, i], table, out, apply)
 
 # ---------------------------------------------------------------- graft 支线挂接（tech/02 §2.6，M4）
 

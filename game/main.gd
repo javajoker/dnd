@@ -99,9 +99,14 @@ func _ready() -> void:
 		SaveSystem.save_dir = "user://shots/saves" # 截图从全新开局起步，且不触碰玩家真实存档/设置
 		SaveSystem.delete()
 		UiSettings.redirect_path = "user://shots/settings.cfg"
-	for a: String in args: # `-- --seed=N`：指定新开局种子（复现问题用）
+	for a: String in args: # `-- --seed=N`：指定新开局种子（复现问题用）；`-- --locale=en`：指定语言（截图/走查）
 		if a.begins_with("--seed="):
 			Rng.fixed_seed_override = int(a.trim_prefix("--seed="))
+		elif a.begins_with("--locale="):
+			Texts.forced_locale = a.trim_prefix("--locale=")
+	# 界面语言（tech/01 E-5）：玩家偏好 → 系统语言；内容包按同一语言加载文本
+	Texts.set_locale(Texts.detect_locale(UiSettings.load_locale()))
+	PackLoader.locale = Texts.locale
 	var res := PackLoader.load_pack(PACK_DIR)
 	if not res["ok"]:
 		push_error("campaign01 加载失败：%s" % ";".join(res["errors"]))
@@ -276,6 +281,7 @@ func _show_home() -> void:
 	home.idle_timeout.connect(_save_idle)
 	home.tutorial_done.connect(func() -> void: _tutorial_mark("boot")) # 启动卡一次性（12 §4）
 	home.retrain_requested.connect(_on_retrain) # 重学入口（12 §4：可重学）
+	home.language_requested.connect(_on_language_requested)
 	if not bool(board.read("global.tutorial.boot", false)):
 		home.show_launch_tutorial() # 首次启动 3 页核心手势卡（12 §4 第一层）
 	router = ShellRouter.new() # 回主屏即离场：壳锁定随单局结束（09 §8）
@@ -289,6 +295,12 @@ func _tutorial_seen(id: String) -> bool:
 	return bool(board.read("global.tutorial.%s" % id, false))
 
 ## 重学：清全部教程触发记录（重放启动卡 + 情境提示恢复一次），再重放启动卡（12 §4）。
+## 切换界面语言（tech/01 E-5）：记偏好 → 落档 → 重载主场景（启动读回续玩，文本按新语言重新加载）。
+func _on_language_requested(l: String) -> void:
+	UiSettings.save_locale(l)
+	_save("language")
+	get_tree().reload_current_scene()
+
 func _on_retrain() -> void:
 	for key: String in board.keys_with_prefix("global.tutorial."):
 		board.write(key, false, {"event_id": stream.tail(), "node_id": graph.current_id,

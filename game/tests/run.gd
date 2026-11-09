@@ -12,7 +12,8 @@ func _isolate_user_data() -> void:
 	SaveSystem.save_dir = TEST_DIR.path_join("saves")
 	UiSettings.redirect_path = TEST_DIR.path_join("settings.cfg")
 	Rng.fixed_seed_override = 20260009 # 新开局种子固定：main 集成测试依赖确定的主线检定路径
-	Texts.set_locale(Texts.SOURCE_LOCALE) # 语言固定为源语言：断言与系统语言无关
+	Texts.forced_locale = Texts.SOURCE_LOCALE # 语言固定为源语言：断言与系统语言/偏好无关
+	Texts.set_locale(Texts.SOURCE_LOCALE)
 
 ## 新 main 实例（新开局）：先删测试存档槽——main 启动即读回存档（07 §4.2），集成测试默认从零开始。
 func _new_main() -> Node:
@@ -56,6 +57,7 @@ func _init() -> void:
 	test_save_system()
 	test_new_game_seed()
 	test_texts()
+	test_pack_locale()
 	test_loadout()
 	test_growth()
 	test_quest_runtime()
@@ -3393,7 +3395,8 @@ func test_text_ref() -> void:
 	var fake := {"summary": "兜摘要", "text_ref": "texts/zh-CN.json#node.NOPE.text"}
 	check(StoryVM.node_text(fake, null, "campaign01", texts) == "兜摘要", "断链静默兜底 summary（不拒绝加载）")
 	var fake2 := {"summary": "兜摘要2", "text_ref": "texts/en.json#node.N0-1.text"}
-	check(StoryVM.node_text(fake2, null, "campaign01", texts) == "兜摘要2", "缺失 locale 文件同样兜底")
+	check(StoryVM.node_text(fake2, null, "campaign01", texts) == StoryVM.resolve_text(texts, "#node.N0-1.text", ""),
+		"text_ref 文件前缀与语言无关：按当前语言表解析（tech/02 §1.1 双语构建）")
 	check(StoryVM.node_text({"summary": "纯摘要"}, null, "campaign01", texts) == "纯摘要",
 		"无 text_ref 节点维持 summary（可选字段，§11 新增字段一律可选）")
 	# ---- 双壳同源：同一 StoryVM.build 是双壳 show_story 唯一输入（godot-dev §7；壳不各自解析）----
@@ -6037,6 +6040,60 @@ func test_texts() -> void:
 			if not Texts.has_key(Texts.SOURCE_LOCALE, StringName(m.get_string(1))):
 				bad_keys.append(m.get_string(1))
 	check(bad_keys.is_empty(), "事件 msg_key 全部有模板：%s" % ";".join(bad_keys))
+
+# ---------------------------------------------------------------- 内容包多语言叠加 + V15（tech/02 §1.1/§12）
+
+func test_pack_locale() -> void:
+	print("[pack_locale]")
+	var src := "res://packs/campaign01"
+	var dst := TEST_DIR.path_join("pack_en")
+	DirAccess.make_dir_recursive_absolute(dst.path_join("texts"))
+	for f: String in DirAccess.get_files_at(src):
+		DirAccess.copy_absolute(src.path_join(f), dst.path_join(f))
+	DirAccess.copy_absolute(src.path_join("texts/zh-CN.json"), dst.path_join("texts/zh-CN.json"))
+	var manifest: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(dst.path_join("manifest.json")))
+	manifest["locales"] = ["zh-CN", "en"]
+	var mf := FileAccess.open(dst.path_join("manifest.json"), FileAccess.WRITE)
+	mf.store_string(JSON.stringify(manifest))
+	mf.close()
+	var en := {"nodes.N0-2.title": "The Vanished Pier Name", "nodes.N1-1.edges.0.label": "Look closer",
+		"node.N0-1.text": "You wake to the sound of the tide.", "items.heal_potion.name": "Supply Potion"}
+	var ef := FileAccess.open(dst.path_join("texts/en.json"), FileAccess.WRITE)
+	ef.store_string(JSON.stringify(en))
+	ef.close()
+	# 源语言加载：文本键枚举
+	PackLoader.locale = ""
+	var zh: Dictionary = PackLoader.load_pack(dst)["pack"]
+	var entries := PackLoader.text_entries(zh)
+	check(entries.size() > 200 and entries.has("nodes.N0-2.title") and entries.has("items.heal_potion.name"),
+		"约定式文本键枚举（%d 个，含节点标题/边文案/道具名）" % entries.size())
+	check(str(zh["locale"]) == "zh-CN" and str((zh["nodes"]["N0-2"] as Dictionary)["title"]) == "消失的码头名",
+		"源语言加载：原文不变")
+	# 目标语言加载：命中键覆盖，未译键回落原文
+	PackLoader.locale = "en"
+	var p_en: Dictionary = PackLoader.load_pack(dst)["pack"]
+	PackLoader.locale = ""
+	var n02: Dictionary = p_en["nodes"]["N0-2"]
+	check(str(p_en["locale"]) == "en" and str(n02["title"]) == "The Vanished Pier Name", "en 加载：节点标题被覆盖")
+	check(str(((p_en["nodes"]["N1-1"] as Dictionary)["edges"] as Array)[0].get("label", "")) == "Look closer",
+		"en 加载：边文案被覆盖（路径键 edges.0.label）")
+	check(str((p_en["items"]["heal_potion"] as Dictionary)["name"]) == "Supply Potion", "en 加载：道具名被覆盖")
+	check(str((p_en["nodes"]["N0-1"] as Dictionary)["title"]) == str((zh["nodes"]["N0-1"] as Dictionary)["title"]),
+		"未译键回落源语言原文")
+	var n01: Dictionary = p_en["nodes"]["N0-1"]
+	check(StoryVM.resolve_text(p_en["texts"], str(n01["text_ref"]), "") == "You wake to the sound of the tide.",
+		"text_ref 按当前语言解析（旧写法 texts/zh-CN.json#键 兼容）")
+	var n03a: Dictionary = p_en["nodes"]["N0-3a"]
+	check(StoryVM.resolve_text(p_en["texts"], str(n03a["text_ref"]), "") != "", "未译长文本回落源语言全文")
+	check(StoryVM.resolve_text(p_en["texts"], "#node.N0-1.text", "") == "You wake to the sound of the tide.",
+		"与语言无关的 text_ref（#键）")
+	# V15：声明 en 但未译全 = FAIL；不声明 = N/A
+	var v15 := PacklintCore._v15_texts(zh)
+	check(v15.any(func(i: Dictionary) -> bool: return i["level"] == PacklintCore.LEVEL_FAIL and str(i["msg"]).begins_with("en 缺文本键")),
+		"V15：声明 en 但缺键 → FAIL 并列出缺键")
+	var real: Dictionary = PackLoader.load_pack(src)["pack"]
+	check(PacklintCore._v15_texts(real).any(func(i: Dictionary) -> bool: return i["level"] == PacklintCore.LEVEL_NA),
+		"V15：未声明 manifest.locales → N/A")
 
 ## 收集 .gd 文件（目录递归 / 单文件）。
 func _gd_files(roots: Array) -> Array:

@@ -74,6 +74,7 @@ static func lint(pack: Dictionary, registry: Dictionary = {}) -> Array:
 	issues.append_array(_v11_resource_refs(pack))
 	issues.append_array(_v12_legal_keys(pack))
 	issues.append_array(_v13_uses_consume(pack))
+	issues.append_array(_v15_texts(pack))
 	return issues
 
 static func has_failures(issues: Array) -> bool:
@@ -118,6 +119,7 @@ static func lint_grafted(arc_pack: Dictionary, host_pack: Dictionary, registry: 
 	issues.append_array(_v11_resource_refs(scoped))
 	issues.append_array(_v12_legal_keys(scoped))
 	issues.append_array(_v13_uses_consume(scoped))
+	issues.append_array(_v15_texts(arc_pack))
 	return issues
 
 ## 本包口径视图：本包节点（+ graft 注入边合成节点承载其效果校验）/事件/遭遇/旗标，
@@ -981,3 +983,40 @@ static func _v12_check_cond(cond: Dictionary, where: String, issues: Array) -> v
 		elif k == "all" or k == "any":
 			for sub: Variant in cond[key]:
 				_v12_check_cond(sub, where, issues)
+
+# ---------------------------------------------------------------- V15 文本完整性（tech/02 §1.1/§12；tech/01 E-5 双语构建）
+# manifest.locales 声明的每种非源语言：全部显示文本键（PackLoader.text_entries 约定式键）+ 全部 text_ref
+# 键在 texts/<locale>.json 中存在且非空；源语言只核 text_ref 键（短文本原文即在包内）。未声明 locales = N/A。
+static func _v15_texts(pack: Dictionary) -> Array:
+	var manifest: Dictionary = pack.get("manifest", {})
+	var locales: Array = manifest.get("locales", [])
+	var source := str(pack.get("source_locale", manifest.get("source_locale", PackLoader.DEFAULT_SOURCE_LOCALE)))
+	var texts: Dictionary = pack.get("texts", {})
+	var issues: Array = []
+	var ref_keys := PackLoader.text_ref_keys(pack)
+	var src_table: Dictionary = texts.get("texts/%s.json" % source, {})
+	var src_missing: Array = ref_keys.filter(func(k: String) -> bool: return str(src_table.get(k, "")) == "")
+	if not src_missing.is_empty():
+		issues.append({"v": "V15", "level": LEVEL_FAIL, "msg": "源语言 %s 缺 text_ref 键 %d 个：%s" % [
+			source, src_missing.size(), ", ".join(src_missing.slice(0, 5))]})
+	if locales.is_empty():
+		issues.append({"v": "V15", "level": LEVEL_NA, "msg": "未声明 manifest.locales（仅源语言 %s）" % source})
+		return issues
+	var required: Array = PackLoader.text_entries(pack).keys()
+	required.append_array(ref_keys)
+	for l: Variant in locales:
+		var loc := str(l)
+		if loc == source:
+			continue
+		if not texts.has("texts/%s.json" % loc):
+			issues.append({"v": "V15", "level": LEVEL_FAIL, "msg": "声明语言 %s 但缺 texts/%s.json" % [loc, loc]})
+			continue
+		var table: Dictionary = texts["texts/%s.json" % loc]
+		var missing: Array = required.filter(func(k: String) -> bool: return str(table.get(k, "")) == "")
+		if missing.is_empty():
+			issues.append({"v": "V15", "level": LEVEL_PASS, "msg": "%s：%d 个文本键齐全" % [loc, required.size()]})
+		else:
+			issues.append({"v": "V15", "level": LEVEL_FAIL, "msg": "%s 缺文本键 %d/%d 个：%s" % [
+				loc, missing.size(), required.size(), ", ".join(missing.slice(0, 5))]})
+	return issues
+

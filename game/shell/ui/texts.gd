@@ -14,6 +14,8 @@ const TABLE_PATHS := {
 }
 
 static var locale: String = SOURCE_LOCALE
+## 强制语言（测试/工具）：非空时 detect_locale 恒返回它，与系统语言和玩家偏好无关。
+static var forced_locale: String = ""
 static var _tables: Dictionary = {} # locale -> 常量表（Dictionary）；懒加载
 
 ## 已提供的语言（表文件存在才算）。
@@ -31,6 +33,8 @@ static func set_locale(l: String) -> String:
 
 ## 偏好优先，其次系统语言（zh* → zh-CN，其余 → en，若 en 表存在）。
 static func detect_locale(preferred: String = "") -> String:
+	if forced_locale != "":
+		return forced_locale
 	if preferred != "" and available_locales().has(preferred):
 		return preferred
 	var os_lang := OS.get_locale_language()
