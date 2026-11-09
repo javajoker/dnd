@@ -386,6 +386,14 @@ static func _v4_flag_closure(pack: Dictionary) -> Array:
 			if not read.has(vfid):
 				read[vfid] = []
 			read[vfid].append("nodes.%s.text_variants" % nid)
+	for e: Variant in pack.get("endings", []):
+		for v: Variant in (e as Dictionary).get("text_variants", []):
+			var efid := str((v as Dictionary).get("flag", ""))
+			if efid.is_empty() or "." in efid:
+				continue
+			if not read.has(efid):
+				read[efid] = []
+			read[efid].append("endings.%s.text_variants" % str((e as Dictionary).get("id", "")))
 	# 台账比对
 	var declared := {}
 	for f: Variant in pack.get("flags", []):
@@ -402,7 +410,11 @@ static func _v4_flag_closure(pack: Dictionary) -> Array:
 			issues.append({"v": "V4", "level": LEVEL_FAIL,
 				"msg": "旗标 %s 已登记但图内无写入点（孤立旗标）" % fid})
 			continue
-		if not read.has(fid):
+		if not read.has(fid) and _declares_graph_reader(pack, declared[fid]):
+			# 台账承诺了图内读取点（节点/结局），实际无任何读取 = 选择没有后果（代码评审 M3）
+			issues.append({"v": "V4", "level": LEVEL_FAIL,
+				"msg": "旗标 %s 声明读取点（%s）但图内/结局无任何读取" % [fid, ";".join(_reader_strings(declared[fid]))]})
+		elif not read.has(fid):
 			issues.append({"v": "V4", "level": LEVEL_WARN,
 				"msg": "旗标 %s 无图层条件读取；声明读取点为 UI/演出面（%s），需人工核对"  % [fid, ";".join(_reader_strings(declared[fid]))]})
 		# 声明写入点的节点号须存在（容忍"N4-4 尾声结算"式描述，取首 token）
@@ -429,6 +441,17 @@ static func _collect_flag_reads(cond: Dictionary, where: String, read: Dictionar
 			if not read.has(fid):
 				read[fid] = []
 			read[fid].append(where)
+
+## 声明的读取点中是否有图内节点或结局（取首 token，如 "R2（对话加成）" → R2）。
+static func _declares_graph_reader(pack: Dictionary, flag_decl: Dictionary) -> bool:
+	var ending_ids := {}
+	for e: Variant in pack.get("endings", []):
+		ending_ids[str((e as Dictionary).get("id", ""))] = true
+	for r: Variant in flag_decl.get("readers", []):
+		var token := str(r).get_slice(" ", 0).get_slice("（", 0).get_slice("/", 0)
+		if (pack.get("nodes", {}) as Dictionary).has(token) or ending_ids.has(token):
+			return true
+	return false
 
 static func _reader_strings(flag_decl: Dictionary) -> Array:
 	var out: Array = []
@@ -1002,7 +1025,8 @@ static func _v15_texts(pack: Dictionary) -> Array:
 	if locales.is_empty():
 		issues.append({"v": "V15", "level": LEVEL_NA, "msg": "未声明 manifest.locales（仅源语言 %s）" % source})
 		return issues
-	var required: Array = PackLoader.text_entries(pack).keys()
+	var entries := PackLoader.text_entries(pack)
+	var required: Array = entries.keys().filter(func(k: String) -> bool: return str(entries[k]) != "")
 	required.append_array(ref_keys)
 	for l: Variant in locales:
 		var loc := str(l)

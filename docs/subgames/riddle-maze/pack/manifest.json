@@ -7,6 +7,8 @@
   "rule_pack": { "id": "light", "min_version": 1 },
   "presentation": { "mode": "choice" },
   "namespace": "riddle_maze",
+  "source_locale": "zh-CN",
+  "locales": ["zh-CN", "en"],
   "recommended_level": [1, 4],
   "estimated_hours": "0.3",
   "node_budget": 6,

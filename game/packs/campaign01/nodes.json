@@ -313,6 +313,7 @@
       "title": "进入撤销区",
       "summary": "模式锁定演出：被撤销的旧城区只剩残篇，只能逐房回放。",
       "text_ref": "texts/zh-CN.json#node.N3-1.text",
+      "text_variants": [ { "flag": "insider", "mode": "append", "text": "拾遗行会的账本你翻过：这册残篇的页码，他们早就编好了。你知道该从哪一页走进去。" } ],
       "edges": [ { "type": "choice", "label": "推开第一扇门", "to": "R1" } ]
     },
     {
@@ -329,6 +330,7 @@
       "title": "空教室",
       "summary": "对话房：还记得自己名字的孩子。隐藏拾取：织命者残简 ×1。",
       "text_ref": "texts/zh-CN.json#node.R2.text",
+      "text_variants": [ { "flag": "seen_fading", "mode": "append", "text": "你在码头见过墨迹褪去的样子，知道该抓住哪一刻——孩子的指尖还没淡透，你比他先认出了那道边。" } ],
       "on_enter": [ { "lore": "revoked_registry_02" } ],
       "edges": [ {
         "type": "check", "skill": "soothe", "difficulty": "medium",
@@ -393,6 +395,7 @@
       "title": "潮汐塔顶",
       "summary": "塔顶守卫拦在最后一页之前。印戒可说服守卫免战；强攻则直面褪墨之潮的化身（税吏证词降低 Boss 难度）。",
       "text_ref": "texts/zh-CN.json#node.N4-1.text",
+      "text_variants": [ { "flag": "page_tearer", "mode": "append", "text": "楼梯口少了一个人。税吏本该在这里作证——可他的那一页是你亲手撕掉的，连守卫都想不起他的名字。" } ],
       "edges": [
         { "type": "item", "item": "scriptorium_signet", "label": "出示誊写庭印戒，说服守卫", "to": "N4-2",
           "fallback": "N4-1b",

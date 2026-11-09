@@ -59,6 +59,8 @@ func _init() -> void:
 	test_texts()
 	test_pack_locale()
 	test_no_content_constants()
+	test_texts_en()
+	test_pack_copies_in_sync()
 	test_loadout()
 	test_growth()
 	test_quest_runtime()
@@ -110,6 +112,7 @@ func _async_shell_tests() -> void:
 	await test_loadout_settle_landscape()
 	await test_main_flow()
 	await test_resume_on_launch()
+	await test_english_smoke()
 	await test_character_nav()
 	await test_gap_features()
 	await test_art_pipeline()
@@ -6042,6 +6045,70 @@ func test_texts() -> void:
 				bad_keys.append(m.get_string(1))
 	check(bad_keys.is_empty(), "事件 msg_key 全部有模板：%s" % ";".join(bad_keys))
 
+# ---------------------------------------------------------------- 英文语言表（tech/01 E-5；P4 阶段 2）
+
+func test_texts_en() -> void:
+	print("[texts_en]")
+	check(Texts.available_locales().has("en"), "英文语言表已提供（texts_en.gd）")
+	var spec := RegEx.create_from_string("%[-+0-9.]*[sdf%]")
+	var named := RegEx.create_from_string("\\{(\\w+)\\}")
+	var missing: Array = []
+	var mismatched: Array = []
+	for k: Variant in Texts.keys("zh-CN"):
+		var key := StringName(k)
+		if not Texts.has_key("en", key):
+			missing.append(String(key))
+			continue
+		Texts.set_locale("zh-CN")
+		var zh: Variant = Texts.t(key)
+		Texts.set_locale("en")
+		var en: Variant = Texts.t(key)
+		Texts.set_locale("zh-CN")
+		if typeof(zh) != typeof(en):
+			mismatched.append("%s(类型)" % key)
+		elif zh is String:
+			var a := spec.search_all(zh).map(func(m: RegExMatch) -> String: return m.get_string())
+			var b := spec.search_all(en).map(func(m: RegExMatch) -> String: return m.get_string())
+			var na := named.search_all(zh).map(func(m: RegExMatch) -> String: return m.get_string(1))
+			var nb := named.search_all(en).map(func(m: RegExMatch) -> String: return m.get_string(1))
+			na.sort()
+			nb.sort()
+			if a != b or na != nb:
+				mismatched.append("%s(%s≠%s)" % [key, str(a + na), str(b + nb)])
+		elif zh is Dictionary:
+			if (zh as Dictionary).keys().size() != (en as Dictionary).keys().size() \
+					or not (zh as Dictionary).keys().all(func(x: Variant) -> bool: return (en as Dictionary).has(x)):
+				mismatched.append("%s(字典键)" % key)
+		elif zh is Array and (zh as Array).size() != (en as Array).size():
+			mismatched.append("%s(行数)" % key)
+	check(missing.is_empty(), "英文表覆盖全部源语言键：缺 %s" % ";".join(missing))
+	check(mismatched.is_empty(), "中英格式占位逐键一致（%%/具名占位、类型、字典键、行数）：%s" % ";".join(mismatched))
+	Texts.set_locale("en")
+	check(Texts.msg({"msg_key": "MSG_MAZE_LOOT", "args": {"item": "Tide Chart", "n": 2}}) == "Picked up: Tide Chart ×2",
+		"英文消息模板渲染")
+	Texts.set_locale(Texts.SOURCE_LOCALE)
+
+# ---------------------------------------------------------------- 内容包双副本一致（docs 编写源 = game 运行副本；packs/README）
+
+func test_pack_copies_in_sync() -> void:
+	print("[pack_copies_in_sync]")
+	var pairs := {"campaign01": "story/campaign01", "arc_tide": "story/arc_tide",
+		"arena": "subgames/arena/pack", "riddle_maze": "subgames/riddle-maze/pack"}
+	var docs_root := ProjectSettings.globalize_path("res://").path_join("../docs")
+	var diffs: Array = []
+	for pid: String in pairs.keys():
+		var run_dir := "res://packs/%s" % pid
+		var src_dir := docs_root.path_join(pairs[pid])
+		for sub: String in ["", "texts"]:
+			for f: String in DirAccess.get_files_at(run_dir.path_join(sub)):
+				if not f.ends_with(".json"):
+					continue
+				var a := FileAccess.get_file_as_string(run_dir.path_join(sub).path_join(f))
+				var b := FileAccess.get_file_as_string(src_dir.path_join(sub).path_join(f))
+				if a != b:
+					diffs.append("%s/%s" % [pid, sub.path_join(f)])
+	check(diffs.is_empty(), "内容包运行副本与 docs 编写源逐文件一致：%s" % ";".join(diffs))
+
 # ---------------------------------------------------------------- 框架零内容常量（白皮书 §2；代码评审 M1）
 
 func test_no_content_constants() -> void:
@@ -6120,6 +6187,7 @@ func test_pack_locale() -> void:
 	check(v15.any(func(i: Dictionary) -> bool: return i["level"] == PacklintCore.LEVEL_FAIL and str(i["msg"]).begins_with("en 缺文本键")),
 		"V15：声明 en 但缺键 → FAIL 并列出缺键")
 	var real: Dictionary = PackLoader.load_pack(src)["pack"]
+	(real["manifest"] as Dictionary).erase("locales")
 	check(PacklintCore._v15_texts(real).any(func(i: Dictionary) -> bool: return i["level"] == PacklintCore.LEVEL_NA),
 		"V15：未声明 manifest.locales → N/A")
 
@@ -6156,6 +6224,45 @@ func test_new_game_seed() -> void:
 	Rng.fixed_seed_override = 777
 	check(Rng.new_game_seed() == 777, "覆盖值生效（测试/工具/截图取确定路径）")
 	Rng.fixed_seed_override = saved
+
+# ---------------------------------------------------------------- 英文冒烟（P4 阶段 2：英文界面 + 英文内容包走主流程）
+
+func test_english_smoke() -> void:
+	print("[english_smoke]")
+	Texts.forced_locale = "en"
+	var m := _new_main()
+	root.add_child(m)
+	await process_frame
+	await process_frame
+	var home := m.current_screen as ScreenHome
+	check(Texts.locale == "en" and PackLoader.locale == "en", "英文语言：界面与内容包同时切换")
+	check(home != null and home.campaign_button.text.begins_with("Campaigns"), "主屏英文文案（%s）" % (home.campaign_button.text if home else ""))
+	check(str(m.pack["manifest"]["name"]) == "Ashenport Fragments", "内容包英文名（约定式键叠加）")
+	m._on_home_navigate(&"entry")
+	await process_frame
+	(m.current_screen as ScreenEntry).pick_mode(ShellRouter.MODE_TIME)
+	(m.current_screen as ScreenEntry).start_requested.emit()
+	await process_frame
+	await process_frame
+	var text := StoryVM.node_text(m.graph.current(), m.board, m._campaign_id, m.pack["texts"])
+	check(text.begins_with("The tide."), "序章正文为英文（text_ref 按当前语言解析）")
+	var cjk := RegEx.create_from_string("[\\x{4e00}-\\x{9fff}]")
+	var leaks: Array = []
+	for nid: String in (m.pack["nodes"] as Dictionary).keys():
+		var n: Dictionary = m.pack["nodes"][nid]
+		for f: String in ["title", "summary"]:
+			if cjk.search(str(n.get(f, ""))) != null:
+				leaks.append("%s.%s" % [nid, f])
+		for e: Variant in n.get("edges", []):
+			if cjk.search(str((e as Dictionary).get("label", ""))) != null:
+				leaks.append("%s.edge" % nid)
+	check(leaks.is_empty(), "英文加载后节点标题/摘要/选项零中文残留：%s" % ";".join(leaks))
+	m.queue_free()
+	await process_frame
+	Texts.forced_locale = Texts.SOURCE_LOCALE
+	Texts.set_locale(Texts.SOURCE_LOCALE)
+	PackLoader.locale = ""
+	SaveSystem.delete()
 
 # ---------------------------------------------------------------- 启动读回（07 §4.2；代码评审 B1）
 

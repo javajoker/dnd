@@ -7,6 +7,8 @@
   "rule_pack": { "id": "light", "min_version": 1 },
   "presentation": { "mode": "choice" },
   "namespace": "arc_tide",
+  "source_locale": "zh-CN",
+  "locales": ["zh-CN", "en"],
   "estimated_hours": "0.3",
   "node_budget": 6,
   "monetization": { "strategies": ["free"] },

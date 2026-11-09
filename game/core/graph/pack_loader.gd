@@ -345,11 +345,16 @@ static func merge_graft(host_pack: Dictionary, arc_pack: Dictionary) -> Dictiona
 	for l: Variant in arc_pack.get("lore", []):
 		(view["lore"] as Array).append(l)
 	# texts/ 并入合并视图（tech/02 §1.1：同文件合并键，同键不同文 = 命名空间不独立，挂接错误）
+	# 只并入支线的 text_ref 长文本键：约定式短文本键（manifest.name 等）已在支线包加载时就地叠加，
+	# 且天然与宿主同名，不参与合并视图。
 	var view_texts: Dictionary = view.get("texts", {})
+	var arc_ref_keys := text_ref_keys(arc_pack)
 	for tfile: String in (arc_pack.get("texts", {}) as Dictionary).keys():
 		var arc_table: Dictionary = (arc_pack["texts"] as Dictionary)[tfile]
 		var vtable: Dictionary = (view_texts.get(tfile, {}) as Dictionary).duplicate()
 		for k: String in arc_table.keys():
+			if not arc_ref_keys.has(k):
+				continue
 			if vtable.has(k) and str(vtable[k]) != str(arc_table[k]):
 				errors.append("graft：texts 键 '%s#%s' 与宿主/已注入包冲突（tech/02 §1.1 命名空间独立）"
 					% [tfile, k])

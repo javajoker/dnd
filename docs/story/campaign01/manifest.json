@@ -12,6 +12,8 @@
     "recommend": { "N4-1": "space" }
   },
   "namespace": "campaign01",
+  "source_locale": "zh-CN",
+  "locales": ["zh-CN", "en"],
   "loadout": { "enabled": true, "item_slots": 2, "skill_slots": 2, "respec": false,
     "presets": [
       { "id": "aggressive", "name": "强攻", "skills": ["slash", "inkbolt"], "items": ["heal_potion"] },

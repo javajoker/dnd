@@ -8,6 +8,8 @@
   "rule_pack": { "id": "light", "min_version": 1 },
   "presentation": { "mode": "choice" },
   "namespace": "arena",
+  "source_locale": "zh-CN",
+  "locales": ["zh-CN", "en"],
   "recommended_level": [2, 4],
   "estimated_hours": "0.5",
   "node_budget": 8,

@@ -63,18 +63,34 @@ static func resolve_text(texts: Dictionary, ref: String, fallback: String) -> St
 ## → text_ref 外置全文 → summary 兜底；flag 省略前缀解析为本包命名空间（与 §4.6 条件同一口径）。
 static func node_text(node: Dictionary, board: Board, ns: String, texts: Dictionary = {}) -> String:
 	var text := resolve_text(texts, str(node.get("text_ref", "")), str(node.get("summary", "")))
-	for v: Variant in node.get("text_variants", []):
+	return apply_variants(text, node.get("text_variants", []), board, ns)
+
+## 文本变体（tech/02 §3）：旗标成立的变体——缺省 mode = 整段替换（声明序首个生效）；
+## mode = "append" 在正文后追加一段（可多条叠加）。纯呈现，不进图遍历与事件流判定。
+static func apply_variants(text: String, variants: Array, board: Board, ns: String) -> String:
+	var base := text
+	var replaced := false
+	var appends: Array = []
+	for v: Variant in variants:
 		var fid := str((v as Dictionary).get("flag", ""))
-		if fid.is_empty():
+		if fid.is_empty() or board == null:
 			continue
 		var key := fid if "." in fid or ns.is_empty() else "%s.%s" % [ns, fid]
-		if board != null and bool(board.read(key, false)):
-			return str((v as Dictionary).get("text", text))
-	return text
+		if not bool(board.read(key, false)):
+			continue
+		if str((v as Dictionary).get("mode", "")) == "append":
+			appends.append(str((v as Dictionary).get("text", "")))
+		elif not replaced:
+			base = str((v as Dictionary).get("text", text))
+			replaced = true
+	for a: String in appends:
+		base += "\n\n" + a
+	return base
 
-## 结局演出文案（tech/02 §9 v0.7）：text_ref 外置全文 → content 一行摘要兜底（结局屏呈现，壳不创作）。
-static func ending_text(texts: Dictionary, edef: Dictionary) -> String:
-	return resolve_text(texts, str(edef.get("text_ref", "")), str(edef.get("content", "")))
+## 结局演出文案（tech/02 §9）：text_ref 外置全文 → content 一行摘要兜底；结局同样支持 text_variants（旗标差异）。
+static func ending_text(texts: Dictionary, edef: Dictionary, board: Board = null, ns: String = "") -> String:
+	var text := resolve_text(texts, str(edef.get("text_ref", "")), str(edef.get("content", "")))
+	return apply_variants(text, edef.get("text_variants", []), board, ns)
 
 ## 图鉴条目正文（tech/02 §10 v0.7）：text_ref 外置；无内嵌正文字段，键缺失即空串（界面只显标题/来源）。
 static func lore_text(texts: Dictionary, ldef: Dictionary) -> String:

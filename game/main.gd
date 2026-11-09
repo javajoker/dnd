@@ -604,7 +604,7 @@ func _present_ending() -> void:
 	_swap(screen)
 	screen.bind({"ending_id": eid, "title": str(edef.get("title", eid)),
 		# 结局演出全文 = text_ref 外置 → content 摘要兜底（tech/02 §9/§1.1；壳不创作）
-		"content": StoryVM.ending_text(pack.get("texts", {}), edef),
+		"content": StoryVM.ending_text(pack.get("texts", {}), edef, board, _campaign_id),
 		"hook": str(edef.get("ngplus_hook", "")),
 		"playthrough": int(board.read(_playthrough_key(), 0)) + 1, "saved": true})
 	screen.ngplus_requested.connect(_on_ngplus_start)
