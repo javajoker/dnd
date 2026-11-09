@@ -1,0 +1,40 @@
+{
+  "pack_id": "campaign01",
+  "name": "烬港残页",
+  "pack_type": "campaign",
+  "pack_version": 1,
+  "min_framework_version": "1.0.0",
+  "rule_pack": { "id": "light", "min_version": 1 },
+  "presentation": {
+    "mode": "choice",
+    "forced": { "SL-0": "time", "SL-3": "time" },
+    "forced_except": { "SL-3": ["N3-7"] },
+    "recommend": { "N4-1": "space" }
+  },
+  "namespace": "campaign01",
+  "loadout": { "enabled": true, "item_slots": 2, "skill_slots": 2, "respec": false,
+    "presets": [
+      { "id": "aggressive", "name": "强攻", "skills": ["slash", "inkbolt"], "items": ["heal_potion"] },
+      { "id": "steady", "name": "稳守", "skills": ["slash", "inkshield"], "items": ["heal_potion"] },
+      { "id": "balanced", "name": "均衡", "skills": ["inkbolt", "inkshield"], "items": ["heal_potion"] }
+    ] },
+  "recommended_level": [1, 4],
+  "estimated_hours": "6-9",
+  "node_budget": 35,
+  "ngplus": {
+    "carries": {
+      "lore": true,
+      "entitlements": true,
+      "cosmetics": true,
+      "codex_fragment": 1,
+      "playthrough": "campaign01.ngplus"
+    },
+    "per_ending": {
+      "E1": { "flags": ["unlock_elysium_rumor"] },
+      "E2": { "flags": ["unlock_wastes_rumor"] },
+      "E3": { "flags": ["unlock_scribe_identity"], "dice_skin": "scribe_dice" },
+      "E4": { "flags": ["ngplus_memory_view"], "codex_fragment": 1 }
+    }
+  },
+  "source_doc": "docs/story/02-战役书-烬港残页.md"
+}
