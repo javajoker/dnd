@@ -155,12 +155,13 @@ The framework has built rule depth and the business model in as extension axes (
 - [~] Split main.gd (M2): sub-game flow → `subgame_flow.gd`, screenshot drivers → `tools/shot_driver.gd` (1861 → 1156 lines); a CampaignFlow object is left for later — many tests drive main's campaign internals directly and need changing first
 - [x] Event msg_key + args (core emits no prose); the full event stream is saved (E-3 decided), so no v2→v3 migration is needed (the new key is backward compatible)
 - [x] Locale tables (`Texts` + texts_zh/texts_en) + `ui.locale` setting + a language button on the help page; convention-keyed pack text overlay (tech/02 §1.1) + packlint V15 (it already caught 2 packs missing their texts file)
-- [ ] English-length layout (rendered-width rule, 08 §1) → moved to Phase 2: needs real English text to verify
+- [x] English-length layout → done in Phase 2
 
 **Phase 2 · English content**
 
-- [ ] Translate all pack and UI text (names per GLOSSARY; Riddle Maze puzzles rewritten for English)
-- [ ] Wire the readers of the 5 write-only flags (M3); V4 missing reader becomes FAIL
+- [x] Translate all pack and UI text: `texts_en.gd` (every source key, placeholders checked key by key) + `texts/en.json` for four packs (campaign01 323 keys / arena 44 / riddle_maze 32 / arc_tide 23) + operations data `_ops/texts/en.json`; every manifest declares `locales` and V15 passes. The Riddle Maze puzzles are dice checks with flavour hints, which keep their meaning in English — no rewrite needed
+- [x] Wire the readers of the 5 write-only flags (M3): `text_variants` gains an `append` mode and works on endings; placed on R2 / N3-1 / N4-1 / E1 / E2 / E4 (zh + en); V4 now FAILs when a declared node/ending reader never reads
+- [x] English-length layout (moved in from Phase 1): fixed from a `--locale=en` screenshot pass — entry labels wrap, status band ellipsis + scrolling party chips, main view clipping (also fixing the old battle-card overlap), flow-wrapped quickbar, scrollable help page; flag toasts show names instead of internal keys
 
 **Phase 3 · Mobile platform layer (portrait)**
 

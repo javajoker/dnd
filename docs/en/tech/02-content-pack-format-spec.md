@@ -38,6 +38,7 @@ Rules: file names are fixed and case-sensitive; the validator warns on unknown f
 - **Reference format**: `text_ref: "texts/<locale>.json#<key>"` — before `#` is the relative path inside texts/, after `#` is the key;
 - **Resolution order (runtime)**: node display text = the matching `text_variants` variant (pure presentation substitution, §3) → full text from the texts table pointed to by `text_ref` → `summary` fallback; ending cutscene text = `text_ref` → `content` fallback; Compendium body = `text_ref` (no embedded field; a missing key means no body is shown). **A missing key always falls back silently and never rejects loading** — broken links are data defects caught by extraction-completeness assertions in the test layer;
 - **Writing discipline**: texts tables only hold text, never structure; full text must not introduce flags or effects not declared in nodes/flags/encounters (semantics must match the node's effects);
+- **Operations data** (`packs/_ops`, not a content pack) uses the same convention keys: `ops.<path>` (ops_config.json) and `cosmetics.<path>` (cosmetics.json), with tables in `packs/_ops/texts/<locale>.json`;
 - **Convention keys (short text)**: display-text fields (`title`/`summary`/`label`/`name`/`text`/`hint`/`objective`/`content`/`role`/`source`/`lock_text`, etc.) are keyed automatically as "table.entry id.path", with no key fields added to pack JSON — e.g. `nodes.N1-1.edges.0.label`, `items.heal_potion.name`, `encounters.N2G-2.maze.beats.0.text`, `manifest.lock_text`. A target language's `texts/<locale>.json` overrides the source text by writing these keys; a missing key falls back to the source. The single source of truth for the key list is `PackLoader.text_entries()`;
 - **Multiple languages (bilingual build)**: write references as locale-independent keys `text_ref: "#<key>"`; the runtime picks `texts/<locale>.json` for the current language (the old form `texts/zh-CN.json#<key>` stays valid; the path is stripped on load). Short text fields (`title` / `summary` / `label` / `name` / `hint` / `objective`) are keyed into the tables too — the data may keep source-language text as a fallback, but every shipped language must have the key;
 - **Side-arc packs**: an arc pack can bring its own texts/ files, which are merged into the merged view on grafting; a key collision (same key, different text as the host or an already-injected pack) = a graft error (same rule as V14 namespace independence).
@@ -232,7 +233,7 @@ Rules: file names are fixed and case-sensitive; the validator warns on unknown f
 | encounter | string | conditional | the encounter ID in encounters.json (required for battle / maze / rest nodes) |
 | on_enter | effect[] | no | effects resolved on entering the node (write flags, push the clock …), DSL in §4.6 |
 | on_complete | effect[] | no | resolved after all edges of the node are settled, before leaving (e.g. both choice edges at N2S-3 grant the Signet) |
-| text_variants | array | no | text variants (flag-driven display text substitution): `[{ "flag": "<flag_id>", "text": "…" }]` — the first variant whose flag holds, in declaration order, replaces the `summary` display text; `flag` without a prefix resolves to this pack's namespace. **Pure presentation**: never enters graph traversal, checks or event-stream resolution (where NG+ opening monologues / Remembrance filters land, §2.7 and campaign book §11) |
+| text_variants | array | no | text variants (flag-driven display text substitution): `[{ "flag": "<flag_id>", "text": "…" }]` — by default (replace), the first variant whose flag holds, in declaration order, replaces the text; with `"mode": "append"`, a holding flag appends a paragraph after the text (several can stack — good for "one line of echo from an earlier choice" without copying the whole passage). `flag` without a prefix resolves to this pack's namespace. **Pure presentation**: never enters graph traversal, checks or event-stream resolution (where NG+ opening monologues / Remembrance filters land, §2.7 and campaign book §11) |
 | edges | edge[] | ✅ | out-edges; may be empty for finale nodes |
 
 Any edge type can carry a `label` (display text) and `requires` (extra gate condition, §4.6).
@@ -395,6 +396,8 @@ The flag ledger is the input to the **closed-loop flag check**: declared writers
 
 Ending conditions use the §4.6 condition DSL; `default: true` marks the fallback failure-but-not-final ending (E4).
 
+Optional field `text_variants` (same semantics as §3, including `append`): flag-driven ending text differences (e.g. campaign book §5 "blank_memory → E1 cutscene variation").
+
 Optional field `text_ref` (§1.1): reference to the full ending cutscene text (`"texts/<locale>.json#ending.<id>.text"`); resolution text_ref → `content` fallback — `content` stays as a one-line summary / fallback, and the ending screen shows the full text (campaign book §9 cutscene + epilogue).
 
 ## 10. lore.json
@@ -418,7 +421,7 @@ Optional field `art_ref` (tech/05 §6): reference to the entry's illustration (`
 | V1 | No dead ends | Every non-ending node has out-edges; every path can reach some ending |
 | V2 | No unreachable nodes | Full graph traversal from the prologue entrance |
 | V3 | Complete failure paths | Every `check` edge has a `failure`, and the failure path has content (not a direct merge into an empty node) |
-| V4 | Closed flag loops | The flags.json ledger matches the graph's reads/writes; no orphan flags (reads collected from `flag.*` conditions, encounter-level party_advantage/enemy_weaken declarations, and node `text_variants`); **a reader declared in the ledger with no actual read in the graph or the shells = FAIL** (no longer downgraded to WARN) |
+| V4 | Closed flag loops | The flags.json ledger matches the graph's reads/writes; no orphan flags (reads collected from `flag.*` conditions, encounter-level party_advantage/enemy_weaken declarations, and node/ending `text_variants`); **a declared reader that is a graph node or ending, with no read anywhere in the graph or endings = FAIL**; readers that are only UI / NG+ surfaces stay WARN for manual review |
 | V5 | Bounded clocks | The algebraic sum of all `clock` effects provably converges within 0–10; an E4 fallback exists |
 | V6 | Node budget | Logical nodes counted by main number (derived suffix nodes like `N1-2b` and ending nodes don't count) ≤ manifest.node_budget |
 | V7 | Namespaces | In-pack references don't leave the pack prefix (globals via the whitelist); multiple packs coexist without collisions |
@@ -427,4 +430,4 @@ Optional field `art_ref` (tech/05 §6): reference to the entry's illustration (`
 | V10 | Screen loop | A new node type doesn't break the nine-screen entrance/exit check (doc 04 §5) |
 | V11–V13 | Resource references / legal values / use counts | See `04-resources-and-effects-system.md` §6 |
 | V14 | Graft | Arc packs: the `graft.into` target pack loads, `graft.node` exists in it, the injected edge type is legal and `to` points to a node in this pack, an `item` edge's item is registered in the merged view; namespace independence — this pack's node/event/encounter/item/lore ids don't collide with the target pack. Arc-pack lint runs graph traversal (V1–V3) and resource references (V11) on the **merged view** (host + graft injection); flags / clocks / budget / entitlements are checked per this pack |
-| V15 | Text completeness | For every language in manifest `locales`: every text key exists and is non-empty in `texts/<locale>.json`; WARN when rendered width overflows |
+| V15 | Text completeness | For every language in manifest `locales`: every text key (with non-empty source text) exists and is non-empty in `texts/<locale>.json`; the source language's text_ref keys must exist. To list untranslated keys: `tools/text_extract.gd` |

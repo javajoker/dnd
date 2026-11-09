@@ -66,7 +66,7 @@ The logic core is genuinely well built: clean RefCounted layering, seeded RNG, p
 It holds campaign flow, sub-game flow (a second copy of maze/battle/settle/save-quit logic, `_sub_*`), save timing, entitlements, cosmetics, and ~450 lines of screenshot/demo drivers (`_run_shots_*`, 16 CLI flags) that call private core methods (`graph._enter("N1-3")`) and write fake events into the stream. The demo code ships in the production main scene.
 - Fix: split into `CampaignFlow`, `SubgameFlow` (sharing one encounter/settle flow), `AppServices`; move shot drivers to `tools/`.
 
-### M3 · Campaign-book flags are written but never read (packlint V4 WARN ×13)
+### M3 · Campaign-book flags are written but never read (packlint V4 WARN ×13) ✅ fixed (P4 Phase 2)
 `seen_fading`, `blank_memory`, `page_tearer`, `insider`, `failed_to_hold` are written by nodes but read by **no** edge, text variant or code. The campaign book promises reads at R2 (dialogue bonus), E1 (cutscene variation), the Finale (tax collector absent), N3-1 (extra opening line) and E4 — and §10 marks "flags closed-loop ✅". Players' choices at those points currently have no visible consequence. packlint downgrades it to WARN ("needs manual check") so it never fails CI.
 - Fix: add the `text_variants` / edge conditions (the mechanism already exists), then promote V4 "declared reader not found" to FAIL.
 
@@ -87,7 +87,7 @@ No `EffectEngine`, no `effect.attach`/`effect.expire` events, no base→add→mu
 
 ## 4. Minor findings
 
-- **Status-bar overlap in portrait battles** (found in P4 Phase 1, present before it): the party status text at the top overlaps the enemy cards at 390×760. Check on device in Phase 3.
+- **Status-bar overlap in portrait battles** (found in P4 Phase 1, present before it) ✅ fixed in Phase 2: the battle camera scrolled unclipped content under the status band; the main view now clips.
 - **Package size**: BGM shipped as uncompressed 16-bit WAV (2 × 2.6 MB for 30 s loops); use Ogg Vorbis (~10× smaller).
 - **No export presets**: `export_presets.cfg` is gitignored and absent; no Android/iOS build has been produced or tested (doc 14 phase 3 is honestly unchecked).
 - **Doc index was stale** (fixed): `docs/README.md` listed riddle-maze as "not started" though it is live; `game/packs/README.md` listed only campaign01 and arena.
