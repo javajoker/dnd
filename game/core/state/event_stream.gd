@@ -57,3 +57,22 @@ func since(event_id: int) -> Array[Dictionary]:
 
 func all() -> Array[Dictionary]:
 	return _events.duplicate()
+
+## 存档用全量序列化（tech/01 E-3 裁决：事件流全量随存档，历史卷轴跨启动可追溯）。
+## 事件 payload 只含 msg_key/数据，不含按语言渲染的文案，读回后按当前语言呈现。
+func serialize() -> Dictionary:
+	return {"events": _events.duplicate(true), "next_id": _next_id}
+
+## 读回历史（不通知订阅者：历史不是"新发生"的事件）。缺省/旧档 = 保持空流。
+func restore(state: Dictionary) -> void:
+	var evs: Array = state.get("events", [])
+	if evs.is_empty():
+		return
+	_events.clear()
+	for ev: Variant in evs:
+		var d: Dictionary = ev
+		d["type"] = StringName(str(d.get("type", "")))
+		d["source"] = StringName(str(d.get("source", "")))
+		d["id"] = int(d.get("id", 0))
+		_events.append(d)
+	_next_id = maxi(int(state.get("next_id", 1)), int(_events.back()["id"]) + 1)

@@ -26,6 +26,7 @@ static func make_snapshot(board: Board, stream: EventStream, rng: Rng,
 		"save_version": SAVE_VERSION,
 		"board": board.serialize(),
 		"event_tail": stream.tail(),
+		"events": stream.serialize(), # E-3：事件流全量随存档（旧档无此键 = 空历史）
 		"bindings": bindings.duplicate(true),
 		"rng_seed": rng.save_state(),
 		"meta": m,

@@ -121,6 +121,7 @@ func _ready() -> void:
 	# 启动读回（07 §4.2）：先恢复状态板与 RNG——支线注入与活动点亮都要读恢复后的权利状态
 	var resumed := _read_resume_snapshot()
 	if not resumed.is_empty():
+		stream.restore(resumed.get("events", {})) # 历史卷轴跨启动可追溯（tech/01 E-3）
 		SaveSystem.apply(resumed, board, rng)
 	# 权利运行时 + 运营配置（06 §3.2：活动开关开 → 入口自动解锁，内容包零改动）
 	entitlements = Entitlements.new(board, stream)

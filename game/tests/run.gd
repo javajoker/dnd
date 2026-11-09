@@ -6176,6 +6176,7 @@ func test_resume_on_launch() -> void:
 	var rng_probe: Dictionary = m1.rng.save_state()
 	m1._save("test_resume")
 	var visited: int = m1.graph.visit_log.size()
+	var events_at_save: int = m1.stream.tail()
 	m1.queue_free()
 	await process_frame
 	# 冷启动：不删存档槽，直接新实例
@@ -6188,6 +6189,10 @@ func test_resume_on_launch() -> void:
 	check(m2.board.has_item("half_tide_table"), "冷启动读回：状态板恢复（背包道具）")
 	check(m2.rng.save_state() == rng_probe, "冷启动读回：RNG 状态恢复（后续骰序与存档时一致）")
 	check(m2._has_continuable(), "主屏\"继续\"可用（04 §①）")
+	check(m2.stream.size() >= events_at_save - 1 and m2.stream.tail() >= events_at_save,
+		"冷启动读回：事件流全量恢复（历史卷轴跨启动可追溯，tech/01 E-3）")
+	var resumed_ev: Array = m2.stream.query_by_type(EventTypes.LOG)
+	check(not resumed_ev.is_empty() and resumed_ev.back()["type"] is StringName, "读回事件类型恢复为 StringName（查询可用）")
 	check(str(m2.board.read("global.mode_choice.campaign01", "")) == "time", "冷启动读回：模式选择保留（09 §3 整场锁定）")
 	m2.queue_free()
 	await process_frame
