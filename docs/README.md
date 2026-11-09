@@ -6,7 +6,11 @@
 >
 > **交互原型**：仓库根目录 [`prototype/`](../prototype/)（零依赖，浏览器直接打开 `index.html`）——04 文档九类界面的可玩切片，对应 TASKS P1.2 试玩项。
 >
-> **正式实现**：[`game/`](../game/)（Godot 4.7.2 + GDScript，tech/01 §2.3 裁决）；研发纪律由 `.claude/` 三件套执行——skills `godot-dev`（开发流程）/ `godot-acceptance`（验收审计）+ agent `godot-developer`；路线见 TASKS P1.5。
+> **正式实现**：[`game/`](../game/)（Godot 4.7.2 + GDScript，tech/01 §2.3 裁决）；研发纪律由 `.claude/` 三件套执行——skills `godot-dev`（开发流程）/ `godot-acceptance`（验收审计）+ agent `godot-developer`；路线见 TASKS P1.5 / P4。英文版三件套：`godot-dev-en` / `godot-acceptance-en` / `godot-developer-en`。
+>
+> **英文镜像**：[`en/`](en/README.md)——全部文档的英文版（术语表 [`en/GLOSSARY.md`](en/GLOSSARY.md)）；中文原文仍为设计真相，行为变更须中英同步。
+>
+> **最新代码评审**：[`en/tech/code-review-2026-11-10.md`](en/tech/code-review-2026-11-10.md)（全部清单声明的核验结论）；**英文移动版方案**：[`en/tech/06-english-mobile-plan.md`](en/tech/06-english-mobile-plan.md)。
 
 ## framework/ —— 游戏框架（对一切内容包通用）
 
@@ -14,7 +18,7 @@
 |---|---|
 | [01-框架白皮书](framework/01-框架白皮书.md) | 五层漏斗、世界状态机、分支有向图、遭遇状态机、双战役形态、内容包与规则包/权利模型 |
 | [02-PRD](framework/02-PRD.md) | 产品定位、功能需求 F1~F8、里程碑 M0~M4、风险项 |
-| [03-TASKS](framework/03-TASKS.md) | P0 框架冻结 → P1 主线 → P2 内容管线 → P3 运营的可勾选清单与变更记录 |
+| [03-TASKS](framework/03-TASKS.md) | P0 框架冻结 → P1 主线 → P2 内容管线 → P3 运营的可勾选清单（含核验状态） |
 | [04-UI-UX设计文档](framework/04-UI-UX设计文档.md) | 九类界面规格、横屏五区/竖屏三段布局、导航闭环检查表 |
 | [05-规则系统框架](framework/05-规则系统框架.md) | D20 最小核、规则包六要素、轻/标准/深度三档预设 |
 | [06-商业化框架](framework/06-商业化框架.md) | 权利模型、付费策略包级可选（门槛在包内/点亮在运营）、四种付费模式、付费禁区铁律 |
@@ -34,7 +38,8 @@
 | [01-技术方案讨论稿](tech/01-技术方案讨论稿.md) | 引擎选型、逻辑/呈现分层、状态机与事件流架构、规则包宿主、技术原型计划 |
 | [02-内容包格式规范](tech/02-内容包格式规范.md) | 包目录结构、manifest（模式 / 权利门槛 / 付费策略声明）、五类边条件 DSL、各表 Schema、上线校验 V1~V10 |
 | [03-内容包制作操作指南](tech/03-内容包制作操作指南.md) | 战役书 → 内容包数据的转写流程、章节映射、校验报错对照、评审清单 |
-| [04-资源与效果系统](tech/04-资源与效果系统.md) | 角色/技能/道具/效果的数据 Schema、修饰器叠加管线（base→add→mul→override→clamp）、效果溯源与热更新 |
+| [04-资源与效果系统](tech/04-资源与效果系统.md) | 角色/技能/道具/效果的数据 Schema、修饰器叠加管线（base→add→mul→override→clamp，**运行时未实现**）、成长系统 |
+| [05-美术管线](tech/05-美术管线.md) | 资产目录/命名/分辨率档/占位兜底、art_ref 字段 |
 
 ## story/ —— 世界观与主线内容（框架上生长的内容）
 
@@ -43,6 +48,7 @@
 | [01-世界观-抄本纪元](story/01-世界观-抄本纪元.md) | 艾洛温大陆、褪墨之灾、白页者与命骰、阵营体系、篇章区域 |
 | [02-战役书-烬港残页](story/02-战役书-烬港残页.md) | 首个主线战役：35 节点五幕结构、16 场遭遇、4 种结局分型（设计定稿，待试玩） |
 | [03-数值定稿与Boss设计](story/03-数值定稿与Boss设计.md) | 难度目标与仿真标定方法、Boss 回合行为脚本、守页人/墨潮化身设计稿、成长与消耗品校核 |
+| [04-支线-雾码头的回声](story/04-支线-雾码头的回声.md) | 支线包 arc_tide：graft 挂接 N1-1，不动主线数据 |
 | [campaign01/](story/campaign01/) | 《烬港残页》内容包数据：manifest / 节点图 / 事件 / 遭遇 / 道具 / 旗标 / 结局 / 图鉴（首个内容包实例） |
 
 ## subgames/ —— 子游戏（每个子游戏一个子目录）
@@ -54,5 +60,5 @@
 | 目录 | 子游戏 | 状态 |
 |---|---|---|
 | subgames/arena | 竞技场连战 | M3 已接入（概念设计 + 数据包 + 连战流程，验证白皮书 §10.2 子游戏不动框架） |
-| subgames/riddle-maze | 解谜迷宫（候选） | 未立项 |
+| subgames/riddle-maze | 谜回廊（解谜迷宫） | 已上线（零战斗纯解谜子游戏，免费） |
 | subgames/haven | 休整所经营（候选） | 未立项 |

@@ -14,4 +14,8 @@
 | 包 | 源 | 说明 |
 |---|---|---|
 | campaign01 | `docs/story/campaign01/` | 《烬港残页》首个战役实例 |
+| arc_tide | `docs/story/arc_tide/` | 支线《雾码头的回声》（pack_type=arc，graft 挂接 N1-1） |
 | arena | `docs/subgames/arena/pack/` | 子游戏「竞技场连战」（pack_type=subgame，M3 验证白皮书 §10.2） |
+| riddle_maze | `docs/subgames/riddle-maze/pack/` | 子游戏「谜回廊」（pack_type=subgame，免费，零战斗） |
+
+`_ops/` 为运营侧数据（权利注册表、皮肤注册表、ops_config），不是内容包。
