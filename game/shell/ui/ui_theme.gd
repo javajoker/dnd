@@ -32,7 +32,7 @@ static func attach(c: Control) -> void:
 ## root 可空（纯 core 无头场景只注册兜底字体）。返回 true = 内置字体生效；
 ## 内置文件缺失时回退系统中文字体（仅开发机可读性兜底，不入发布形态）并返回 false。
 static func apply(root: Window = null) -> bool:
-	var ff := _load(FONT_REGULAR)
+	var ff := _load(GameManifest.font(FONT_REGULAR)) # 游戏清单 theme.font 优先（tech/07 §3）
 	if ff != null:
 		regular = ff
 		var fv := FontVariation.new()

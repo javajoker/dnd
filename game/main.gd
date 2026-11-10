@@ -24,6 +24,8 @@ extends Node
 const SLICE_ACTS: Array[String] = ["SL-0", "SL-1", "SL-2", "SL-3", "SL-4"]
 const LANDSCAPE_SIZE := Vector2i(1280, 720)
 const PACKS_ROOT := "res://packs"
+## 本次启动的包根目录（`-- --packs-root=res://kit` 直接把新游戏工具包当整款游戏启动，tech/07 §4）。
+var packs_root := PACKS_ROOT
 const SHELL_SCENES := {
 	&"time": "res://shell/portrait/encounter_portrait.tscn",
 	&"space": "res://shell/landscape/encounter_landscape.tscn",
@@ -90,6 +92,11 @@ func _ready() -> void:
 			ProjectSettings.set_setting("game/market", a.trim_prefix("--market="))
 		elif a.begins_with("--safe-area="): # `-- --safe-area=上,右,下,左`：桌面模拟刘海/Home 指示条
 			SafeArea.override_insets = SafeArea.parse_arg(a)
+		elif a.begins_with("--packs-root="): # `-- --packs-root=res://kit`：换一整款游戏（游戏清单 + 内容包，tech/07）
+			packs_root = a.trim_prefix("--packs-root=")
+			GameManifest.override_path = packs_root.path_join("_game/game.json")
+			GameManifest.reset()
+			Texts.clear_cache()
 	# 界面语言（tech/01 E-5）：玩家偏好 → 系统语言；内容包按同一语言加载文本
 	Texts.set_locale(Texts.detect_locale(UiSettings.load_locale()))
 	PackLoader.locale = Texts.locale
@@ -119,7 +126,7 @@ func _ready() -> void:
 		SaveSystem.apply(resumed, board, rng)
 	# 权利运行时 + 运营配置（06 §3.2：活动开关开 → 入口自动解锁，内容包零改动）
 	entitlements = Entitlements.new(board, stream)
-	ops_config = Entitlements.load_ops_config()
+	ops_config = Entitlements.load_ops_config(packs_root.path_join("_ops/ops_config.json")) # 运营配置随本作（tech/07：新游戏可不带运营位）
 	entitlements.apply_activities(ops_config)
 	entitlements.apply_market_grants(ops_config, _market()) # 国内本体免费 / 海外试玩 + 解锁（06 §7）
 	store = Store.create()
@@ -181,18 +188,21 @@ func on_back_requested() -> String:
 ## 主战役包发现（白皮书 §10.1：框架不写死内容包）：pack_type=campaign 的包中，manifest.entry=true 者优先，
 ## 否则取目录名序第一个。
 func _find_campaign_dir() -> String:
+	var preferred := GameManifest.default_campaign() # 游戏清单指定默认战役（tech/07 §3）
+	if preferred != "" and FileAccess.file_exists(packs_root.path_join(preferred).path_join("manifest.json")):
+		return packs_root.path_join(preferred)
 	var found := ""
-	for sub: String in DirAccess.get_directories_at(PACKS_ROOT):
+	for sub: String in DirAccess.get_directories_at(packs_root):
 		if sub.begins_with("_"):
 			continue
 		var raw: Variant = JSON.parse_string(FileAccess.get_file_as_string(
-			PACKS_ROOT.path_join(sub).path_join("manifest.json")))
+			packs_root.path_join(sub).path_join("manifest.json")))
 		if not (raw is Dictionary) or str((raw as Dictionary).get("pack_type", "")) != "campaign":
 			continue
 		if bool((raw as Dictionary).get("entry", false)):
-			return PACKS_ROOT.path_join(sub)
+			return packs_root.path_join(sub)
 		if found == "":
-			found = PACKS_ROOT.path_join(sub)
+			found = packs_root.path_join(sub)
 	return found
 
 ## 本战役多周目周目数键（manifest.ngplus.carries.playthrough；缺省 <id>.ngplus）。
@@ -217,15 +227,15 @@ func _read_resume_snapshot() -> Dictionary:
 ## 子游戏包发现（白皮书 §10.2/§10.3）：扫描 packs/ 全部包目录，pack_type=subgame 即入列——
 ## 数据驱动，不写死 arena；加载失败只告警不阻断（单包缺陷不拖垮框架，tech/02 §1 向前兼容）。
 func _discover_subgames() -> void:
-	var dir := DirAccess.open("res://packs")
+	var dir := DirAccess.open(packs_root)
 	if dir == null:
 		return
 	for sub: String in dir.get_directories():
 		if sub.begins_with("_"):
 			continue # _ops 等运营目录非内容包（06 §3.2：运营配置不进内容包管线）
-		if sub == str(pack.get("pack_id", "")):
-			continue
-		var res := PackLoader.load_pack("res://packs/%s" % sub)
+		if sub == str(pack.get("pack_id", "")) or not GameManifest.pack_enabled(sub):
+			continue # 游戏清单未启用的包不入列（tech/07 §3）
+		var res := PackLoader.load_pack(packs_root.path_join(sub))
 		if not res["ok"]:
 			push_warning("[main] 包 %s 加载失败（跳过）：%s" % [sub, ";".join(res["errors"])])
 			continue
@@ -238,7 +248,7 @@ func _discover_subgames() -> void:
 # 未点亮 = 不注入，宿主图与未安装逐字节一致）。合并视图 = graph.pack（宿主数据不动，PackLoader.merge_graft）。
 
 func _discover_arcs() -> void:
-	var dir := DirAccess.open("res://packs")
+	var dir := DirAccess.open(packs_root)
 	if dir == null:
 		return
 	for sub: String in dir.get_directories():
@@ -246,9 +256,9 @@ func _discover_arcs() -> void:
 			continue
 		if sub == str(pack.get("pack_id", "")):
 			continue
-		if _subgames.has(sub):
-			continue # 子游戏已入列（pack_type 互斥）
-		var res := PackLoader.load_pack("res://packs/%s" % sub)
+		if _subgames.has(sub) or not GameManifest.pack_enabled(sub):
+			continue # 子游戏已入列（pack_type 互斥）；游戏清单未启用的包不入列
+		var res := PackLoader.load_pack(packs_root.path_join(sub))
 		if not res["ok"]:
 			push_warning("[main] 包 %s 加载失败（跳过）：%s" % [sub, ";".join(res["errors"])])
 			continue

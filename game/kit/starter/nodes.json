@@ -1,0 +1,144 @@
+{
+  "acts": [
+    {
+      "id": "A1",
+      "title": "Act One",
+      "mode": "choice",
+      "role": "Starter"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "S1",
+      "act": "A1",
+      "type": "scene",
+      "title": "The Crossroads",
+      "summary": "Three roads meet under a dead oak. Smoke rises from an inn to the east.",
+      "edges": [
+        {
+          "type": "choice",
+          "label": "Walk to the inn",
+          "to": "H1"
+        }
+      ]
+    },
+    {
+      "id": "H1",
+      "act": "A1",
+      "type": "hub",
+      "title": "The Crossroads Inn",
+      "summary": "Rest, buy supplies, listen for rumours.",
+      "edges": [
+        {
+          "type": "choice",
+          "label": "Take the north road",
+          "to": "C1"
+        },
+        {
+          "type": "choice",
+          "label": "Explore the wilds (takes time)",
+          "to": "M1"
+        }
+      ],
+      "encounter": "H1"
+    },
+    {
+      "id": "C1",
+      "act": "A1",
+      "type": "check",
+      "title": "Tracks in the Mud",
+      "summary": "Fresh boot prints lead off the road.",
+      "edges": [
+        {
+          "type": "check",
+          "skill": "perception",
+          "difficulty": "easy",
+          "label": "Follow the tracks",
+          "success": "B1",
+          "failure": "B1b",
+          "failure_effects": [
+            {
+              "clock": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "B1",
+      "act": "A1",
+      "type": "battle",
+      "title": "Bandit Camp",
+      "summary": "You find the bandits before they find you.",
+      "encounter": "B1",
+      "edges": [
+        {
+          "type": "choice",
+          "label": "Head home",
+          "to": "X1"
+        }
+      ]
+    },
+    {
+      "id": "B1b",
+      "act": "A1",
+      "type": "battle",
+      "title": "Ambush",
+      "summary": "The bandits were waiting.",
+      "encounter": "B1b",
+      "edges": [
+        {
+          "type": "choice",
+          "label": "Head home",
+          "to": "X1"
+        }
+      ]
+    },
+    {
+      "id": "M1",
+      "act": "A1",
+      "type": "map",
+      "title": "The Wilds",
+      "summary": "A small map: travel, roll for events, explore the ruin.",
+      "map": "wilds",
+      "edges": [
+        {
+          "type": "choice",
+          "label": "Back to the inn",
+          "to": "H1"
+        }
+      ]
+    },
+    {
+      "id": "G1",
+      "act": "A1",
+      "type": "scene",
+      "title": "The Quiet Grove",
+      "summary": "Birdsong, and a shrine with a coin bowl.",
+      "edges": [
+        {
+          "type": "choice",
+          "label": "Leave a coin, say a prayer",
+          "to": "M1",
+          "effects": [
+            {
+              "inspiration": 1
+            }
+          ]
+        },
+        {
+          "type": "choice",
+          "label": "Back to the road",
+          "to": "M1"
+        }
+      ]
+    },
+    {
+      "id": "X1",
+      "act": "A1",
+      "type": "ending",
+      "title": "Home Again",
+      "summary": "The road is safe — for now."
+    }
+  ]
+}

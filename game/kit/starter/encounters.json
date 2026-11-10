@@ -1,0 +1,104 @@
+[
+  {
+    "id": "H1",
+    "type": "rest",
+    "mode": "inherit",
+    "difficulty": null,
+    "max_units": 0,
+    "node": "H1",
+    "note": "Inn: rest / shop / rumours"
+  },
+  {
+    "id": "B1",
+    "type": "battle",
+    "mode": "inherit",
+    "difficulty": "easy",
+    "max_units": 5,
+    "node": "B1",
+    "party": [
+      {
+        "id": "pc",
+        "ref": "hero"
+      },
+      {
+        "id": "ally",
+        "ref": "ally"
+      }
+    ],
+    "enemies": [
+      {
+        "id": "b1",
+        "ref": "bandit"
+      },
+      {
+        "id": "b2",
+        "ref": "bandit"
+      }
+    ],
+    "xp": 60,
+    "gold": 12,
+    "note": "Starter battle"
+  },
+  {
+    "id": "B1b",
+    "type": "battle",
+    "mode": "inherit",
+    "difficulty": "medium",
+    "max_units": 5,
+    "node": "B1b",
+    "party": [
+      {
+        "id": "pc",
+        "ref": "hero"
+      },
+      {
+        "id": "ally",
+        "ref": "ally"
+      }
+    ],
+    "enemies": [
+      {
+        "id": "b1",
+        "ref": "bandit"
+      },
+      {
+        "id": "b2",
+        "ref": "bandit"
+      },
+      {
+        "id": "b3",
+        "ref": "bandit"
+      }
+    ],
+    "xp": 80,
+    "gold": 15,
+    "note": "Failed-check path: a harder fight (failure is a branch)"
+  },
+  {
+    "id": "wild_ambush",
+    "type": "battle",
+    "mode": "inherit",
+    "difficulty": "easy",
+    "max_units": 4,
+    "node": "M1",
+    "party": [
+      {
+        "id": "pc",
+        "ref": "hero"
+      },
+      {
+        "id": "ally",
+        "ref": "ally"
+      }
+    ],
+    "enemies": [
+      {
+        "id": "w1",
+        "ref": "wolf"
+      }
+    ],
+    "xp": 30,
+    "gold": 0,
+    "note": "Random encounter from the wild table"
+  }
+]

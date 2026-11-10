@@ -1,0 +1,130 @@
+{
+  "regions": [
+    {
+      "id": "wilds",
+      "name": "The Wilds",
+      "start": "inn",
+      "tables": {
+        "road": "wild_road",
+        "wild": "wild_road"
+      },
+      "locations": [
+        {
+          "id": "inn",
+          "name": "Crossroads Inn",
+          "pos": [
+            1,
+            3
+          ],
+          "node": "H1"
+        },
+        {
+          "id": "grove",
+          "name": "Quiet Grove",
+          "pos": [
+            3,
+            1
+          ],
+          "node": "G1"
+        },
+        {
+          "id": "ruin",
+          "name": "Old Ruin",
+          "pos": [
+            4,
+            4
+          ],
+          "site": "ruin"
+        }
+      ],
+      "routes": [
+        {
+          "from": "inn",
+          "to": "grove",
+          "legs": 1,
+          "terrain": "road",
+          "danger": 0
+        },
+        {
+          "from": "inn",
+          "to": "ruin",
+          "legs": 2,
+          "terrain": "wild",
+          "danger": 1
+        },
+        {
+          "from": "grove",
+          "to": "ruin",
+          "legs": 1,
+          "terrain": "wild",
+          "danger": 1
+        }
+      ]
+    }
+  ],
+  "sites": [
+    {
+      "id": "ruin",
+      "name": "Old Ruin",
+      "start": "gate",
+      "areas": [
+        {
+          "id": "gate",
+          "name": "Broken Gate",
+          "pos": [
+            1,
+            2
+          ],
+          "text": "A collapsed arch. A heavy door leads inside.",
+          "exits": [
+            {
+              "to": "@map"
+            },
+            {
+              "to": "hall",
+              "door": "stuck",
+              "force": {
+                "skill": "athletics",
+                "difficulty": "easy"
+              }
+            }
+          ]
+        },
+        {
+          "id": "hall",
+          "name": "Dusty Hall",
+          "pos": [
+            3,
+            2
+          ],
+          "text": "Rotten tapestries and an old chest.",
+          "features": [
+            {
+              "id": "chest",
+              "label": "Open the chest",
+              "check": {
+                "skill": "perception",
+                "difficulty": "easy"
+              },
+              "success": [
+                {
+                  "gold": 15
+                }
+              ],
+              "failure": [
+                {
+                  "watch": 1
+                }
+              ]
+            }
+          ],
+          "exits": [
+            {
+              "to": "gate"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

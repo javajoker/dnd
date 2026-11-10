@@ -1,0 +1,31 @@
+[
+  {
+    "id": "potion",
+    "name": "Healing Potion",
+    "roles": [
+      "stat"
+    ],
+    "source": "Inn shop",
+    "unlocks": [],
+    "price": 10,
+    "use": {
+      "timing": "bonus_action",
+      "heal": "1d4+2",
+      "consume": true
+    }
+  },
+  {
+    "id": "longsword",
+    "name": "Longsword",
+    "roles": [
+      "stat"
+    ],
+    "source": "Inn shop",
+    "unlocks": [],
+    "price": 30,
+    "equip": {
+      "slot": "weapon",
+      "damage_die": "1d8"
+    }
+  }
+]

@@ -93,8 +93,16 @@ static func _table(l: String) -> Dictionary:
 		var script: Script = load(TABLE_PATHS[l])
 		for k: StringName in script.get_script_constant_map().keys():
 			table[StringName(k)] = script.get_script_constant_map()[k]
+	# 本作风味文案覆盖框架中性默认（packs/_game/texts/<locale>.json；tech/07 §3）
+	var overlay := GameManifest.text_overlay(l)
+	for k2: Variant in overlay.keys():
+		table[StringName(str(k2))] = overlay[k2]
 	_tables[l] = table
 	return table
+
+## 换游戏 / 测试注入清单后清缓存（下次取值重新叠加覆盖层）。
+static func clear_cache() -> void:
+	_tables.clear()
 
 # ---------------------------------------------------------------- 带逻辑的文案（原 TextsZh 静态函数，按当前语言取模板）
 

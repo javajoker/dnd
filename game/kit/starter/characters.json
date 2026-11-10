@@ -1,0 +1,44 @@
+[
+  {
+    "id": "hero",
+    "name": "The Hero",
+    "kind": "player_template",
+    "attrs": {
+      "might": 2,
+      "finesse": 1,
+      "wits": 0
+    },
+    "hit_die": "d10",
+    "hp_formula": "10 + 2*might",
+    "ac_formula": "10 + finesse",
+    "proficiencies": [
+      "athletics",
+      "perception"
+    ],
+    "basic_attack": "strike",
+    "skills": [
+      "power_strike"
+    ]
+  },
+  {
+    "id": "ally",
+    "name": "The Scout",
+    "kind": "companion",
+    "attrs": {
+      "might": 0,
+      "finesse": 2,
+      "wits": 1
+    },
+    "hit_die": "d8",
+    "hp_formula": "8 + finesse",
+    "ac_formula": "10 + finesse",
+    "proficiencies": [
+      "perception",
+      "stealth"
+    ],
+    "basic_attack": "shot",
+    "skills": [
+      "shot"
+    ]
+  }
+]

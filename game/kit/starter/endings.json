@@ -1,0 +1,10 @@
+[
+  {
+    "id": "X1",
+    "title": "Home Again",
+    "hidden": false,
+    "default": true,
+    "conditions": {},
+    "content": "The road is safe — for now."
+  }
+]

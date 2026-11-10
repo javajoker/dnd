@@ -1,0 +1,10 @@
+{
+  "HOME_TITLE": "The Crossroads Inn",
+  "HOME_SAVE": "Write in the journal",
+  "HOME_SAVED": "Journal updated",
+  "SETTLE_SAVED": "Journal updated.",
+  "MSG_SAVED": "Journal updated.",
+  "FACTION_NAMES": {
+    "wardens": "The Wardens"
+  }
+}

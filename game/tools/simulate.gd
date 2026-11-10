@@ -1,4 +1,5 @@
-# bot 仿真 CLI：godot --headless --path game -s tools/simulate.gd [-- 种子数]
+# bot 仿真 CLI：godot --headless --path game -s tools/simulate.gd [-- 种子数 [包目录]]
+# 包目录缺省 res://packs/campaign01；其他包（如 kit/starter）只跑通用断言：每局必达结局、clock 在界、覆盖率 ≥95%。
 # TASKS P1.5 TP1：多 seed（默认 24，半数二周目配置）断言——
 #   1) 每局必达结局；2) 全部路径 clock ∈ 0~10；3) 四结局全集可达（含二周目）；4) 节点覆盖率报告。
 extends SceneTree
@@ -8,15 +9,19 @@ func _init() -> void:
 	var seed_count := 24
 	if not args.is_empty():
 		seed_count = int(args[0])
-	var res := PackLoader.load_pack("res://packs/campaign01")
+	var pack_dir := "res://packs/campaign01"
+	if args.size() > 1:
+		pack_dir = args[1] if args[1].begins_with("res://") else "res://" + args[1]
+	var res := PackLoader.load_pack(pack_dir)
 	if not res["ok"]:
 		for e: String in res["errors"]:
 			push_error(e)
 		quit(1)
 		return
 	var pack: Dictionary = res["pack"]
+	var is_c01 := str(pack.get("pack_id", "")) == "campaign01" # 战役书专属断言只对 campaign01
 
-	print("== campaign01 bot 仿真：%d 局（半数二周目） ==" % seed_count)
+	print("== %s bot 仿真：%d 局（半数二周目） ==" % [str(pack.get("pack_id", "")), seed_count])
 	var failures := 0
 	var endings := {} # ending_id -> count
 	var coverage := {} # node_id -> 到达局数
@@ -33,7 +38,8 @@ func _init() -> void:
 		var lone_wolf := i % 4 == 2 # 1/4 一周目局为独狼探针（TP1 验收裁决 1 可达性验证）
 		# 幕二绕行探针：确定性覆盖 N2G-2c（一周目、非独狼局；不买潮汐表且优先拾遗行会链）
 		var detour := i % 12 == 4 and not lone_wolf and not ngplus
-		var r := StoryBot.run(pack, seed, ngplus, lone_wolf, detour)
+		var explore := (i % 6 == 3) if is_c01 else (i % 2 == 0) # 地图探针：雾岸支线（区域地图 / 灯塔场所 / 分队演示，docs/en/framework/15/16）
+		var r := StoryBot.run(pack, seed, ngplus, lone_wolf, detour, explore)
 		if not r["ok"]:
 			failures += 1
 			push_error("  FAIL seed=%d ngplus=%s：%s" % [seed, ngplus, r["reason"]])
@@ -64,7 +70,7 @@ func _init() -> void:
 
 	# 结局分布
 	print("-- 结局分布 --")
-	for eid: String in ["E1", "E2", "E3", "E4"]:
+	for eid: String in (["E1", "E2", "E3", "E4"] if is_c01 else endings.keys()):
 		var c := int(endings.get(eid, 0))
 		print("  %s：%d 局" % [eid, c])
 		if c == 0:
@@ -72,21 +78,23 @@ func _init() -> void:
 			push_error("  FAIL 结局 %s 在 %d 局中零达成" % [eid, seed_count])
 
 	# 独狼路径可达（TP1 验收裁决 1）
-	if lone_wolf_hits == 0:
+	if not is_c01:
+		pass
+	elif lone_wolf_hits == 0:
 		failures += 1
 		push_error("  FAIL 独狼路径（N2L-1/N2L-1b）在 %d 局中零命中" % seed_count)
 	else:
 		print("  独狼路径命中：%d 局（TP1 验收裁决 1 ✓）" % lone_wolf_hits)
 
 	# 幕二四链覆盖（幕二接入验收）：三委托链收束点 + 独狼链（上）+ 绕行路确定性覆盖
-	for chain_node: String in ["N2S-3", "N2U-3", "N2G-3"]:
+	for chain_node: String in (["N2S-3", "N2U-3", "N2G-3"] if is_c01 else []):
 		if not chain_hits.has(chain_node):
 			failures += 1
 			push_error("  FAIL 幕二链收束点 %s 在 %d 局中零命中" % [chain_node, seed_count])
-	if detour_hits == 0:
+	if is_c01 and detour_hits == 0:
 		failures += 1
 		push_error("  FAIL 幕二绕行路 N2G-2c 在 %d 局中零命中（绕行探针应确定性覆盖）" % seed_count)
-	else:
+	elif is_c01:
 		print("  幕二覆盖：S/U/G 链收束点全命中，绕行路 N2G-2c 命中 %d 局（探针 ✓）" % detour_hits)
 
 	# 覆盖率报告（目标 ≥95%）

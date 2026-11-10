@@ -78,7 +78,7 @@ const SETTLE_QUIT := "退出"
 const SETTLE_HOME := "回主屏"
 const SETTLE_HISTORY := "查看卷轴"
 const SETTLE_NEXT := "下一遭遇" # 04 §⑨/§④.8：胜利结算三出口之一（沿故事图边推进）
-const SETTLE_SAVED := "抄本已记录。" # 07 §4.2 结算快照（溯源在代码注释，条款号不上屏，M2 审计 G7）
+const SETTLE_SAVED := "进度已保存。" # 07 §4.2 结算快照（溯源在代码注释，条款号不上屏，M2 审计 G7）
 const SETTLE_ATTR_TITLE := "成长加点（属性点可留到下次整备）"
 const SETTLE_ATTR_KEEP := "留到下次整备"
 
@@ -102,7 +102,7 @@ const SKILL_NAMES := {
 	"history_or_perception": "历史/感知",
 }
 const DIFF_NAMES := {"easy": "易", "medium": "中", "hard": "难"}
-const FACTION_NAMES := {"scriptorium": "誊写庭", "uninked": "断墨会", "salvage": "拾遗行会"}
+const FACTION_NAMES := {}
 const STORY_CLOCK := "时钟 %d 格"
 const STORY_CLOCK_NEXT := "▸ %s %d格"
 const STORY_FORECAST_TITLE := "时间边预告" # 04 §3.1（条款号不上屏，M2 审计 G7）
@@ -117,9 +117,9 @@ const ENDING_TITLE := "【结局】%s"
 const ENDING_HOOK := "多周目钩子：%s"
 const ENDING_NGPLUS := "开始二周目"
 const ENDING_HOME := "回主屏"
-const ENDING_SAVED := "抄本已记录。" # 07 §4.2 结局快照（同上）
+const ENDING_SAVED := "进度已保存。" # 07 §4.2 结局快照（同上）
 const ENDING_PLAYTHROUGH := "—— 第 %d 周目 完 ——"
-const NGPLUS_TOAST := "你带着抄本残页回到潮醒之前。织命者残简 ×1 随行，图鉴与权利如故。"
+const NGPLUS_TOAST := "你重新开始，带着收集到的东西。图鉴与解锁内容保留。"
 # Hub（战役书 §4 N1-1：休整 / 商店 / 传闻；04 §3.3 半屏弹层）
 const HUB_SHOP := "商店"
 const HUB_REST := "休整"
@@ -131,7 +131,7 @@ const HUB_REST_HINT := "长休：HP 全满、生命骰全数恢复"
 const HUB_RUMOR_NONE := "码头寂静，暂无新传闻。"
 
 # ① 主屏（04 §①）
-const HOME_TITLE := "烬港 · 营地"
+const HOME_TITLE := "营地"
 const HOME_ENTRY_CAMPAIGN := "战役入口"
 const HOME_CONTINUE := "继续"
 const HOME_ENTRY_QUESTS := "事件中心"
@@ -139,8 +139,8 @@ const HOME_ENTRY_INVENTORY := "背包图鉴"
 const HOME_ENTRY_CHARACTER := "角色"
 const HOME_ENTRY_HISTORY := "历史卷轴"
 const HOME_HELP := "帮助"
-const HOME_SAVE := "记录抄本"
-const HOME_SAVED := "抄本已记录"
+const HOME_SAVE := "保存"
+const HOME_SAVED := "已保存"
 # 兜底条 toggle（12 §5：可收起/展开，默认展开，偏好持久化到本地设置；把手始终可触达）
 const HOME_BAR_HINT := "文字入口条"
 const HOME_BAR_COLLAPSE := "▾ 收起入口条"
@@ -152,9 +152,9 @@ static func home_doom_text(clock: int) -> String:
 	if clock <= 6:
 		return HOME_DOOM_MID
 	return HOME_DOOM_HIGH
-const HOME_DOOM_LOW := "营火尚旺。墨迹在天边，像一场还没下定的雨。"
-const HOME_DOOM_MID := "街名又淡了一分。营地的人开始把重要的事写在手上。"
-const HOME_DOOM_HIGH := "褪墨逼近。抄本的纸页发凉——能留下的，只有你写下的部分。"
+const HOME_DOOM_LOW := "一切平静，时钟几乎没动。"
+const HOME_DOOM_MID := "时间在流逝。"
+const HOME_DOOM_HIGH := "时间快到了。"
 
 # ② 战役入口（04 §②、09 §3）
 const ENTRY_TITLE := "战役入口"
@@ -176,7 +176,7 @@ const SUBGAME_STATS := "累计胜场 %d · 最佳连战 %d"
 const SUBGAME_LEVEL := "建议等级 Lv.%d+"
 
 # ② 锁定态与购买（06 §3.1：可见但锁定、叙事化包装、无"未购买"生硬弹窗；06 §6 + 04 §3.3：半屏弹层购买）
-const LOCK_DEFAULT := "守门人只认印记——你的抄本里还没有这一页。"
+const LOCK_DEFAULT := "该内容尚未解锁。"
 const LOCK_ACQUIRE := "获取"
 const SHOP_TITLE := "守门人的印龛"
 const SHOP_CONFIRM := "确认获取"
@@ -222,16 +222,8 @@ const INV_ROLE_NAMES := { # 四重身份（tech/02 §7 roles；10 §1 标签体�
 	"stat": "数值装备", "check_mod": "检定工具", "branch_key": "分支钥匙", "codex": "图鉴信物",
 }
 const INV_BRANCH_HINT := "它似乎能在某处派上用场……" # 分支钥匙提示（04 §⑥ 示例句式）
-const CODEX_SERIES := { # 系列归世界观层定义（story/01 §9 四大系列；10 §3；id 以 tech/02 §10 注册值为准）
-	"weaver_fragments": "织命者残简", "revoked_registry": "被撤销者名录",
-	"fatedie_study": "命骰考", "ashenport_local": "烬港风物志",
-}
-const CODEX_REWARDS := { # 集齐奖励预告（世界观 §9 方向；10 §4 白名单，永不卖数值）
-	"weaver_fragments": "集齐 → 揭示褪墨真相的隐藏剧情线",
-	"revoked_registry": "集齐 → 解锁「追忆」战役（强制竖屏形态）",
-	"fatedie_study": "集齐 → 骰子皮肤「褪墨灰」（纯演出）",
-	"ashenport_local": "集齐 → 烬港声望与商店折扣",
-}
+const CODEX_SERIES := {}
+const CODEX_REWARDS := {}
 const CODEX_PROGRESS := "%s：%d/%d"
 const CODEX_REWARD_LINE := "　预告：%s"
 const CODEX_LOCKED_TITLE := "？？？"
@@ -257,7 +249,7 @@ static func cosmetic_source_line(def: Dictionary) -> String:
 			return COSMETIC_SRC_NGPLUS % str(g.get("ending", ""))
 	return ""
 const COSMETIC_SRC_DEFAULT := "起手即有"
-const COSMETIC_SRC_CODEX := "图鉴「命骰考」集齐奖励"
+const COSMETIC_SRC_CODEX := "图鉴系列集齐奖励"
 const COSMETIC_SRC_SHOP := "守门人的印龛 · %s"
 const COSMETIC_SRC_NGPLUS := "多周目继承 · 结局 %s 专属"
 ## 皮肤购买弹层文案（与战役购买同一叙事化手法，06 §3.1；shop_line 是战役句式，皮肤另起一句）。
@@ -319,9 +311,9 @@ const TUT_HINT_CHECK := "双指点击 = 一键快掷；点按检定按钮亦可�
 const TUT_HINT_KEY := "关键判定演出：长按 ≥0.4 秒跳过，跳过不丢信息（内容同步写入日志与卷轴）。"
 
 # 事件流消息模板（core/应用层只发 msg_key + args，壳按当前语言渲染；tech/01 E-5）
-const MSG_REST := "你在旅店长休了一夜。伤口被重新誊写，生命骰已全数恢复。"
+const MSG_REST := "你长休了一夜。HP 与生命骰全部恢复。"
 const MSG_ACHIEVEMENT := "成就达成：{label}"
-const MSG_SKIN_CODEX := "图鉴集齐——骰子皮肤「{skin}」已到账。（纯演出，不动骰运）"
+const MSG_SKIN_CODEX := "系列集齐——骰子皮肤「{skin}」已获得。（纯外观，不影响运气。）"
 const MSG_SKIN_SHOP := "守门人拓下新印——骰子皮肤「{skin}」已到手。（纯演出，不动骰运）"
 const MSG_MAZE_START := "探索开始（{beats} 拍）"
 const MSG_MAZE_AMBUSH := "伏击！（{enemy}）"
@@ -331,12 +323,12 @@ const MSG_SKILL_USED := "{unit} 发动了「{skill}」"
 const MSG_ENCOUNTER_END := "遭遇结束：{result}（{rounds} 回合）"
 const MSG_SUB_STAGE_WIN := "第 {stage} 场告捷：金币 +{gold}（连胜无休整，下一场带伤上阵）"
 const MSG_SUB_CLEAR := "通关记录 +1"
-const MSG_RESUMED := "抄本翻回上次落笔的那一页。"
-const MSG_REWIND_BATTLE := "你合上抄本。这一页的雨，被轻轻翻回了开头。"
-const MSG_REWIND_STORY := "你合上抄本。这一程就讲到这里。"
-const MSG_REWIND_SUB := "你合上抄本。擂台的墨锣声远去了。"
+const MSG_RESUMED := "已从上次离开的地方继续。"
+const MSG_REWIND_BATTLE := "你离开了战斗。下次将从头开始。"
+const MSG_REWIND_STORY := "进度已保存，下次见。"
+const MSG_REWIND_SUB := "你离开了挑战。"
 const MSG_PURCHASED := "守门人收下印记——《{pack}》的门开了。（购买即解锁，无需重启）"
-const MSG_SAVED := "抄本已记录。"
+const MSG_SAVED := "进度已保存。"
 const MSG_STORY_ECHO := "【{title}】{text}"
 
 # 语言设置（tech/01 E-5：UI 偏好 ui.locale；切换后回到主屏重载）
@@ -455,7 +447,7 @@ const NOTICE_FORCED_TIME := "这一段记忆只能以碎片的方式回放——
 const NOTICE_FORCED_SPACE := "这一幕无法从内部讲述，只能以全局的视野摊开。"
 
 # 商店与章节锁定（06 §3.1/§7；P4 阶段 4）
-const LOCK_CHAPTER_TEXT := "抄本在这里合上了——后面的书页，还没有为你写开。"
+const LOCK_CHAPTER_TEXT := "这一章还没有解锁。"
 const LOCK_CHAPTER_DEMO := "免费试玩到此为止：序章与幕一。一次性解锁完整战役，之后的一切选择都会接着这一页写下去。"
 const LOCK_CHAPTER_GET := "解锁完整战役 · %s"
 const LOCK_CHAPTER_GET_NOPRICE := "解锁完整战役"
@@ -464,7 +456,7 @@ const STORE_RESTORE := "恢复购买"
 const MSG_RESTORED := "已恢复 {n} 项购买。"
 const MSG_PURCHASE_FAILED := "购买未完成：{error}"
 const MSG_STORE_UNAVAILABLE := "商店暂不可用。"
-const SHOP_LINE_CAMPAIGN := "《%s》——%s。一次解锁，抄本会从这一页接着写下去。"
+const SHOP_LINE_CAMPAIGN := "《%s》——%s。一次购买，解锁战役余下的全部章节。"
 const DICE_STRIP_IDLE := "掷骰结果会显示在这里"
 
 # ---- 营地与休息（11 §7.2 短休/长休；战利金 11 §7.3）----
@@ -479,7 +471,7 @@ const CAMP_LONG_REST := "长休（时间钟 +%d）"
 const CAMP_HINT := "短休花费生命骰回复 HP；长休全满并恢复生命骰，但时间流逝。技能次数每场遭遇自动恢复。"
 const HUB_INN_REST := "就地长休（安全处，免费）"
 const MSG_SHORT_REST := "{name} 短休：掷 {die} 得 {roll}，回复 {heal} HP（{hp}/{max_hp}）。"
-const MSG_LONG_REST_CAMP := "你们在野外扎营长休。伤口愈合，生命骰恢复——墨迹又褪了一格（时间钟 +{clock}）。"
+const MSG_LONG_REST_CAMP := "你们扎营长休。HP 与生命骰恢复，但时间流逝（时间钟 +{clock}）。"
 const MSG_GOLD_GAIN := "获得 {amount} 金币。"
 
 # ---- 背包与装备（11 §8.1/§8.2）----

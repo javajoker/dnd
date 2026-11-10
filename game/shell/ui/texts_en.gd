@@ -53,7 +53,7 @@ const SETTLE_QUIT := "Quit"
 const SETTLE_HOME := "Home"
 const SETTLE_HISTORY := "View Scroll"
 const SETTLE_NEXT := "Next Encounter"
-const SETTLE_SAVED := "Codex recorded."
+const SETTLE_SAVED := "Progress saved."
 const SETTLE_ATTR_TITLE := "Growth (points can be saved for your next loadout)"
 const SETTLE_ATTR_KEEP := "Save for later"
 const COMMON_BACK := "Back"
@@ -74,7 +74,7 @@ const SKILL_NAMES := {
 	"history_or_perception": "History/Perception",
 }
 const DIFF_NAMES := {"easy": "Easy", "medium": "Medium", "hard": "Hard"}
-const FACTION_NAMES := {"scriptorium": "Scriptorium", "uninked": "Uninked", "salvage": "Salvage Guild"}
+const FACTION_NAMES := {}
 const STORY_CLOCK := "Clock %d"
 const STORY_CLOCK_NEXT := "▸ %s at %d"
 const STORY_FORECAST_TITLE := "Approaching Time Edges"
@@ -87,9 +87,9 @@ const ENDING_TITLE := "[Ending] %s"
 const ENDING_HOOK := "Next playthrough: %s"
 const ENDING_NGPLUS := "Start New Game+"
 const ENDING_HOME := "Home"
-const ENDING_SAVED := "Codex recorded."
+const ENDING_SAVED := "Progress saved."
 const ENDING_PLAYTHROUGH := "— End of playthrough %d —"
-const NGPLUS_TOAST := "You return to before the Tidewake carrying scraps of the codex. A Weaver's Fragment comes with you; your Compendium and unlocks are kept."
+const NGPLUS_TOAST := "You begin again, carrying what you collected. Your Compendium and unlocks are kept."
 const HUB_SHOP := "Shop"
 const HUB_REST := "Rest"
 const HUB_RUMOR := "Listen for Rumors"
@@ -100,7 +100,7 @@ const HUB_REST_HINT := "Long rest: full HP and all Hit Dice restored"
 const HUB_RUMOR_NONE := "The pier is quiet. No new rumors."
 
 # ① Home (Camp)
-const HOME_TITLE := "Ashenport · Camp"
+const HOME_TITLE := "Camp"
 const HOME_ENTRY_CAMPAIGN := "Campaigns"
 const HOME_CONTINUE := "Continue"
 const HOME_ENTRY_QUESTS := "Events"
@@ -108,14 +108,14 @@ const HOME_ENTRY_INVENTORY := "Inventory"
 const HOME_ENTRY_CHARACTER := "Party"
 const HOME_ENTRY_HISTORY := "History Scroll"
 const HOME_HELP := "Help"
-const HOME_SAVE := "Record the Codex"
-const HOME_SAVED := "Codex recorded"
+const HOME_SAVE := "Save"
+const HOME_SAVED := "Saved"
 const HOME_BAR_HINT := "Text menu"
 const HOME_BAR_COLLAPSE := "▾ Hide menu"
 const HOME_BAR_EXPAND := "▴ Show menu"
-const HOME_DOOM_LOW := "The campfire still burns high. The ink hangs on the horizon like rain that hasn't decided to fall."
-const HOME_DOOM_MID := "The street names have faded a little more. People in the camp have started writing important things on their hands."
-const HOME_DOOM_HIGH := "The Fading is close. The codex pages feel cold — all that will remain is what you write yourself."
+const HOME_DOOM_LOW := "All is quiet. The clock has barely moved."
+const HOME_DOOM_MID := "Time is running on."
+const HOME_DOOM_HIGH := "Time is almost up."
 
 # ② Campaign Entry (04 §②, 09 §3)
 const ENTRY_TITLE := "Campaigns"
@@ -134,7 +134,7 @@ const SUBGAME_ENTER_TIME := "Play in Portrait"
 const SUBGAME_ENTER_SPACE := "Play in Landscape"
 const SUBGAME_STATS := "Total wins %d · Best streak %d"
 const SUBGAME_LEVEL := "Recommended Lv.%d+"
-const LOCK_DEFAULT := "The gatekeeper only honors the mark — and your codex doesn't hold that page yet."
+const LOCK_DEFAULT := "This content is locked."
 const LOCK_ACQUIRE := "Get"
 const SHOP_TITLE := "The Gatekeeper's Seal Niche"
 const SHOP_CONFIRM := "Confirm"
@@ -176,16 +176,8 @@ const INV_ROLE_NAMES := {
 	"stat": "Gear", "check_mod": "Check tools", "branch_key": "Branch keys", "codex": "Compendium tokens",
 }
 const INV_BRANCH_HINT := "It looks like it might be useful somewhere…"
-const CODEX_SERIES := {
-	"weaver_fragments": "Weaver's Fragments", "revoked_registry": "Register of the Revoked",
-	"fatedie_study": "Treatise on the Fatedie", "ashenport_local": "Ashenport Gazetteer",
-}
-const CODEX_REWARDS := {
-	"weaver_fragments": "Complete → a hidden storyline revealing the truth of the Fading",
-	"revoked_registry": "Complete → unlocks a Remembrance campaign (portrait only)",
-	"fatedie_study": "Complete → the \"Faded Ink Grey\" dice skin (cosmetic only)",
-	"ashenport_local": "Complete → Ashenport reputation and shop discounts",
-}
+const CODEX_SERIES := {}
+const CODEX_REWARDS := {}
 const CODEX_PROGRESS := "%s: %d/%d"
 const CODEX_REWARD_LINE := "  Reward: %s"
 const CODEX_LOCKED_TITLE := "???"
@@ -196,7 +188,7 @@ const COSMETIC_UNEQUIP := "Unequip"
 const COSMETIC_NOT_OWNED := "Not owned"
 const COSMETIC_PURE_NOTE := "Skins only recolor the die — they never change your luck (cosmetic only)"
 const COSMETIC_SRC_DEFAULT := "Owned from the start"
-const COSMETIC_SRC_CODEX := "Reward for completing the Treatise on the Fatedie"
+const COSMETIC_SRC_CODEX := "Reward for completing a Compendium series"
 const COSMETIC_SRC_SHOP := "The Gatekeeper's Seal Niche · %s"
 const COSMETIC_SRC_NGPLUS := "New Game+ · exclusive to ending %s"
 const COSMETIC_SHOP_LINE := "\"%s\" — %s. The gatekeeper strikes a new seal, and your die catches a different light from now on."
@@ -248,7 +240,7 @@ const TUT_HINT_CHECK := "Two-finger tap = quick roll; tapping the check button w
 const TUT_HINT_KEY := "Key-check presentation: hold ≥0.4 s to skip. Nothing is lost — it's all written to the log and the Scroll."
 
 # Event-stream message templates (core emits msg_key + args; tech/01 E-5)
-const MSG_REST := "You take a long rest at the inn. Your wounds are rewritten and your Hit Dice restored."
+const MSG_REST := "You take a long rest. HP and Hit Dice are fully restored."
 const MSG_ACHIEVEMENT := "Achievement: {label}"
 const MSG_SKIN_CODEX := "Series complete — the \"{skin}\" dice skin is yours. (Cosmetic only; it never changes your luck.)"
 const MSG_SKIN_SHOP := "The gatekeeper strikes a new seal — the \"{skin}\" dice skin is yours. (Cosmetic only; it never changes your luck.)"
@@ -260,12 +252,12 @@ const MSG_SKILL_USED := "{unit} uses {skill}"
 const MSG_ENCOUNTER_END := "Encounter over: {result} ({rounds} rounds)"
 const MSG_SUB_STAGE_WIN := "Bout {stage} won: gold +{gold} (no rest between bouts — you carry your wounds into the next)"
 const MSG_SUB_CLEAR := "Clear recorded +1"
-const MSG_RESUMED := "The codex falls open at the page where you last left off."
-const MSG_REWIND_BATTLE := "You close the codex. This page's rain is gently turned back to the beginning."
-const MSG_REWIND_STORY := "You close the codex. That's where this part of the story stops."
-const MSG_REWIND_SUB := "You close the codex. The ring's ink gong fades away."
+const MSG_RESUMED := "Resumed where you left off."
+const MSG_REWIND_BATTLE := "You left the battle. It will start again from the beginning."
+const MSG_REWIND_STORY := "Progress saved. See you next time."
+const MSG_REWIND_SUB := "You left the challenge."
 const MSG_PURCHASED := "The gatekeeper takes your mark — the door to {pack} is open. (Unlocked now, no restart needed.)"
-const MSG_SAVED := "Codex recorded."
+const MSG_SAVED := "Progress saved."
 const MSG_STORY_ECHO := "[{title}] {text}"
 
 # Language (tech/01 E-5)
@@ -384,7 +376,7 @@ const NOTICE_FORCED_TIME := "This memory can only be replayed in fragments — i
 const NOTICE_FORCED_SPACE := "This act can't be told from inside; it can only be laid out in full view."
 
 # Store and locked chapters (06 §3.1/§7; P4 Phase 4)
-const LOCK_CHAPTER_TEXT := "The codex closes here — the pages beyond haven't been opened for you yet."
+const LOCK_CHAPTER_TEXT := "This chapter isn't unlocked yet."
 const LOCK_CHAPTER_DEMO := "That's the end of the free demo: the Prologue and Act I. Unlock the full campaign once, and every choice you've made carries on from this page."
 const LOCK_CHAPTER_GET := "Unlock the full campaign · %s"
 const LOCK_CHAPTER_GET_NOPRICE := "Unlock the full campaign"
@@ -393,7 +385,7 @@ const STORE_RESTORE := "Restore Purchases"
 const MSG_RESTORED := "Restored {n} purchase(s)."
 const MSG_PURCHASE_FAILED := "The purchase didn't go through: {error}"
 const MSG_STORE_UNAVAILABLE := "The store isn't available right now."
-const SHOP_LINE_CAMPAIGN := "%s — %s. One unlock, and your codex carries on from this page."
+const SHOP_LINE_CAMPAIGN := "%s — %s. One purchase unlocks the rest of the campaign."
 const DICE_STRIP_IDLE := "Your rolls appear here"
 
 # ---- Camp and rests (11 §7.2 short/long rest; battle gold 11 §7.3) ----
@@ -408,7 +400,7 @@ const CAMP_LONG_REST := "Long rest (Doom Clock +%d)"
 const CAMP_HINT := "Short rest: spend Hit Dice to heal. Long rest: full HP and Hit Dice back, but time passes. Skill uses recharge every encounter."
 const HUB_INN_REST := "Long rest here (safe haven, free)"
 const MSG_SHORT_REST := "{name} takes a short rest: rolled {roll} on the {die}, healing {heal} HP ({hp}/{max_hp})."
-const MSG_LONG_REST_CAMP := "You make camp for a long rest. Wounds close and Hit Dice return — but the ink fades a little more (Doom Clock +{clock})."
+const MSG_LONG_REST_CAMP := "You make camp for a long rest. HP and Hit Dice are restored, but time passes (Doom Clock +{clock})."
 const MSG_GOLD_GAIN := "Found {amount} gold."
 
 # ---- 背包与装备（11 §8.1/§8.2）----

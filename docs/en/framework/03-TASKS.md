@@ -209,9 +209,11 @@ Goal: turn the framework into a reusable D&D-style engine — new narrative game
 - [ ] Player-chosen group assignment, companion lead (`lead: any`), timeout / recall rejoins, simultaneous battles (doc 15 §11)
 
 ### 5.4 New-game kit
-- [ ] Game manifest (`game/packs/_game/game.json`): title, packs, theme, audio map — read by main/AudioManager/theme
-- [ ] `_template` pack that passes packlint and the simulation
-- [ ] Move remaining story nouns out of shell code into pack text
+- [x] Game manifest (`game/packs/_game/game.json`): default campaign, enabled packs, font, audio map — read by main / AudioManager / UITheme; `--packs-root` boots a different game
+- [x] UI flavour overlay (`packs/_game/texts/<locale>.json`): 24 world-flavoured keys moved out of the framework tables, which keep neutral wording
+- [x] Starter kit (`game/kit/_game` + `game/kit/starter`): packlint 0 FAIL, simulation 24/24 runs to the ending, 100% node coverage; excluded from exports
+- [x] Bot simulation runs any pack and explores maps / sites / party splits (campaign01 coverage restored to 98.1% after the Fog Coast detour had dropped it to 83%)
+- [ ] Home-screen art and palette tokens from the manifest; win-rate tool for any pack (tech/07 §5)
 
 ### 5.5 Multiplayer (later)
 - [ ] Local pass-and-play seats → async online turns → real-time co-op (doc 15 §8)

@@ -1,0 +1,28 @@
+[
+  {
+    "id": "bandit",
+    "name": "Bandit",
+    "hp": 7,
+    "ac": 11,
+    "attack_mod": 2,
+    "damage": "1d6",
+    "attrs": {
+      "might": 1,
+      "finesse": 1,
+      "wits": 0
+    }
+  },
+  {
+    "id": "wolf",
+    "name": "Grey Wolf",
+    "hp": 8,
+    "ac": 11,
+    "attack_mod": 3,
+    "damage": "1d6",
+    "attrs": {
+      "might": 1,
+      "finesse": 2,
+      "wits": 0
+    }
+  }
+]

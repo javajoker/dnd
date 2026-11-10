@@ -1,0 +1,74 @@
+{
+  "tables": [
+    {
+      "id": "wild_road",
+      "die": "d6",
+      "rows": [
+        {
+          "range": "1",
+          "label": "Wolf!",
+          "outcome": {
+            "encounter": "wild_ambush"
+          }
+        },
+        {
+          "range": "2-4",
+          "label": "An uneventful stretch",
+          "outcome": {}
+        },
+        {
+          "range": "5",
+          "label": "A stranger on the road",
+          "outcome": {
+            "card": "stranger"
+          }
+        },
+        {
+          "range": "6",
+          "label": "A dropped coin purse",
+          "outcome": {
+            "effects": [
+              {
+                "gold": 5
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "id": "stranger",
+      "title": "A Stranger on the Road",
+      "text": "A cloaked traveller asks for water.",
+      "options": [
+        {
+          "label": "Share your water",
+          "effects": [
+            {
+              "inspiration": 1
+            }
+          ]
+        },
+        {
+          "label": "Ask about the road ahead",
+          "check": {
+            "skill": "perception",
+            "difficulty": "easy"
+          },
+          "success": [
+            {
+              "gold": 5
+            }
+          ],
+          "failure": []
+        },
+        {
+          "label": "Walk on",
+          "effects": []
+        }
+      ]
+    }
+  ]
+}

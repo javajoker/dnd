@@ -163,7 +163,7 @@ Note: the Godot gesture layer implements all of 12 §1's recognition parameters 
 | Site map | Areas, features, doors (locked/stuck/secret), wandering table; compact map + room card (portrait) / fogged map (landscape) | doc 16 §3 | ⬜ | ✅ (Old Lighthouse) |
 | Event tables and cards | d4–d100 tables with modifiers, nested and `once` rows; choice-and-roll event cards | doc 16 §4 | ⬜ | ✅ |
 | Polyhedral dice | d4–d100 in 3D; strip glyphs; tray for multi-dice (damage / healing / Hit Dice); key presentation for every shape | doc 17 | ⬜ | ✅ |
-| New-game kit | Game manifest (theme/audio/packs), template pack, recipe | tech/07 | — | ⬜ |
+| New-game kit | Game manifest (theme/audio/packs), UI flavour overlay, starter kit, `--packs-root`, recipe | tech/07 | — | ✅ (home art / palette left) |
 | Multiplayer readiness | Seats, host authority, command channel, server-side dice, auto-play on disconnect | doc 15 §8 | — | ◐ (command channel exists) |
 
 ## Gap summary

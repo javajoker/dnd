@@ -134,7 +134,7 @@ func _set_bgm(state: StringName) -> void:
 		return
 	bgm_state = state
 	stats["bgm_switches"] += 1
-	_crossfade_to(StringName(BGM_ASSETS.get(state, &"")))
+	_crossfade_to(GameManifest.bgm(state, StringName(BGM_ASSETS.get(state, &"")))) # 游戏清单优先（tech/07 §3）
 
 ## 主屏（壳侧直调）：BGM 收止，潮声环境声由 set_home_ambient 接管（14 #6：主屏常播）。
 func to_home() -> void:
@@ -171,7 +171,7 @@ func _crossfade_to(asset: StringName) -> void:
 # ---------------------------------------------------------------- SFX / 环境声
 
 func play_sfx(sfx_name: StringName) -> void:
-	var stream := _stream_for(sfx_name)
+	var stream := _stream_for(GameManifest.sfx(sfx_name)) # 逻辑音效名 → 本作资产（游戏清单 audio.sfx）
 	if stream == null:
 		return # 静默容错
 	var p := _sfx_pool[_sfx_idx]
@@ -196,7 +196,7 @@ func set_home_ambient(on: bool) -> void:
 	_ambient_on = on
 	if on:
 		stats["ambient_on_count"] += 1
-		var stream := _stream_for(&"tide_loop")
+		var stream := _stream_for(GameManifest.ambient("home", &"tide_loop"))
 		if stream != null:
 			_ambient.stream = stream
 			_ambient.play()
@@ -217,7 +217,7 @@ func _stream_for(sfx_name: StringName) -> AudioStream:
 		s = load(path) as AudioStream
 	elif FileAccess.file_exists(path):
 		s = AudioStreamWAV.load_from_file(path) # 未导入兜底（开发期 / 无导入缓存）
-		if s is AudioStreamWAV and LOOP_ASSETS.has(sfx_name):
+		if s is AudioStreamWAV and GameManifest.loop_assets(LOOP_ASSETS).has(String(sfx_name)) or (s is AudioStreamWAV and LOOP_ASSETS.has(sfx_name)):
 			var w := s as AudioStreamWAV
 			w.loop_mode = AudioStreamWAV.LOOP_FORWARD
 			w.loop_begin = 0

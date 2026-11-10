@@ -1,6 +1,6 @@
 # tech/07 · New-Game Kit — building another game on this framework
 
-> Status: **design final; partly implemented** (gaps listed in §5, scheduled in TASKS P5). Related: whitepaper §1/§10/§14, tech/02 (pack format), tech/03 (authoring guide), tech/05 (art pipeline), docs 15–17.
+> Status: **implemented** (TASKS P5.4, 2026-11-10); remaining gaps in §5. Related: whitepaper §1/§10/§14, tech/02 (pack format), tech/03 (authoring guide), tech/05 (art pipeline), docs 15–17.
 
 **Goal**: the framework is a reusable tabletop-RPG engine (d20 rules, story graph, World State Board, encounters, maps, party split, dice). A new narrative game is made by **changing story, art, music and theme data** — never the engine. This document is the contract that says exactly what a new game supplies and what it gets for free.
 
@@ -20,7 +20,8 @@
 
 | Asset | Where | Format / spec |
 |---|---|---|
-| **Game manifest** | `game/packs/_game/game.json` (new, §3) | Title, default campaign, packs list, theme, audio map, store ids |
+| **Game manifest** | `game/packs/_game/game.json` (§3) | Title, default campaign, enabled packs, theme font, audio map, store ids |
+| **UI flavour texts** | `game/packs/_game/texts/<locale>.json` | Overrides for the framework's neutral UI wording — camp title, Doom Clock mood lines, "saved" wording, lock texts, faction and Compendium-series names, rest messages (§3.1) |
 | **Story** | `game/packs/<pack_id>/` | tech/02: `manifest.json`, `nodes.json`, `events.json`, `encounters.json`, `characters.json`, `enemies.json`, `skills.json`, `items.json`, `flags.json`, `endings.json`, `lore.json`, `maps.json` + `tables.json` (doc 16) |
 | **Text** | `game/packs/<pack_id>/texts/<locale>.json` | Long text via `text_ref`, short text via convention keys (tech/02 §1.1); `source_locale` per pack |
 | **Art** | `game/assets/art/…` + `art_ref` fields | tech/05: portraits, unit tokens, map backgrounds, area art; missing art falls back to placeholders |
@@ -48,31 +49,37 @@
 }
 ```
 
-The current game is the first instance of this manifest; today these values are spread across code constants (§5).
+The current game is the first instance (`packs/_game/`); the starter kit has its own (`kit/_game/`). Read by `GameManifest` (`shell/ui/game_manifest.gd`): `main` (default campaign, enabled packs, ops config under the same packs root), `AudioManager` (BGM per state, sound-effect names, loops, home ambience), `UITheme` (font). Missing keys fall back to the framework defaults.
+
+### 3.1 UI flavour texts
+
+The framework's UI tables (`texts_en.gd` / `texts_zh.gd`) keep **neutral** wording ("Camp", "Progress saved.", "This chapter isn't unlocked yet."). A game layers its own voice on top with `packs/_game/texts/<locale>.json` — the same keys, any subset; dictionary keys (`FACTION_NAMES`, `CODEX_SERIES`, `CODEX_REWARDS`) are JSON objects. *The Age of the Codex* moves 24 keys there ("Ashenport · Camp", "Codex recorded.", the ink-themed Doom Clock lines, the faction and series names…).
 
 ## 4. Recipe: a new game in ten steps
 
-1. Copy `game/packs/_template/` (a minimal pack: one hub, one check, one battle, one ending, one region map) to `game/packs/<new_id>/`;
-2. Write the **game manifest** (§3): title, packs, theme, audio map;
+1. Copy `game/kit/starter/` (a minimal English-source campaign: crossroads, an inn hub with a shop, a check with a failure branch, two battles, an ending, a region map with a ruin site, an event table and an event card) to `game/packs/<new_id>/`, and `game/kit/_game/` to `game/packs/_game/` — or first run the kit untouched as its own game: `godot --path game -- --packs-root=res://kit`;
+2. Edit the **game manifest** (§3) and the **UI flavour texts** (§3.1): title, packs, theme, audio map, your game's voice;
 3. Write the **world and campaign book** in `docs/en/story/` (design intent first, as with *The Age of the Codex*);
 4. Transcribe the book into pack data (tech/03), choosing the **form** per campaign: space → landscape, time → portrait, or `choice` (doc 09 §2; doc 15 §6 for side campaigns);
 5. Add **characters, skills, items, gear** — reuse the rule pack; only numbers and names change;
 6. Draw the **maps** and write the **event tables** (doc 16); decide the **progression** per playthrough (doc 15 §7);
 7. Add **art** (`art_ref`) and **audio** (manifest `audio` map) — placeholders work until assets arrive;
-8. Run `tools/packlint.gd` (V1–V21) and the bot simulation (`tools/simulate.gd`) until every ending is reachable and win rates sit in their bands;
+8. Run `tools/packlint.gd -- packs/<id>` (V1–V21) and the bot simulation (`tools/simulate.gd -- 24 packs/<id>`: every run reaches an ending, the Doom Clock stays in range, ≥95% node coverage; the bot also explores maps, sites and party splits) until both are green; check battle win rates against their bands;
 9. Capture screenshots per locale/form (`--locale=…` shot flags) and play through on device;
 10. Fill the store documents and choose the monetization strategy per market (doc 06) — content data stays identical across markets.
 
-## 5. Gaps to close so the kit is real (TASKS P5)
+## 5. What is done and what is left
 
-| Gap today | Change |
+| Item | State |
 |---|---|
-| BGM/SFX names are code constants (`AudioManager.BGM_ASSETS`) | Read the game manifest `audio` map; keep code constants only as fallback |
-| Title, default campaign and pack list are wired in `main.gd` | Read the game manifest |
-| Palette/fonts are set in the theme resource and code | Theme tokens from the game manifest |
-| No `_template` pack | Add a minimal template pack that passes packlint and the simulation |
-| Story-specific names in shell code comments and a few UI strings | Move remaining story nouns into pack text (UI tables keep only framework words) |
-| No region/site maps, tables, split, polyhedral dice | Docs 15–17 |
+| Music / sound names in code | **Done** — `game.json` `audio` map (code constants are the fallback) |
+| Title, default campaign, pack list in `main.gd` | **Done** — `default_campaign` / `packs`; `--packs-root` swaps the whole packs folder (incl. `_ops`) |
+| Font | **Done** — `theme.font` |
+| World-flavoured UI wording in framework tables | **Done** — moved to `packs/_game/texts` (§3.1) |
+| Template pack | **Done** — `kit/starter` (packlint 0 FAIL, simulation 100% coverage) |
+| Home-screen illustration | **Left** — the camp scene (lighthouse, harbour, fire) is a procedural placeholder drawn in code; a new game needs a home-art reference in the manifest |
+| Theme palette tokens | **Left** — only the font is read from the manifest; colours stay in code |
+| Battle win-rate tool for any pack | **Left** — `tools/winrate.gd` targets campaign01 |
 
 ## 6. Guardrails
 

@@ -1,0 +1,40 @@
+{
+  "HOME_TITLE": "Ashenport · Camp",
+  "HOME_DOOM_LOW": "The campfire still burns high. The ink hangs on the horizon like rain that hasn't decided to fall.",
+  "HOME_DOOM_MID": "The street names have faded a little more. People in the camp have started writing important things on their hands.",
+  "HOME_DOOM_HIGH": "The Fading is close. The codex pages feel cold — all that will remain is what you write yourself.",
+  "NGPLUS_TOAST": "You return to before the Tidewake carrying scraps of the codex. A Weaver's Fragment comes with you; your Compendium and unlocks are kept.",
+  "SETTLE_SAVED": "Codex recorded.",
+  "ENDING_SAVED": "Codex recorded.",
+  "HOME_SAVE": "Record the Codex",
+  "HOME_SAVED": "Codex recorded",
+  "MSG_SAVED": "Codex recorded.",
+  "LOCK_DEFAULT": "The gatekeeper only honors the mark — and your codex doesn't hold that page yet.",
+  "LOCK_CHAPTER_TEXT": "The codex closes here — the pages beyond haven't been opened for you yet.",
+  "SHOP_LINE_CAMPAIGN": "%s — %s. One unlock, and your codex carries on from this page.",
+  "MSG_RESUMED": "The codex falls open at the page where you last left off.",
+  "MSG_REWIND_BATTLE": "You close the codex. This page's rain is gently turned back to the beginning.",
+  "MSG_REWIND_STORY": "You close the codex. That's where this part of the story stops.",
+  "MSG_REWIND_SUB": "You close the codex. The ring's ink gong fades away.",
+  "MSG_REST": "You take a long rest at the inn. Your wounds are rewritten and your Hit Dice restored.",
+  "MSG_LONG_REST_CAMP": "You make camp for a long rest. Wounds close and Hit Dice return — but the ink fades a little more (Doom Clock +{clock}).",
+  "CODEX_SERIES": {
+    "weaver_fragments": "Weaver's Fragments",
+    "revoked_registry": "Register of the Revoked",
+    "fatedie_study": "Treatise on the Fatedie",
+    "ashenport_local": "Ashenport Gazetteer"
+  },
+  "CODEX_REWARDS": {
+    "weaver_fragments": "Complete → a hidden storyline revealing the truth of the Fading",
+    "revoked_registry": "Complete → unlocks a Remembrance campaign (portrait only)",
+    "fatedie_study": "Complete → the \"Faded Ink Grey\" dice skin (cosmetic only)",
+    "ashenport_local": "Complete → Ashenport reputation and shop discounts"
+  },
+  "COSMETIC_SRC_CODEX": "Reward for completing the Treatise on the Fatedie",
+  "MSG_SKIN_CODEX": "Series complete — the \"{skin}\" dice skin is yours. (Cosmetic only; it never changes your luck.)",
+  "FACTION_NAMES": {
+    "scriptorium": "Scriptorium",
+    "uninked": "Uninked",
+    "salvage": "Salvage Guild"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "HOME_TITLE": "烬港 · 营地",
+  "HOME_DOOM_LOW": "营火尚旺。墨迹在天边，像一场还没下定的雨。",
+  "HOME_DOOM_MID": "街名又淡了一分。营地的人开始把重要的事写在手上。",
+  "HOME_DOOM_HIGH": "褪墨逼近。抄本的纸页发凉——能留下的，只有你写下的部分。",
+  "NGPLUS_TOAST": "你带着抄本残页回到潮醒之前。织命者残简 ×1 随行，图鉴与权利如故。",
+  "SETTLE_SAVED": "抄本已记录。",
+  "ENDING_SAVED": "抄本已记录。",
+  "HOME_SAVE": "记录抄本",
+  "HOME_SAVED": "抄本已记录",
+  "MSG_SAVED": "抄本已记录。",
+  "LOCK_DEFAULT": "守门人只认印记——你的抄本里还没有这一页。",
+  "LOCK_CHAPTER_TEXT": "抄本在这里合上了——后面的书页，还没有为你写开。",
+  "SHOP_LINE_CAMPAIGN": "《%s》——%s。一次解锁，抄本会从这一页接着写下去。",
+  "MSG_RESUMED": "抄本翻回上次落笔的那一页。",
+  "MSG_REWIND_BATTLE": "你合上抄本。这一页的雨，被轻轻翻回了开头。",
+  "MSG_REWIND_STORY": "你合上抄本。这一程就讲到这里。",
+  "MSG_REWIND_SUB": "你合上抄本。擂台的墨锣声远去了。",
+  "MSG_REST": "你在旅店长休了一夜。伤口被重新誊写，生命骰已全数恢复。",
+  "MSG_LONG_REST_CAMP": "你们在野外扎营长休。伤口愈合，生命骰恢复——墨迹又褪了一格（时间钟 +{clock}）。",
+  "CODEX_SERIES": {
+    "weaver_fragments": "织命者残简",
+    "revoked_registry": "被撤销者名录",
+    "fatedie_study": "命骰考",
+    "ashenport_local": "烬港风物志"
+  },
+  "CODEX_REWARDS": {
+    "weaver_fragments": "集齐 → 揭示褪墨真相的隐藏剧情线",
+    "revoked_registry": "集齐 → 解锁「追忆」战役（强制竖屏形态）",
+    "fatedie_study": "集齐 → 骰子皮肤「褪墨灰」（纯演出）",
+    "ashenport_local": "集齐 → 烬港声望与商店折扣"
+  },
+  "COSMETIC_SRC_CODEX": "图鉴「命骰考」集齐奖励",
+  "MSG_SKIN_CODEX": "图鉴集齐——骰子皮肤「{skin}」已到账。（纯演出，不动骰运）",
+  "FACTION_NAMES": {
+    "scriptorium": "誊写庭",
+    "uninked": "断墨会",
+    "salvage": "拾遗行会"
+  }
+}

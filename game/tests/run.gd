@@ -119,6 +119,7 @@ func _async_shell_tests() -> void:
 	await test_loadout_v2()
 	await test_map_flow()
 	await test_party_flow()
+	await test_new_game_kit()
 	await test_act3_forced_mode()
 	await test_mode_boundary()
 	await test_loadout_settle_landscape()
@@ -4912,6 +4913,58 @@ func test_party_flow() -> void:
 	m.queue_free()
 	await process_frame
 
+# ---------------------------------------------------------------- 新游戏工具包（docs/en/tech/07）：清单 / 文案覆盖层 / 起步包 / 整款换游戏
+
+func _use_manifest(path: String) -> void:
+	GameManifest.override_path = path
+	GameManifest.reset()
+	Texts.clear_cache()
+
+func test_new_game_kit() -> void:
+	print("[new_game_kit]")
+	_use_manifest("")
+	check(GameManifest.default_campaign() == "campaign01" and GameManifest.pack_enabled("arena")
+		and GameManifest.bgm(&"battle", &"x") == &"bgm_battle" and GameManifest.sfx(&"hit") == &"hit"
+		and GameManifest.ambient("home", &"x") == &"tide_loop", "本作清单：默认战役 / 启用包 / 音乐与音效映射")
+	check(TextsEn.HOME_TITLE == "Camp" and TextsEn.CODEX_SERIES.is_empty() and TextsEn.FACTION_NAMES.is_empty(),
+		"框架文案表只留中性默认（世界观名词不进框架）")
+	Texts.set_locale("en")
+	check(Texts.s(&"HOME_TITLE") == "Ashenport · Camp" and (Texts.t(&"FACTION_NAMES") as Dictionary).has("scriptorium"),
+		"本作风味经 packs/_game/texts 覆盖")
+	Texts.set_locale(Texts.SOURCE_LOCALE)
+	# 起步包：可加载、packlint 零 FAIL、bot 每局到结局
+	var res := PackLoader.load_pack("res://kit/starter")
+	check(bool(res["ok"]), "起步包加载 ok：%s" % ";".join(res["errors"]))
+	var issues: Array = PacklintCore.lint(res["pack"])
+	var fails := issues.filter(func(i: Dictionary) -> bool: return str(i["level"]) == PacklintCore.LEVEL_FAIL)
+	check(fails.is_empty(), "起步包 packlint 零 FAIL（V1~V21）：%s" % str(fails))
+	var ok_runs := 0
+	for i: int in 8:
+		var r := StoryBot.run(res["pack"], 500 + i * 37, false, false, false, i % 2 == 0)
+		if bool(r["ok"]) and str(r["ending"]) == "X1":
+			ok_runs += 1
+	check(ok_runs == 8, "起步包 bot 仿真：8/8 局到达结局（含地图探针）")
+	# 换一整款游戏：包根 + 清单指向 kit
+	_use_manifest("res://kit/_game/game.json")
+	check(GameManifest.default_campaign() == "starter" and not GameManifest.pack_enabled("arena"), "kit 清单：默认战役 starter，只启用自己的包")
+	var m: Node = _new_main()
+	m.packs_root = "res://kit"
+	root.add_child(m)
+	await process_frame
+	await process_frame
+	check(str(m.pack["pack_id"]) == "starter" and m._subgames.is_empty() and m._arcs.is_empty(), "以 kit 为包根启动：只加载起步包")
+	Texts.set_locale("en")
+	Texts.clear_cache()
+	m._show_home()
+	await process_frame
+	var home := m.current_screen as ScreenHome
+	check(home != null and home.find_child("*", true, false) != null and Texts.s(&"HOME_TITLE") == "The Crossroads Inn",
+		"新游戏的风味文案（主屏标题）来自 kit/_game/texts")
+	Texts.set_locale(Texts.SOURCE_LOCALE)
+	m.queue_free()
+	await process_frame
+	_use_manifest("")
+
 # ---------------------------------------------------------------- 锁定态与购买流程（06 §3.1/§6；04 §3.3；tech/02 §2.2 硬门槛）
 
 func test_entitlement_flow() -> void:
@@ -5006,7 +5059,7 @@ func test_ui_screens() -> void:
 		"主屏五入口齐备（04 §①：②⑤⑥⑦⑧）")
 	board.write("global.doom_clock", 8, {"event_id": 1, "node_id": "", "pack_id": "campaign01"})
 	home.bind(board, 0, false)
-	check(home.doom_label.text == TextsZh.home_doom_text(8), "营地图景随褪墨度变化文案（04 §①）")
+	check(home.doom_label.text == Texts.home_doom_text(8), "营地图景随褪墨度变化文案（04 §①）")
 	check(home.campaign_button.text == TextsZh.HOME_ENTRY_CAMPAIGN, "无可继续进度时不带「继续」")
 	var saves: Array = []
 	home.save_requested.connect(func() -> void: saves.append("manual"))
@@ -5063,7 +5116,7 @@ func test_ui_screens() -> void:
 		"saved": true, "attr_points": 1, "attrs": {"might": 0, "finesse": 0, "wits": 0}})
 	check(st.summary_text.text.contains("经验 +100") and st.summary_text.text.contains("墨核"),
 		"结算：写板汇总逐项呈现（04 §⑨）")
-	check(st.saved_label.text == TextsZh.SETTLE_SAVED, "结算：存档快照提示（07 §4.2 主快照点）")
+	check(st.saved_label.text == Texts.s(&"SETTLE_SAVED"), "结算：存档快照提示（07 §4.2 主快照点）")
 	var allocs: Array = []
 	st.allocate.connect(func(a: String) -> void: allocs.append(a))
 	var attr_btn: Button = null
@@ -5274,7 +5327,7 @@ func test_home_hotspots() -> void:
 	var sea0 := home.scroll.sea_color()
 	board.write("global.doom_clock", 9, prov)
 	home.bind(board, 0, false)
-	check(home.scroll.doom_clock() == 9 and home.doom_label.text == TextsZh.home_doom_text(9),
+	check(home.scroll.doom_clock() == 9 and home.doom_label.text == Texts.home_doom_text(9),
 		"绘卷与文案同时钟刷新（04 §4 ① 状态板的可视化）")
 	check(home.scroll.sky_color().get_luminance() < sky0.get_luminance(),
 		"时钟 9 格：天色更暗（12 §5 绘卷随褪墨度变化）")
@@ -6799,7 +6852,8 @@ func _core_code_mentions(ids: Array) -> Array:
 
 func test_texts() -> void:
 	print("[texts]")
-	check(Texts.s(&"HOME_TITLE") == TextsZh.HOME_TITLE, "源语言取值 = zh 表常量")
+	check(Texts.s(&"HOME_TITLE") == str(GameManifest.text_overlay("zh-CN")["HOME_TITLE"]) and TextsZh.HOME_TITLE == "营地",
+		"取值 = 本作风味覆盖层（packs/_game/texts）；框架表只留中性默认")
 	check(Texts.msg({"msg_key": "MSG_MAZE_LOOT", "args": {"item": "潮汐表", "n": 2}}) == "拾取：潮汐表 ×2",
 		"msg_key + args 按当前语言渲染")
 	check(Texts.msg({"msg": "内容包文本"}) == "内容包文本", "无 msg_key：原样显示 payload.msg（内容包数据文本）")

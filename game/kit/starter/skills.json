@@ -1,0 +1,32 @@
+[
+  {
+    "id": "strike",
+    "name": "Strike",
+    "kind": "attack",
+    "attr": "might",
+    "damage": "1d6+2",
+    "uses_per_encounter": null,
+    "target": "enemy_single",
+    "gesture": "tap"
+  },
+  {
+    "id": "power_strike",
+    "name": "Power Strike",
+    "kind": "attack",
+    "attr": "might",
+    "damage": "1d10",
+    "uses_per_encounter": 1,
+    "target": "enemy_single",
+    "gesture": "path"
+  },
+  {
+    "id": "shot",
+    "name": "Bow Shot",
+    "kind": "attack",
+    "attr": "finesse",
+    "damage": "1d6+1",
+    "uses_per_encounter": null,
+    "target": "enemy_single",
+    "gesture": "tap"
+  }
+]

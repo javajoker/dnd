@@ -1,0 +1,40 @@
+{
+  "id": "my_new_game",
+  "title": "My New Game",
+  "default_campaign": "starter",
+  "packs": [
+    "starter"
+  ],
+  "rule_pack": "light",
+  "locales": [
+    "en"
+  ],
+  "theme": {
+    "font": ""
+  },
+  "audio": {
+    "bgm": {
+      "camp": "bgm_camp",
+      "explore": "bgm_camp",
+      "battle": "bgm_battle",
+      "ending": "bgm_camp"
+    },
+    "loop": [
+      "bgm_camp",
+      "bgm_battle"
+    ],
+    "ambient": {
+      "home": ""
+    },
+    "sfx": {
+      "dice_roll": "dice_roll",
+      "dice_land": "dice_land",
+      "hit": "hit",
+      "crit": "crit",
+      "heal": "heal",
+      "page": "page",
+      "ui_click": "ui_click"
+    }
+  },
+  "store": {}
+}

@@ -1,0 +1,47 @@
+{
+  "id": "codex_ashenport",
+  "title": "Age of the Codex: Ashenport Fragments",
+  "default_campaign": "campaign01",
+  "packs": [
+    "campaign01",
+    "arc_tide",
+    "arena",
+    "riddle_maze"
+  ],
+  "rule_pack": "light",
+  "locales": [
+    "en",
+    "zh-CN"
+  ],
+  "theme": {
+    "font": "res://assets/fonts/NotoSansSC-Regular.otf"
+  },
+  "audio": {
+    "bgm": {
+      "camp": "bgm_camp",
+      "explore": "bgm_camp",
+      "battle": "bgm_battle",
+      "ending": "bgm_camp"
+    },
+    "loop": [
+      "bgm_camp",
+      "bgm_battle",
+      "tide_loop"
+    ],
+    "ambient": {
+      "home": "tide_loop"
+    },
+    "sfx": {
+      "dice_roll": "dice_roll",
+      "dice_land": "dice_land",
+      "hit": "hit",
+      "crit": "crit",
+      "heal": "heal",
+      "page": "page",
+      "ui_click": "ui_click"
+    }
+  },
+  "store": {
+    "full_unlock": "entitlement.campaign01_full"
+  }
+}

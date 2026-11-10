@@ -9,7 +9,7 @@
 - Godot 4.7.2: `/Applications/Godot.app/Contents/MacOS/Godot` (GDScript channel, tech/01 E-1 decision)
 - Headless tests: `/Applications/Godot.app/Contents/MacOS/Godot --headless --path game -s tests/run.gd` (exit code 1 on any failure)
 - packlint: `… --headless --path game -s tools/packlint.gd -- packs/<pack_id>`
-- Bot simulation: `… --headless --path game -s tools/simulate.gd [-- <seed count>]`
+- Bot simulation: `… --headless --path game -s tools/simulate.gd [-- <seed count> [<pack dir>]]` (default `packs/campaign01`; e.g. `-- 24 kit/starter`)
 
 ## Structure
 
@@ -20,7 +20,8 @@
 | `core/` | Logic core: Board / event stream / story graph / encounter state machine / rule pack / saves | RefCounted only, zero engine dependencies |
 | `shell/` | Rendering shells: nine screens + portrait temporal / landscape spatial forms | Consume the event stream only; read the Board only |
 | `packs/` | Content-pack runtime copies (tech/02 §1 layout); packaged as PCK for release | Data-driven, no logic |
-| `tools/` | packlint (V1–V14) / simulate (bot simulation) / winrate / shell_diff / asset generators | Command line, reuse core evaluation code |
+| `tools/` | packlint (V1–V21) / simulate (bot simulation, any pack) / winrate / shell_diff / asset generators | Command line, reuse core evaluation code |
+| `kit/` | New-game kit: `_game/` manifest + flavour texts, `starter/` template pack (not exported) | Copy to start a new game (docs/en/tech/07) |
 | `tests/` | Headless tests | Assertions grow with features |
 
 ## Technical prototype roadmap (tech/01 §10)
@@ -35,7 +36,7 @@ The full doc 12 §1 vocabulary is implemented (`shell/ui/gesture_recognizer.gd` 
 
 See [`../docs/en/tech/code-review-2026-11-10.md`](../docs/en/tech/code-review-2026-11-10.md): B1/B3/B4 are fixed (P4 Phase 0); still open: landscape mode only resizes a desktop window (B2), campaign01 hard-coding (M1), localization (M5).
 
-Screenshot tool: `godot --path game -- --home-shot` (flag table in `tools/shot_driver.gd`). Extra flags: `--seed=N` (reproduce a game), `--locale=en|zh-CN` (language), `--safe-area=top,right,bottom,left` (simulate a notch).
+Screenshot tool: `godot --path game -- --home-shot` (flag table in `tools/shot_driver.gd`). Extra flags: `--seed=N` (reproduce a game), `--locale=en|zh-CN` (language), `--safe-area=top,right,bottom,left` (simulate a notch), `--packs-root=res://kit` (boot a different game: its own manifest, texts and packs).
 
 ## Exporting
 
