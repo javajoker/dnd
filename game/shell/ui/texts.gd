@@ -7,13 +7,14 @@
 class_name Texts
 extends RefCounted
 
-const SOURCE_LOCALE := "zh-CN"
+const SOURCE_LOCALE := "zh-CN" # 源语言：内容与文案的编写语言，缺键回退到它
+const DEFAULT_LOCALE := "en"   # 缺省语言：未选择语言且系统语言不是中文时使用（英文版为默认入口）
 const TABLE_PATHS := {
 	"zh-CN": "res://shell/ui/texts_zh.gd",
 	"en": "res://shell/ui/texts_en.gd",
 }
 
-static var locale: String = SOURCE_LOCALE
+static var locale: String = DEFAULT_LOCALE
 ## 强制语言（测试/工具）：非空时 detect_locale 恒返回它，与系统语言和玩家偏好无关。
 static var forced_locale: String = ""
 static var _tables: Dictionary = {} # locale -> 常量表（Dictionary）；懒加载
@@ -28,10 +29,14 @@ static func available_locales() -> Array:
 
 ## 设置当前语言；不支持的语言回落源语言。返回实际生效的语言。
 static func set_locale(l: String) -> String:
-	locale = l if available_locales().has(l) else SOURCE_LOCALE
+	locale = l if available_locales().has(l) else default_locale()
 	return locale
 
-## 偏好优先，其次系统语言（zh* → zh-CN，其余 → en，若 en 表存在）。
+## 缺省语言：英文表存在即英文，否则源语言。
+static func default_locale() -> String:
+	return DEFAULT_LOCALE if available_locales().has(DEFAULT_LOCALE) else SOURCE_LOCALE
+
+## 玩家偏好优先；其次系统语言为中文 → zh-CN；其余一律缺省语言（英文）。
 static func detect_locale(preferred: String = "") -> String:
 	if forced_locale != "":
 		return forced_locale
@@ -40,7 +45,7 @@ static func detect_locale(preferred: String = "") -> String:
 	var os_lang := OS.get_locale_language()
 	if os_lang == "zh":
 		return "zh-CN"
-	return "en" if available_locales().has("en") else SOURCE_LOCALE
+	return default_locale()
 
 ## 文本键取值（Variant：多数为 String，少数为 Array，如 TUT_CARDS）。
 static func t(key: StringName) -> Variant:

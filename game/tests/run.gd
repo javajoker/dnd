@@ -6020,7 +6020,14 @@ func test_texts() -> void:
 	check(Texts.msg({"msg_key": "MSG_MAZE_LOOT", "args": {"item": "潮汐表", "n": 2}}) == "拾取：潮汐表 ×2",
 		"msg_key + args 按当前语言渲染")
 	check(Texts.msg({"msg": "内容包文本"}) == "内容包文本", "无 msg_key：原样显示 payload.msg（内容包数据文本）")
-	check(Texts.set_locale("xx-YY") == Texts.SOURCE_LOCALE, "不支持的语言回落源语言")
+	check(Texts.set_locale("xx-YY") == "en", "不支持的语言回落缺省语言（英文）")
+	var saved_forced := Texts.forced_locale
+	Texts.forced_locale = ""
+	check(Texts.detect_locale("") == ("zh-CN" if OS.get_locale_language() == "zh" else "en"),
+		"无偏好：系统语言为中文 → 中文，否则英文（英文为默认入口）")
+	check(Texts.detect_locale("zh-CN") == "zh-CN" and Texts.detect_locale("en") == "en", "玩家偏好优先")
+	Texts.forced_locale = saved_forced
+	Texts.set_locale(Texts.SOURCE_LOCALE)
 	check(Texts.lines(&"TUT_CARDS").size() == TextsZh.TUT_CARDS.size(), "行数组键类型化取值")
 	# 静态守卫：代码里用到的每个文本键都在源语言表里（缺键 = 界面出现键名）
 	var missing: Array = []
