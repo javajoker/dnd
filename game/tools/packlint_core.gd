@@ -52,7 +52,8 @@ const STATUS_KEYS := ["attackers_disadvantage", "ac_bonus", "duration_rounds"] #
 const SAVE_KEYS := ["attr", "dc", "on_success"]                   # 11 文档 §5.1
 const SAVE_ON_SUCCESS := ["half", "none"]                         # 11 文档 §5.1
 const ITEM_USE_TIMINGS := ["action", "bonus_action", "out_of_combat"] # tech/04 §4
-const ITEM_USE_EFFECT_KEYS := ["heal"]                            # tech/04 §4 v1 落位（扁平键）
+const ITEM_USE_EFFECT_KEYS := ["heal", "damage"]                  # tech/04 §4 v1 落位（扁平键；damage = 投掷攻击）
+const ITEM_USE_TARGETS := ["ally", "enemy"]                        # tech/04 §4 use.target（缺省 ally）
 
 ## registry = load_entitlement_registry() 的返回形态；缺省空字典 = 从默认路径现读
 ## （06 §2.3：注册表是运营侧数据文件）。测试可注入损坏/缺失形态做 V9 负例。
@@ -914,9 +915,44 @@ static func _v12_legal_keys(pack: Dictionary) -> Array:
 			issues.append({"v": "V12", "level": LEVEL_FAIL,
 				"msg": "items.%s use.timing '%s' 非法（tech/04 §4：action/bonus_action/out_of_combat）"
 					% [iid, str((it["use"] as Dictionary).get("timing", ""))]})
+	# 道具 use.target / 伤害骰、equip 块（tech/04 §4/§4.1；11 §8.1 四槽）
+	for iid: String in (pack.get("items", {}) as Dictionary).keys():
+		var it: Dictionary = pack["items"][iid]
+		var use: Dictionary = it.get("use", {})
+		if use.has("target") and not ITEM_USE_TARGETS.has(str(use["target"])):
+			issues.append({"v": "V12", "level": LEVEL_FAIL,
+				"msg": "items.%s use.target '%s' 非法（tech/04 §4：ally/enemy）" % [iid, str(use["target"])]})
+		for dk: String in ["heal", "damage"]:
+			if use.has(dk) and int(LightV1.parse_dice(str(use[dk])).get("sides", 0)) <= 0:
+				issues.append({"v": "V12", "level": LEVEL_FAIL,
+					"msg": "items.%s use.%s '%s' 非骰式（如 2d4）" % [iid, dk, str(use[dk])]})
+		if not it.has("equip"):
+			continue
+		var eb: Variant = it["equip"]
+		if not eb is Dictionary:
+			issues.append({"v": "V12", "level": LEVEL_FAIL, "msg": "items.%s equip 块非对象（tech/04 §4.1）" % iid})
+			continue
+		var ed: Dictionary = eb
+		if not Equipment.SLOTS.has(str(ed.get("slot", ""))):
+			issues.append({"v": "V12", "level": LEVEL_FAIL,
+				"msg": "items.%s equip.slot '%s' 非法（11 §8.1：weapon/armor/shield/trinket）" % [iid, str(ed.get("slot", ""))]})
+		for k: Variant in ed.keys():
+			if not (Equipment.MOD_KEYS.has(str(k)) or ["slot", "users"].has(str(k))):
+				issues.append({"v": "V12", "level": LEVEL_FAIL,
+					"msg": "items.%s equip 含未登记键 '%s'（tech/04 §4.1：slot/ac/attack/damage_die/max_hp/users）" % [iid, str(k)]})
+		if ed.has("damage_die") and int(LightV1.parse_dice(str(ed["damage_die"])).get("sides", 0)) <= 0:
+			issues.append({"v": "V12", "level": LEVEL_FAIL,
+				"msg": "items.%s equip.damage_die '%s' 非骰式（如 1d8）" % [iid, str(ed["damage_die"])]})
+		if ed.has("damage_die") and str(ed.get("slot", "")) != "weapon":
+			issues.append({"v": "V12", "level": LEVEL_FAIL,
+				"msg": "items.%s equip.damage_die 只能挂在 weapon 槽" % iid})
+		for uid: Variant in ed.get("users", []):
+			if not (pack.get("characters", {}) as Dictionary).has(str(uid)):
+				issues.append({"v": "V11", "level": LEVEL_FAIL,
+					"msg": "items.%s equip.users 引用未登记角色 '%s'" % [iid, str(uid)]})
 	if issues.is_empty():
 		issues.append({"v": "V12", "level": LEVEL_PASS,
-			"msg": "效果键 / 条件键 / 检定技能与难度 / 资源枚举（op·duration·stack·save·timing）均为合法值"})
+			"msg": "效果键 / 条件键 / 检定技能与难度 / 资源枚举（op·duration·stack·save·timing）/ 装备块均为合法值"})
 	return issues
 
 ## save 块校验（11 §5.1）：键集 ⊆ {attr,dc,on_success}，attr ∈ 三属性，on_success ∈ {half,none}，dc 为数值。

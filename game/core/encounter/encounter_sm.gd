@@ -37,7 +37,8 @@ const CMD_FIRST_AID := &"first_aid"
 const CMD_MOVE := &"move"          # 移动段（11 §4：每回合 移动≤6格 与动作/附赠并行；12 §2.1 拖动移动）
 const CMD_END_TURN := &"end_turn"
 const CMD_RETREAT := &"retreat"
-const COMMAND_TYPES: Array[StringName] = [CMD_ATTACK, CMD_SKILL, CMD_ITEM, CMD_FIRST_AID, CMD_MOVE, CMD_END_TURN, CMD_RETREAT]
+const CMD_EQUIP := &"equip"        # 换武器 = 物品互动（11 §8.1：每回合一次、不占动作；item = 武器道具 id）
+const COMMAND_TYPES: Array[StringName] = [CMD_ATTACK, CMD_SKILL, CMD_ITEM, CMD_FIRST_AID, CMD_MOVE, CMD_END_TURN, CMD_RETREAT, CMD_EQUIP]
 const COMMAND_KEYS: Array[String] = ["type", "actor", "target", "skill", "item", "source"]
 
 var board: Board
@@ -58,6 +59,8 @@ var _party_adv_rounds := 0        # 优势来源由内容包声明（11 §3.1 �
 var _loot: Array = []
 var _xp := 0
 var _gold := 0
+var _party_items: Array = []      # 全队共享道具（11 §8.2）：快取袋 pouch=true（附赠）+ 背包 pouch=false（动作）
+var _armory: Array = []           # 可在战斗中换上的武器（11 §8.1）：[{id,name,count,holders,equip}]
 var _over := false
 var _result: StringName = &""
 var _last_actor: String = ""
@@ -116,6 +119,26 @@ func begin_combat(def: Dictionary) -> bool:
 	_loot = (def.get("loot", []) as Array).duplicate(true)
 	_xp = int(def.get("xp", 0))
 	_gold = int(def.get("gold", 0))
+	# 全队共享道具（11 §8.2）：既有 def 的单位 items 为快取袋；def.pack_items 为背包。
+	# 所有战斗员持有同一数组引用——谁用掉都从同一份扣减。
+	_party_items = []
+	for id: String in _units:
+		var pu: Dictionary = _units[id]
+		if pu["side"] == &"party":
+			for it: Variant in (pu["items"] as Array):
+				var d: Dictionary = it
+				if not d.has("pouch"):
+					d["pouch"] = true
+				_party_items.append(d)
+	for it: Variant in def.get("pack_items", []):
+		var d2: Dictionary = (it as Dictionary).duplicate(true)
+		d2["pouch"] = false
+		_party_items.append(d2)
+	for id: String in _units:
+		var pu2: Dictionary = _units[id]
+		if pu2["side"] == &"party" and pu2["kind"] != &"escort_npc":
+			pu2["items"] = _party_items
+	_armory = (def.get("armory", []) as Array).duplicate(true)
 	# 护送目标声明（tech/02 §6 escort 块；胜负条件 = 11 §5 目标达成）
 	var esc: Dictionary = def.get("escort", {})
 	_escort_unit_id = str(esc.get("unit_id", ""))
@@ -173,6 +196,7 @@ func _add_unit(def: Dictionary, side: StringName) -> void:
 	u["action_used"] = false
 	u["bonus_used"] = false
 	u["move_used"] = false # 移动段（11 §4：每回合一段，与动作/附赠并行）
+	u["interact_used"] = false # 物品互动（11 §8.1：每回合一次免费，如换武器）
 	_units[str(u["id"])] = u
 
 # ---------------------------------------------------------------- 回合循环（11 §4/§5/§5.2）
@@ -189,6 +213,7 @@ func _begin_party_phase() -> void:
 			u["action_used"] = false
 			u["bonus_used"] = false
 			u["move_used"] = false # 移动段随回合重置（11 §4）
+			u["interact_used"] = false
 			_party_pending.append(id)
 	stream.emit(EventTypes.TURN_START, {"round": _round, "side": "party",
 		"actor": current_actor_id()}, &"core", node_id)
@@ -470,15 +495,37 @@ func _validate(cmd: Dictionary) -> String:
 					if not _is_ally_target(u, str(cmd.get("target", "")), false):
 						return "bad_target"
 		CMD_ITEM:
-			if bool(u["bonus_used"]):
-				return "bonus_used"
 			var it := _find_item(u, str(cmd.get("item", "")))
 			if it.is_empty():
 				return "no_item"
-			if str((it.get("use", {}) as Dictionary).get("timing", "")) != "bonus_action":
-				return "bad_timing" # TP2 道具 use 块：附赠（tech/04 §4）
-			if not _is_ally_target(u, str(cmd.get("target", "")), false):
+			var timing := str((it.get("use", {}) as Dictionary).get("timing", ""))
+			if not ["bonus_action", "action"].has(timing):
+				return "bad_timing" # tech/04 §4：战斗内仅 action/bonus_action
+			if _item_cost(it) == &"action":
+				if bool(u["action_used"]):
+					return "action_used" # 背包取用 / 动作型道具（11 §8.2）
+			elif bool(u["bonus_used"]):
+				return "bonus_used"
+			if _item_targets_enemy(it):
+				if not _is_enemy_target(u, str(cmd.get("target", ""))):
+					return "bad_target"
+			elif not _is_ally_target(u, str(cmd.get("target", "")), false):
 				return "bad_target"
+		CMD_EQUIP:
+			if bool(u["interact_used"]):
+				return "interact_used" # 物品互动每回合一次（11 §8.1）
+			var w := _armory_entry(str(cmd.get("item", "")))
+			if w.is_empty():
+				return "no_item"
+			if str(u.get("weapon", "")) == str(w["id"]):
+				return "already_equipped"
+			if not u.has("weapon_base"):
+				return "bad_actor"
+			var users: Array = (w["equip"] as Dictionary).get("users", [])
+			if not users.is_empty() and not users.has(str(u.get("ref", ""))):
+				return "not_user"
+			if _armory_free(w, str(u.get("ref", ""))) <= 0:
+				return "none_free"
 		CMD_FIRST_AID:
 			if bool(u["action_used"]):
 				return "action_used"
@@ -497,6 +544,8 @@ func _resolve(cmd: Dictionary) -> void:
 			_resolve_skill(u, cmd, src)
 		CMD_ITEM:
 			_resolve_item(u, cmd, src)
+		CMD_EQUIP:
+			_resolve_equip(u, cmd, src)
 		CMD_FIRST_AID:
 			_resolve_first_aid(u, str(cmd["target"]), src)
 		CMD_MOVE:
@@ -587,18 +636,32 @@ func _resolve_skill(u: Dictionary, cmd: Dictionary, src: StringName) -> void:
 
 func _resolve_item(u: Dictionary, cmd: Dictionary, src: StringName) -> void:
 	var it := _find_item(u, str(cmd["item"]))
-	u["bonus_used"] = true
+	if _item_cost(it) == &"action":
+		u["action_used"] = true
+	else:
+		u["bonus_used"] = true
 	it["count"] = int(it["count"]) - 1
 	if int(it["count"]) <= 0:
 		(u["items"] as Array).erase(it)
 	var t: Dictionary = _units[str(cmd["target"])]
 	var healed := 0
 	var use: Dictionary = it.get("use", {})
+	if use.has("damage") and _item_targets_enemy(it):
+		# 投掷道具（11 §8.2）：远程攻击检定 d20+敏 vs AC，命中按 use.damage 掷伤（与普攻同一结算通道）
+		var ev_t := stream.emit(EventTypes.ITEM_USE, {"unit": u["id"], "item": it["id"],
+			"name": str(it.get("name", it["id"])), "thrown": true,
+			"target": t["id"], "healed": 0, "left": int(it.get("count", 0)), "source": src}, &"core", node_id)
+		_resolve_attack(u, str(t["id"]), {"id": str(it["id"]), "attr": "finesse",
+			"damage": str(use["damage"]), "name": str(it.get("name", it["id"]))}, src)
+		if bool(use.get("consume", false)) and board.has_item(str(it["id"])):
+			board.remove_item(str(it["id"]), 1, {"event_id": ev_t["id"], "node_id": node_id, "pack_id": pack_id})
+		return
 	if use.has("heal"):
 		var hr := LightV1.roll_damage(rng, str(use["heal"]))
 		healed = mini(int(hr["total"]), int(t["max_hp"]) - int(t["hp"]))
 		t["hp"] = int(t["hp"]) + healed
 	var ev := stream.emit(EventTypes.ITEM_USE, {"unit": u["id"], "item": it["id"],
+		"name": str(it.get("name", it["id"])),
 		"target": t["id"], "healed": healed, "left": int(it.get("count", 0)),
 		"source": src}, &"core", node_id)
 	if bool(use.get("consume", false)) and board.has_item(str(it["id"])):
@@ -828,14 +891,35 @@ func get_available_actions() -> Array[Dictionary]:
 			"name": str(s.get("name", sk_id)), "uses": uses, "count": -1,
 			"disabled": reason != "", "reason": reason,
 			"target_kind": tkind, "default_target": dt})
-	# 道具（附赠动作，tech/04 §4）
+	# 道具（11 §8.2：快取袋附赠 / 背包与动作型道具耗动作；target 敌/友）
 	for it: Variant in (u["items"] as Array):
 		var d: Dictionary = it
+		var cost := _item_cost(d)
+		var spent := bool(u["action_used"]) if cost == &"action" else bool(u["bonus_used"])
+		var on_enemy := _item_targets_enemy(d)
+		var it_target := enemy if on_enemy else uid
+		var it_reason := ("action_used" if cost == &"action" else "bonus_used") if spent \
+			else ("no_target" if it_target == "" else "")
 		out.append({"type": CMD_ITEM, "skill": "", "item": str(d["id"]),
 			"name": str(d.get("name", d["id"])), "uses": -1, "count": int(d.get("count", 0)),
-			"disabled": bool(u["bonus_used"]),
-			"reason": "bonus_used" if bool(u["bonus_used"]) else "",
-			"target_kind": "ally", "default_target": uid})
+			"disabled": it_reason != "", "reason": it_reason,
+			"pouch": bool(d.get("pouch", true)), "cost": String(cost),
+			"target_kind": "enemy" if on_enemy else "ally", "default_target": it_target})
+	# 换武器（11 §8.1 物品互动，每回合一次）：军械中当前未持有、仍有余量的武器
+	if u.has("weapon_base"):
+		for w: Variant in _armory:
+			var wd: Dictionary = w
+			if str(u.get("weapon", "")) == str(wd["id"]):
+				continue
+			var users: Array = (wd["equip"] as Dictionary).get("users", [])
+			if not users.is_empty() and not users.has(str(u.get("ref", ""))):
+				continue
+			var eq_reason := "interact_used" if bool(u["interact_used"]) \
+				else ("none_free" if _armory_free(wd, str(u.get("ref", ""))) <= 0 else "")
+			out.append({"type": CMD_EQUIP, "skill": "", "item": str(wd["id"]),
+				"name": str(wd.get("name", wd["id"])), "uses": -1, "count": int(wd.get("count", 0)),
+				"disabled": eq_reason != "", "reason": eq_reason,
+				"target_kind": "self", "default_target": uid})
 	# 急救（11 §5.2：目标须倒地队友）
 	var downed := _first_downed_ally_id()
 	var fa_reason := ""
@@ -892,6 +976,46 @@ func _find_skill(u: Dictionary, skill_id: String) -> Dictionary:
 		if str((sk as Dictionary).get("id", "")) == skill_id:
 			return sk
 	return {}
+
+## 道具行动经济（11 §8.2）：动作型道具或背包取用 = 动作；快取袋里的附赠型道具 = 附赠动作。
+func _item_cost(it: Dictionary) -> StringName:
+	if str((it.get("use", {}) as Dictionary).get("timing", "")) == "action" or not bool(it.get("pouch", true)):
+		return &"action"
+	return &"bonus"
+
+func _item_targets_enemy(it: Dictionary) -> bool:
+	return str((it.get("use", {}) as Dictionary).get("target", "ally")) == "enemy"
+
+func _armory_entry(iid: String) -> Dictionary:
+	for w: Variant in _armory:
+		if str((w as Dictionary)["id"]) == iid:
+			return w
+	return {}
+
+## 该武器对 ref 角色的可用余量 = 持有数 − 其他队员手里的件数（含战斗中已换上的）。
+func _armory_free(w: Dictionary, ref: String) -> int:
+	var used := 0
+	for id: String in _units:
+		var x: Dictionary = _units[id]
+		if x["side"] == &"party" and str(x.get("ref", "")) != ref and str(x.get("weapon", "")) == str(w["id"]):
+			used += 1
+	return int(w["count"]) - used
+
+## 换武器（11 §8.1 物品互动）：以换武器基准重算普攻修正与伤害式；装备写板（世界状态，带溯源）。
+func _resolve_equip(u: Dictionary, cmd: Dictionary, src: StringName) -> void:
+	var w := _armory_entry(str(cmd["item"]))
+	var eb: Dictionary = w["equip"]
+	var wb: Dictionary = u["weapon_base"]
+	u["interact_used"] = true
+	u["weapon"] = str(w["id"])
+	u["attack_mod"] = int(wb["attack_mod"]) + int(eb.get("attack", 0))
+	u["damage"] = Equipment.weapon_damage(str(wb["damage"]), str(eb.get("damage_die", "")))
+	var ev := stream.emit(EventTypes.LOG, {"msg_key": "MSG_WEAPON_SWAP",
+		"args": {"unit": str(u["name"]), "weapon": str(w.get("name", w["id"]))},
+		"unit": u["id"], "item": w["id"], "source": src}, &"core", node_id)
+	if u.has("ref"):
+		board.write(Equipment.key(pack_id, str(u["ref"]), "weapon"), str(w["id"]),
+			{"event_id": ev["id"], "node_id": node_id, "pack_id": pack_id})
 
 func _find_item(u: Dictionary, item_id: String) -> Dictionary:
 	for it: Variant in (u["items"] as Array):

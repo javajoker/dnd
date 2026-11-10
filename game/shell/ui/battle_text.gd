@@ -64,7 +64,12 @@ static func event_log_text(ev: Dictionary, name_of: Callable) -> String:
 				extra = Texts.s(&"LOG_ATK_MOD_TAG") % int(p["attack_mod_after"])
 			return Texts.s(&"LOG_SKILL_EXTRA") % [name_of.call(str(p["unit"])), p["name"], extra, src_tag(p)]
 		EventTypes.ITEM_USE:
-			return Texts.s(&"LOG_ITEM_USE") % [name_of.call(str(p["unit"])), p["item"],
+			# 道具显示名（payload.name）；旧事件无 name 时回退 id——不把内部 id 当文案（item 7 修正）
+			var iname := str(p.get("name", p["item"]))
+			if bool(p.get("thrown", false)):
+				return Texts.s(&"LOG_ITEM_THROW") % [name_of.call(str(p["unit"])), iname,
+					name_of.call(str(p["target"])), src_tag(p)]
+			return Texts.s(&"LOG_ITEM_USE") % [name_of.call(str(p["unit"])), iname,
 				name_of.call(str(p["target"])), int(p["healed"]), src_tag(p)]
 		EventTypes.BATTLE_DOWN:
 			return Texts.s(&"LOG_DOWNED") % str(p["name"])

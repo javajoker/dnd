@@ -111,7 +111,11 @@ static func action_label(a: Dictionary) -> String:
 				label += " ×%d" % int(a["uses"])
 			return label
 		EncounterSM.CMD_ITEM:
+			if not bool(a.get("pouch", true)) or str(a.get("cost", "")) == "action":
+				return s(&"CHIP_ITEM_ACTION_FMT") % [str(a.get("name", a.get("item", ""))), int(a.get("count", 0))]
 			return s(&"CHIP_ITEM_FMT") % [str(a.get("name", a.get("item", ""))), int(a.get("count", 0))]
+		EncounterSM.CMD_EQUIP:
+			return s(&"CHIP_EQUIP_FMT") % str(a.get("name", a.get("item", "")))
 		EncounterSM.CMD_FIRST_AID:
 			return s(&"CHIP_FIRST_AID")
 		EncounterSM.CMD_END_TURN:
@@ -147,3 +151,53 @@ static func cosmetic_source_line(def: Dictionary) -> String:
 ## 皮肤购买弹层文案。
 static func cosmetic_shop_line(skin_name: String, price_text: String) -> String:
 	return s(&"COSMETIC_SHOP_LINE") % [skin_name, price_text]
+
+## 快捷栏分组（09 §9.2；11 §8.2）：快取袋道具与常规动作常驻；背包道具与换武器收进「背包」组按需展开。
+## 纯呈现分组，不改过滤结果（指令集仍唯一来自 EncounterSM.get_available_actions）。
+static func split_pack_actions(actions: Array) -> Dictionary:
+	var main: Array = []
+	var pack: Array = []
+	for a: Variant in actions:
+		var d: Dictionary = a
+		var t := StringName(str(d.get("type", "")))
+		if t == EncounterSM.CMD_EQUIP or (t == EncounterSM.CMD_ITEM and not bool(d.get("pouch", true))):
+			pack.append(d)
+		else:
+			main.append(d)
+	return {"main": main, "pack": pack}
+
+## 技能一句话说明（整备资源库卡片；数据 = BattleDef.runtime_skill 形态）。
+static func skill_desc(sk: Dictionary) -> String:
+	var parts: Array[String] = []
+	if str(sk.get("kind", "attack")) == "attack":
+		var attr_names: Dictionary = t(&"ATTR_SHORT")
+		parts.append(s(&"DESC_ATTACK") % [str(sk.get("damage", "")), str(attr_names.get(str(sk.get("attr", "might")), ""))])
+	else:
+		parts.append(s(&"DESC_UTILITY"))
+	if int(sk.get("uses", -1)) > 0:
+		parts.append(s(&"DESC_USES") % int(sk["uses"]))
+	return s(&"DESC_SEP").join(parts)
+
+## 道具 use 块一句话说明（回复 / 投掷 + 行动经济）。
+static func item_desc(use: Dictionary) -> String:
+	var parts: Array[String] = []
+	if use.has("heal"):
+		parts.append(s(&"DESC_HEAL") % str(use["heal"]))
+	if use.has("damage"):
+		parts.append(s(&"DESC_THROW") % str(use["damage"]))
+	parts.append(s(&"DESC_ACTION") if str(use.get("timing", "")) == "action" else s(&"DESC_BONUS"))
+	return s(&"DESC_SEP").join(parts)
+
+## 装备一句话说明（槽位 + 修正）。
+static func gear_desc(eb: Dictionary) -> String:
+	var names: Dictionary = t(&"SLOT_NAME")
+	var parts: Array[String] = [str(names.get(str(eb.get("slot", "")), str(eb.get("slot", ""))))]
+	if str(eb.get("damage_die", "")) != "":
+		parts.append(s(&"DESC_DIE") % str(eb["damage_die"]))
+	if int(eb.get("attack", 0)) != 0:
+		parts.append(s(&"DESC_ATK") % int(eb["attack"]))
+	if int(eb.get("ac", 0)) != 0:
+		parts.append(s(&"DESC_AC") % int(eb["ac"]))
+	if int(eb.get("max_hp", 0)) != 0:
+		parts.append(s(&"DESC_HP") % int(eb["max_hp"]))
+	return s(&"DESC_SEP").join(parts)

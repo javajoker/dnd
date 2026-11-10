@@ -349,27 +349,53 @@ func _enter_encounter() -> void:
 	var screen: ScreenLoadout = (load(m.SCREEN_SCENES[&"loadout"]) as PackedScene).instantiate()
 	screen.set_form(_story_mode()) # 整备横屏专版（04 §④.8：横屏三段横列 + 队伍状态条置顶）
 	m._swap(screen)
-	screen.bind(cfg, _loadout_candidates())
+	screen.bind(cfg, _loadout_candidates(cfg))
 	screen.confirmed.connect(_on_loadout_confirmed.bind(cfg))
 	screen.back_requested.connect(_present_node) # 整备可退回节点（04 §5 有退路）
 
-## 整备备选 = 玩家模板已习得技能 ∩ skills.json（tech/04 §7）；道具 = 背包含 use 块条目（tech/04 §4）。
-func _loadout_candidates() -> Dictionary:
+## 整备备选（09 §9.1 v2 逐角色整备）：
+## - skills = 玩家模板已习得 ∩ skills.json（tech/04 §7）；items = 背包含 use 块条目（快取袋候选，tech/04 §4）；
+## - party = 队伍状态 + 每人已习得技能 / 当前装备（同伴备战槽 = loadout.companion_skill_slots，缺省 -1 恒带）；
+## - gear = 背包里的装备（11 §8.1）；last = 上次整备（沿用，仍合法的才回填）。
+func _loadout_candidates(cfg: Dictionary = {}) -> Dictionary:
 	var skill_pool: Array = []
 	var skills: Dictionary = m.pack.get("skills", {})
 	for sid: Variant in _player_template().get("skills", []):
 		if skills.has(str(sid)):
 			skill_pool.append(BattleDef.runtime_skill(skills[str(sid)]))
 	var items: Array = []
-	for iid: String in (m.pack.get("items", {}) as Dictionary).keys():
-		var it: Dictionary = m.pack["items"][iid]
-		if it.has("use") and m.board.has_item(iid):
-			items.append({"id": iid, "name": str(it.get("name", iid)), "count": m.board.item_count(iid)})
-	return {"skills": skill_pool, "items": items,
+	var gear: Array = []
+	var pack_items: Dictionary = m.pack.get("items", {})
+	for iid: String in pack_items.keys():
+		var it: Dictionary = pack_items[iid]
+		if not m.board.has_item(iid):
+			continue
+		if it.has("use") and str((it["use"] as Dictionary).get("timing", "")) != "out_of_combat":
+			items.append({"id": iid, "name": str(it.get("name", iid)), "count": m.board.item_count(iid),
+				"use": (it["use"] as Dictionary).duplicate()})
+		if it.has("equip"):
+			gear.append({"id": iid, "name": str(it.get("name", iid)), "count": m.board.item_count(iid),
+				"equip": (it["equip"] as Dictionary).duplicate()})
+	var party: Array = []
+	for p: Variant in m.graph.party_status():
+		var e: Dictionary = (p as Dictionary).duplicate()
+		var c: Dictionary = (m.pack.get("characters", {}) as Dictionary).get(str(e["id"]), {})
+		var learned: Array = []
+		for sid: Variant in c.get("skills", []):
+			if skills.has(str(sid)):
+				learned.append(BattleDef.runtime_skill(skills[str(sid)]))
+		e["learned"] = learned
+		if str(e.get("kind", "")) != "player_template":
+			e["skill_slots"] = int(cfg.get("companion_skill_slots", -1))
+		e["equipment"] = Equipment.equipped(m.board, m._campaign_id, pack_items, str(e["id"]))
+		party.append(e)
+	var last: Variant = m.board.read("%s.loadout_last" % m._campaign_id, {})
+	return {"skills": skill_pool, "items": items, "gear": gear,
 		"attr_points": Growth.attr_points(m.board), # 成长簿记归全局键（tech/04 §8）
 		"attrs": Growth.attrs_map(m.board), # 已分配值（单项 +3 封顶判定用，11 §6）
 		"attr_alloc": {"might": 0, "finesse": 0, "wits": 0},
-		"party": m.graph.party_status(), # 横屏整备队伍状态条置顶（04 §④.8；04 §3.1 状态栏带同口径）
+		"party": party, # 队伍卡（04 §④.8 置顶；04 §3.1 同口径）+ 逐角色整备数据
+		"last": last if last is Dictionary else {},
 		"basic_attacks": _basic_attacks()} # 普攻恒定携带（tech/04 §2；预设套用不占槽，09 §9.3）
 
 ## 队伍普攻清单（tech/04 §2 basic_attack 亦属已习得）：预设含普攻 = 视为已携带，不占整备槽位。
@@ -396,7 +422,33 @@ func _on_loadout_confirmed(selection: Dictionary, cfg: Dictionary) -> void:
 	Loadout.confirm(m.stream, cfg, selection["skills"], selection["items"],
 		selection["attr_alloc"], m.graph.current_id, m.pack["pack_id"]) # loadout.confirm 事件（09 §9.1）
 	_apply_attr_alloc(selection.get("attr_alloc", {}), int(selection.get("attr_points_left", 0)))
+	_apply_equipment(selection.get("equipment", {}))
+	# 沿用上次整备（下次整备预填；簿记键不念给玩家）
+	m.board.write("%s.loadout_last" % m._campaign_id, {"skills_by_char": selection.get("skills_by_char", {}),
+		"items": selection.get("items", [])},
+		{"event_id": m.stream.tail(), "node_id": m.graph.current_id, "pack_id": m._campaign_id})
 	_begin_encounter(selection)
+
+## 装备变更写板（11 §8.1；世界状态带溯源）：先卸后装，避免转手时的余量误判。
+func _apply_equipment(equipment: Dictionary) -> void:
+	if equipment.is_empty():
+		return
+	var prov := {"event_id": m.stream.tail(), "node_id": m.graph.current_id, "pack_id": m._campaign_id}
+	var items: Dictionary = m.pack.get("items", {})
+	for cid: Variant in equipment.keys():
+		var want: Dictionary = equipment[cid]
+		var have := Equipment.equipped(m.board, m._campaign_id, items, str(cid))
+		for slot: String in Equipment.SLOTS:
+			if have.has(slot) and str(want.get(slot, "")) != str(have[slot]):
+				Equipment.unequip(m.board, m._campaign_id, str(cid), slot, prov)
+	for cid: Variant in equipment.keys():
+		var want2: Dictionary = equipment[cid]
+		var have2 := Equipment.equipped(m.board, m._campaign_id, items, str(cid))
+		for slot: Variant in want2.keys():
+			if str(have2.get(str(slot), "")) != str(want2[slot]):
+				var r := Equipment.equip(m.board, m.pack, str(cid), str(want2[slot]), prov)
+				if r != "":
+					push_warning("[campaign] 装备 %s → %s 未生效：%s" % [str(want2[slot]), str(cid), r])
 
 ## 属性点分配经成长系统写板 global.growth.*（07 §1 溯源；tech/04 §8 规则3）；
 ## 单项 ≤+3 封顶（11 §6）或点数不足 → 拒绝整体分配并返回 false。

@@ -22,7 +22,7 @@ func next_command(sm: EncounterSM) -> Dictionary:
 	if not bool(u["bonus_used"]) and float(u["hp"]) / float(maxi(1, int(u["max_hp"]))) < heal_threshold:
 		for it: Variant in (u["items"] as Array):
 			var use: Dictionary = (it as Dictionary).get("use", {})
-			if int((it as Dictionary).get("count", 0)) > 0 \
+			if int((it as Dictionary).get("count", 0)) > 0 and bool((it as Dictionary).get("pouch", true)) \
 					and str(use.get("timing", "")) == "bonus_action" and use.has("heal"):
 				cmd["type"] = EncounterSM.CMD_ITEM
 				cmd["item"] = str((it as Dictionary)["id"])

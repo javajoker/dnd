@@ -60,6 +60,7 @@ Iron rule: **every gesture has a button alternative** — gestures are an effici
 | Swipe | Sibling tabs such as Inventory ↔ Compendium |
 | Swipe up (log strip / drawer) | Expand to half screen; swipe down to collapse |
 | Tap the Doom Clock | Time-edge preview sheet |
+| Drag (loadout library entry → party card / equipment slot / quick pouch) | Deliver a skill / gear / item there (09 §9.1 v2); tapping the entry gives it to the current character (equivalent path) |
 
 ## 3. Gesture conflict resolution
 

@@ -96,7 +96,15 @@ A persistent ☰ menu inside encounters (portrait: right end of the room progres
 
 ### 9.1 Loadout
 
-- Battle encounters go through a **Loadout screen** before Enter: three blocks — skill selection, items to carry, unallocated attribute points; confirming enters the Enter state — the ritual moment of "preparing for battle";
+- Battle encounters go through a **Loadout screen** before Enter; confirming enters the Enter state — the ritual moment of "preparing for battle";
+- **Per-character loadout (v2)**: skills, items and equipment can all be numerous and party members differ, so loadout is organised by *person* rather than as three flat lists:
+  - **Party cards** (top): one per member (name / HP); tap to open that member's **character sheet**;
+  - **Character sheet**: four equipment slots (Weapon / Armor / Shield / Trinket, 11 §8.1) + prepared-skill slots (the player per `skill_slots`; companions per `companion_skill_slots`, by default their signature skills are always ready) + live AC;
+  - **Quick pouch** (party-wide, `item_slots` spaces): used in combat as a bonus action; everything else stays in the pack and costs an action to use (11 §8.2);
+  - **Library**: a scrollable list with Skills / Items / Gear tabs; each entry has a one-line summary (damage die, uses, AC…) and who has it;
+  - Two channels (12 §1): **tap a library entry = give it to the current character**; **drag it onto any party card / equipment slot / the pouch = deliver it there**; tap a prepared entry to remove it; dragging a single piece of gear onto someone else hands it over, with a notice;
+  - Unspent attribute points and system presets work as before; **the last loadout is pre-filled** (only entries still valid), so back-to-back fights need no repeat work;
+- Equipment changes are world state and are written to the Board on confirm (11 §8.1); prepared skills and the pouch belong to this fight only;
 - **Whether it's restricted is decided by game config** (manifest `loadout` field, `../tech/02-content-pack-format-spec.md` §2.4): whether enabled, item slot count, skill slot count, whether attribute points can be respecced; declared at campaign level, overridable per encounter; undeclared = disabled, go straight in;
 - Loadout choices are written to the event stream (`loadout.confirm`), so the History Scroll can trace "what you brought to this fight".
 
@@ -104,7 +112,9 @@ A persistent ☰ menu inside encounters (portrait: right end of the room progres
 
 - Inside an encounter, available skills and items are presented as **quickbar chips** (content = current loadout selection + real-time context filtering), replacing stacks of option buttons — avoids an explosion of option combinations;
 - How to use them (two channels, 12 §1 iron rule): **drag a chip onto a target unit/cell** = use on that target; **tap a chip** = use on the default target;
-- Chips show remaining uses and disabled states in real time (bonus already used / uses exhausted / invalid target).
+- Chips show remaining uses and disabled states in real time (bonus already used / uses exhausted / invalid target);
+- **Pack group**: pack items (an action to use) and weapon swaps (object interaction, once per turn) are folded into a "Pack (N)" chip that expands on demand, so the quickbar doesn't grow with the inventory; items gained mid-battle show up in the pack group automatically;
+- Items can be dragged onto **allies** (healing) or **enemies** (thrown) — target legality is checked by the core.
 
 ### 9.3 Presets and Auto-play
 

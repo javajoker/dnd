@@ -290,7 +290,16 @@ func party_ids() -> Array[String]:
 
 ## HP 上限（唯一口径 BattleDef.max_hp_for）。
 func max_hp_of(cid: String) -> int:
-	return BattleDef.max_hp_for((pack.get("characters", {}) as Dictionary).get(cid, {}), board)
+	return BattleDef.max_hp_for((pack.get("characters", {}) as Dictionary).get(cid, {}), board, pack)
+
+## AC（ac_formula 以模板基础属性求值 + 装备 AC 加值，与 BattleDef 同口径）。
+func ac_of(cid: String) -> int:
+	var c: Dictionary = (pack.get("characters", {}) as Dictionary).get(cid, {})
+	var base: Dictionary = c.get("attrs", {})
+	var lv := Growth.level(board) if str(c.get("kind", "")) == "player_template" else 1
+	var ac: Variant = LightV1.eval_formula(str(c.get("ac_formula", "10")), {"might": int(base.get("might", 0)),
+		"finesse": int(base.get("finesse", 0)), "wits": int(base.get("wits", 0)), "level": lv})
+	return (int(ac) if ac != null else 10) + int(Equipment.modifiers(board, pack_id, pack.get("items", {}), cid)["ac"])
 
 ## 当前 HP：<pack>.hp.<cid> 簿记，未写入按满值；死亡记录 0 按 1 抬升（同 BattleDef，11 §7.1）。
 func hp_of(cid: String) -> int:
@@ -381,7 +390,8 @@ func party_status() -> Array:
 	for cid: String in party_ids():
 		var c: Dictionary = pack["characters"][cid]
 		var hd := hit_dice_of(cid)
-		var entry := {"id": cid, "name": str(c.get("name", cid)), "hp": hp_of(cid), "max_hp": max_hp_of(cid),
+		var entry := {"id": cid, "name": str(c.get("name", cid)), "kind": str(c.get("kind", "")),
+			"hp": hp_of(cid), "max_hp": max_hp_of(cid), "ac": ac_of(cid),
 			"hd_left": int(hd["left"]), "hd_max": int(hd["max"]), "hit_die": str(hd["die"])}
 		if c.has("art_ref"): # 头像引用随行（tech/05 §6 纯呈现；队伍芯片按 art_ref 显示头像）
 			entry["art_ref"] = str(c["art_ref"])

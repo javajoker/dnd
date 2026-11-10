@@ -80,7 +80,28 @@ On top of the four identities in doc 02 §7, items get an optional `use` block:
 
 - `timing`: `action` / `bonus_action` / `out_of_combat` — aligned with the action economy (doc 09);
 - `consume: true` removes it from `global.inv` after use (Board write + event stream, same as every other rule);
+- `target`: `ally` (default) / `enemy`; `enemy` + `damage` (dice) = a thrown item that makes an attack roll d20+Finesse vs AC (11 §8.2);
+- In-combat action economy: a `bonus_action` item in the quick pouch = bonus action; a pack item or an `action` item = action (11 §8.2);
 - The runtime uses **flat keys** (the effect sits directly under `use`, as above). A nested `"effect": { … }` form will be unified once the §5 effect runtime lands.
+
+### 4.1 Equipment (the items.json `equip` block)
+
+```json
+{ "id": "boathook_axe", "name": "Boathook Axe", "roles": ["stat"], "price": 40,
+  "equip": { "slot": "weapon", "damage_die": "1d8" } }
+```
+
+| Key | Meaning |
+|---|---|
+| slot | Required: `weapon` / `armor` / `shield` / `trinket` (11 §8.1) |
+| ac | Optional AC bonus |
+| attack | Optional to-hit bonus |
+| damage_die | Optional, weapon only: replaces the basic attack's damage die (keeps the modifier) |
+| max_hp | Optional max-HP bonus |
+| users | Optional list of character ids allowed to wear it (references checked by V11) |
+
+- Equipment state is written to `<ns>.equip.<char_id>.<slot>` (a bookkeeping key, never read out); an item can be worn by at most as many characters as copies owned;
+- packlint V12 checks slot / key set / dice expressions; V11 checks `users` references.
 
 ## 5. Effect system (modifier stacking model) — not implemented yet
 

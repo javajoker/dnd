@@ -120,7 +120,7 @@ Rules: file names are fixed and case-sensitive; the validator warns on unknown f
   ] }
 ```
 
-- `enabled`: whether battle encounters go through the Loadout screen before entering; `item_slots` / `skill_slots`: carry limits; `respec`: whether loadout allows resetting allocated attribute points;
+- `enabled`: whether battle encounters go through the Loadout screen before entering; `item_slots`: quick-pouch spaces (11 §8.2); `skill_slots`: the player's prepared-skill limit; `companion_skill_slots` (optional, default -1 = companions always carry all learned signature skills): companions' prepared-skill limit; `respec`: whether loadout allows resetting allocated attribute points;
 - `presets` (optional): **system presets** (doc 09 §9.3), shipped with the pack; `skills`/`items` are records of slot choices; after applying one the player can still tweak each slot; **no numeric bonus** (same root as the no-go zones: convenience can be given, power can't be sold). When applying, the skill referenced by the character's `basic_attack` is always carried (tech/04 §2, doesn't take a slot); skills not learned / items not held are skipped with a notice;
 - **Whether there are limits, and how many slots, is decided entirely by this config** — the framework only executes it and makes no hard-coded assumptions;
 - Declared at campaign level; a single encounter in `encounters.json` can override it with a block of the same name (e.g. tighter slots for a boss);

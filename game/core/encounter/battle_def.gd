@@ -19,7 +19,15 @@ const DEFAULT_SKILL_COUNT := 2
 
 ## 角色 HP 上限唯一口径（战斗组装 / 状态栏 / 休息共用，杜绝多处重算漂移）：
 ## hp_formula 以模板基础属性求值；玩家模板叠加每级 HP 加值（11 §6）；同伴按 1 级。公式失败返回 1。
-static func max_hp_for(c: Dictionary, board: Board) -> int:
+## pack 非空时叠加装备 HP 加值（饰物 max_hp，11 §8.1）。
+static func max_hp_for(c: Dictionary, board: Board, pack: Dictionary = {}) -> int:
+	var equip_hp := 0
+	if not pack.is_empty() and c.has("id"):
+		equip_hp = int(Equipment.modifiers(board, str(pack.get("pack_id", "")), pack.get("items", {}),
+			str(c["id"]))["max_hp"])
+	return _base_max_hp(c, board) + equip_hp
+
+static func _base_max_hp(c: Dictionary, board: Board) -> int:
 	var base_attrs: Dictionary = c.get("attrs", {})
 	var is_player := str(c.get("kind", "")) == "player_template"
 	var level := Growth.level(board) if is_player else 1
@@ -116,12 +124,49 @@ static func assemble(pack: Dictionary, encounter_id: String, selection: Dictiona
 	var loot: Array = []
 	for l: Variant in enc.get("loot", []):
 		loot.append({"item": str((l as Dictionary).get("item", "")), "n": int((l as Dictionary).get("n", 1))})
+	# ---- 背包与军械（11 §8.1/§8.2）：整备外的可用道具（取用 = 动作）+ 可在战斗中换上的武器 ----
+	var pack_items := _pack_items(selection, board, items)
+	var armory := _armory(pack, board)
 	var def := {"party": party, "enemies": foes, "party_advantage_rounds": adv_rounds,
 		"loot": loot, "xp": int(enc.get("xp", 0)),
 		"gold": int(enc.get("gold", 0))} # 胜利金币（11 §7.3 战利金；包命名空间 <pack>.gold）
 	if not escort_def.is_empty():
 		def["escort"] = escort_def
+	if not pack_items.is_empty():
+		def["pack_items"] = pack_items
+	if not armory.is_empty():
+		def["armory"] = armory
+	else:
+		for u: Variant in party:
+			(u as Dictionary).erase("weapon_base") # 无可换武器：不携带换武器基准（def 结构保持精简）
 	return {"ok": errors.is_empty(), "errors": errors, "def": def}
+
+## 背包道具 = 持有且含 use 块、未放进快取袋（整备 items）的道具；战斗中取用耗 1 动作（11 §8.2）。
+static func _pack_items(selection: Dictionary, board: Board, items: Dictionary) -> Array:
+	var pouch: Array = selection.get("items", [])
+	var out: Array = []
+	for iid: String in items.keys():
+		var it: Dictionary = items[iid]
+		if not it.has("use") or pouch.has(iid) or not board.has_item(iid):
+			continue
+		if str((it["use"] as Dictionary).get("timing", "")) == "out_of_combat":
+			continue
+		out.append({"id": iid, "name": str(it.get("name", iid)), "count": board.item_count(iid),
+			"use": (it["use"] as Dictionary).duplicate(true), "pouch": false})
+	return out
+
+## 军械 = 背包里的武器（每件带剩余可分配数）；战斗中换武器 = 物品互动（每回合一次，11 §8.1）。
+static func _armory(pack: Dictionary, board: Board) -> Array:
+	var items: Dictionary = pack.get("items", {})
+	var out: Array = []
+	for iid: String in items.keys():
+		var eb := Equipment.equip_block(items, iid)
+		if eb.is_empty() or not Equipment.COMBAT_SWAPPABLE.has(str(eb.get("slot", ""))) or not board.has_item(iid):
+			continue
+		out.append({"id": iid, "name": str((items[iid] as Dictionary).get("name", iid)),
+			"count": board.item_count(iid), "holders": Equipment.holders(board, pack, iid),
+			"equip": eb.duplicate(true)})
+	return out
 
 # ---------------------------------------------------------------- 单位组装
 
@@ -168,7 +213,14 @@ static func _build_character_unit(inst_id: String, ref: String, c: Dictionary, p
 		dmg = str(ba.get("damage", dmg))
 	# HP 跨遭遇持久化（11 §7.1）：<pack>.hp.<char_id> 有记录则以此开局（钳 1~上限；
 	# 死亡记录 0 按 1 HP 抬升——轻规则无永久死亡系统），无记录 = 满血公式值
-	var max_hp := int(hp) + hp_bonus
+	# 装备修正（11 §8.1）：AC / 攻击加值 / 武器伤害骰替换（保留原修正）/ 饰物 HP 上限
+	var eq_mods := Equipment.modifiers(board, pack_id, items, ref)
+	var base_atk := atk_mod
+	var base_dmg := dmg
+	ac = int(ac) + int(eq_mods["ac"])
+	atk_mod += int(eq_mods["attack"])
+	dmg = Equipment.weapon_damage(dmg, str(eq_mods["damage_die"]))
+	var max_hp := int(hp) + hp_bonus + int(eq_mods["max_hp"])
 	var hp_now := max_hp
 	var hp_key := "%s.hp.%s" % [pack_id, ref]
 	if board.has(hp_key):
@@ -184,10 +236,23 @@ static func _build_character_unit(inst_id: String, ref: String, c: Dictionary, p
 	# art_ref 纯呈现透传（tech/05 §6；core 只搬数据不引用渲染 API，缺图壳层静默兜底）
 	if c.has("art_ref"):
 		unit["art_ref"] = str(c["art_ref"])
-	# 出战技能：整备选择 ∩ 已习得（tech/04 §7）；同伴恒带招牌技能（11 §5.2）
+	# 装备呈现与战斗换武器基准（无装备不加键：既有 def 结构不变）
+	var eq := Equipment.equipped(board, pack_id, items, ref)
+	if not eq.is_empty():
+		unit["equipment"] = eq
+		if eq.has("weapon"):
+			unit["weapon"] = str(eq["weapon"])
+	# 换武器基准 = 无武器时的攻击修正（含其他槽加值）与普攻伤害式；assemble 在无军械时剔除
+	unit["weapon_base"] = {"attack_mod": base_atk + int(eq_mods["attack"])
+		- int(Equipment.equip_block(items, str(eq_mods["weapon"])).get("attack", 0)), "damage": base_dmg}
+	# 出战技能：整备选择 ∩ 已习得（tech/04 §7）；selection.skills_by_char 按角色备战（09 §9.1 逐角色整备）；
+	# 同伴未单独指定 = 恒带全部已习得（招牌技能，11 §5.2）
 	var learned: Array = c.get("skills", [])
 	var picked: Array = []
-	if kind == "player_template":
+	var by_char: Dictionary = selection.get("skills_by_char", {})
+	if by_char.has(ref):
+		picked = by_char[ref]
+	elif kind == "player_template":
 		picked = selection.get("skills", [])
 		if picked.is_empty():
 			picked = learned.slice(0, DEFAULT_SKILL_COUNT) # 整备未启用兜底（TP2 引导脚本对齐）

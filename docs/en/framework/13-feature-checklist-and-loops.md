@@ -40,7 +40,9 @@
 | Quickbar chips | Skills / items / companions / first aid; tap = default target, drag onto target = targeted use | Use → uses/disabled state refresh | ✅ | ✅ (tap + drag to target; release on empty space cancels) |
 | Vertical battlefield | Enemies above, party below; unit cards show HP/AC | Combat presentation | ✅ | ✅ |
 | Room types | Battle / check / dialogue / pickup / branch door presented differently | 04 §④.3 | ✅ | ✅ |
-| Loadout (pre-battle) | Skill selection / items carried / attribute points / one-tap presets; slot counts from config | Node → loadout → battle | ✅ | ✅ |
+| Loadout (pre-battle) | Per character: party cards → character sheet (four gear slots + prepared skills) + quick pouch + three-tab library; drag-and-drop / tap; last loadout pre-filled; one-tap presets; slot counts from config | Node → loadout → battle | ✅ (old three-block version) | ✅ |
+| Equipment | Weapon / Armor / Shield / Trinket slots, persisted on the Board; swap weapons in battle (object interaction, once per turn) | Loadout / battle pack group | ✅ (none) | ✅ |
+| Quick pouch and pack | Pouch = bonus action, pack = action; items shared by the party; drag thrown items onto enemies | Battle quickbar "Pack" group | ✅ (none) | ✅ |
 
 ## 4. Encounter · Landscape spatial form (③)
 

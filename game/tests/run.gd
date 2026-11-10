@@ -80,6 +80,7 @@ func _init() -> void:
 	test_full_run_e4()
 	test_story_runtime()
 	test_camp_rest()
+	test_equipment()
 	test_story_vm()
 	test_text_ref()
 	test_subgame_arena()
@@ -111,6 +112,7 @@ func _async_shell_tests() -> void:
 	await test_entitlement_flow()
 	await test_act2_hybrid_flow()
 	await test_camp_flow()
+	await test_loadout_v2()
 	await test_act3_forced_mode()
 	await test_mode_boundary()
 	await test_loadout_settle_landscape()
@@ -380,7 +382,7 @@ func test_pack_loader() -> void:
 	check((pack["nodes"] as Dictionary).size() == 45, "节点表 45 节点（幕三接入补 R4-r2 派生节点）")
 	check((pack["acts"] as Array).size() == 5, "五幕 acts")
 	check((pack["encounters"] as Dictionary).size() == 17, "遭遇表 17 场（幕三接入补 R4-r2 第二场）")
-	check((pack["items"] as Dictionary).size() == 7, "道具表 7 件（M2 补登 heal_potion）")
+	check((pack["items"] as Dictionary).size() == 12, "道具表 12 件（含 4 件装备 + 墨瓶，11 §8.1/§8.2）")
 	check((pack["characters"] as Dictionary).size() == 3, "角色表 3 条（玩家模板+珂兰+老费，tech/04 §2）")
 	check((pack["skills"] as Dictionary).size() == 6, "技能表 6 条（tech/04 §3）")
 	check((pack["enemies"] as Dictionary).size() == 9,
@@ -3311,8 +3313,9 @@ func test_story_runtime() -> void:
 	for it: Variant in stock:
 		stock_ids.append(str((it as Dictionary)["id"]))
 		any_affordable = any_affordable or bool((it as Dictionary)["affordable"])
-	check(stock.size() == 2 and stock_ids.has("half_tide_table") and stock_ids.has("heal_potion")
-		and not any_affordable, "货单 = 含 price 条目 ×2（潮汐表/药水）+ 可负担标记（裁决 B）")
+	check(stock.size() == 7 and stock_ids.has("half_tide_table") and stock_ids.has("heal_potion")
+		and stock_ids.has("boathook_axe") and stock_ids.has("ink_flask")
+		and not any_affordable, "货单 = 含 price 条目 ×7（潮汐表/药水/墨瓶/四件装备）+ 可负担标记")
 	# 休整（恢复 HP；次数制技能随遭遇组装重置，11 §8）
 	var restored := g3.hub_rest()
 	check(int(restored.get("player_blank", 0)) == 14, "休整：白页者 HP 回满 14（hp_formula 10+2×力2，tech/04 §2）")
@@ -3403,6 +3406,84 @@ func test_camp_rest() -> void:
 	check(s.query_by_type(EventTypes.LOG).any(func(ev: Dictionary) -> bool:
 		return int((ev["payload"] as Dictionary).get("gold", 0)) == 20), "战利金日志携带数额（结算念板来源）")
 
+# ---------------------------------------------------------------- 装备 / 背包 / 投掷 / 战斗换武器（11 §8.1/§8.2）
+
+func test_equipment() -> void:
+	print("[equipment]")
+	var pack := _load_campaign01()
+	var s := EventStream.new()
+	var b := Board.new(s)
+	var g := StoryGraph.new(b, Rng.new(3), pack)
+	g.start()
+	var prov := {"event_id": 0, "node_id": "N1-7", "pack_id": "campaign01"}
+	check(Equipment.weapon_damage("1d6+2", "1d8") == "1d8+2" and Equipment.weapon_damage("1d6", "1d10") == "1d10"
+		and Equipment.weapon_damage("1d6-1", "1d8") == "1d8-1", "武器换骰保留原修正")
+	check(Equipment.can_equip(b, pack, "player_blank", "boathook_axe") == "not_owned", "未持有不可装备")
+	check(Equipment.can_equip(b, pack, "player_blank", "heal_potion") == "not_equipment", "非装备不可装备")
+	for iid: String in ["boathook_axe", "padded_coat", "tide_charm"]:
+		b.give_item(iid, 1, prov)
+	b.give_item("ink_flask", 2, prov)
+	b.give_item("heal_potion", 1, prov)
+	check(Equipment.equip(b, pack, "player_blank", "boathook_axe", prov) == "", "白页者装备船钩斧")
+	check(Equipment.can_equip(b, pack, "companion_kelan", "boathook_axe") == "none_free", "唯一一把斧不能两人同时装备")
+	check(Equipment.equip(b, pack, "player_blank", "padded_coat", prov) == "", "白页者穿衬垫外套")
+	var hp_k0 := g.max_hp_of("companion_kelan")
+	check(Equipment.equip(b, pack, "companion_kelan", "tide_charm", prov) == "", "珂兰戴潮汐护符")
+	check(g.max_hp_of("companion_kelan") == hp_k0 + 3, "饰物 HP 上限 +3（休息/状态栏同口径）")
+	check(g.ac_of("player_blank") == 12, "AC = 10 + 敏1 + 外套1")
+	var res := BattleDef.assemble(pack, "N1-7", {"skills": ["inkbolt"], "items": ["heal_potion"]}, b)
+	var def: Dictionary = res["def"]
+	var pc: Dictionary = def["party"][0]
+	check(bool(res["ok"]) and str(pc["damage"]) == "1d8+2" and int(pc["ac"]) == 12
+		and str(pc.get("weapon", "")) == "boathook_axe", "战斗组装：斧 1d8+2、AC 12、武器标记")
+	var kelan: Dictionary = def["party"][1]
+	check(int(kelan["max_hp"]) == hp_k0 + 3, "战斗组装：护符 HP 上限同口径")
+	var pack_ids: Array = (def.get("pack_items", []) as Array).map(func(x: Dictionary) -> String: return str(x["id"]))
+	check(pack_ids == ["ink_flask"], "背包道具 = 未放进快取袋的可用道具（墨瓶）")
+	check((def.get("armory", []) as Array).size() == 1, "军械：船钩斧可在战斗中换用")
+	# 卸下斧 → 战斗中换上（物品互动）
+	Equipment.unequip(b, "campaign01", "player_blank", "weapon", prov)
+	def = BattleDef.assemble(pack, "N1-7", {"skills": ["inkbolt"], "items": ["heal_potion"]}, b)["def"]
+	var sm := EncounterSM.new(b, s, Rng.new(9), "campaign01")
+	sm.enter("N1-7")
+	sm.transition(EncounterSM.S_EXPLORE)
+	sm.begin_combat(def)
+	var shared := true
+	for id: String in sm.get_order():
+		var u := sm.get_unit(id)
+		if str(u["side"]) == "party" and ((u["items"] as Array).size() != 2):
+			shared = false
+	check(shared, "全队共享道具：每名队员都看得到快取袋药水 + 背包墨瓶")
+	var actor := sm.current_actor_id()
+	var flask := {}
+	var equip_a := {}
+	for a: Dictionary in sm.get_available_actions():
+		if str(a.get("item", "")) == "ink_flask":
+			flask = a
+		if a["type"] == EncounterSM.CMD_EQUIP:
+			equip_a = a
+	check(not flask.is_empty() and str(flask["cost"]) == "action" and str(flask["target_kind"]) == "enemy"
+		and not bool(flask["pouch"]), "墨瓶：背包取用 = 动作、目标敌方")
+	var dmg_before := str(sm.get_unit(actor)["damage"])
+	if actor == "pc" or str(sm.get_unit(actor).get("ref", "")) != "":
+		check(not equip_a.is_empty() and not bool(equip_a["disabled"]), "换武器条目可用（物品互动）")
+		sm.submit_command(sm.command_from_action(equip_a))
+		var ua := sm.get_unit(actor)
+		check(str(ua["damage"]).begins_with("1d8") and bool(ua["interact_used"]) and dmg_before != str(ua["damage"]),
+			"换上船钩斧：伤害骰 1d8、本回合物品互动已用")
+		check(str(b.read("campaign01.equip.%s.weapon" % str(ua["ref"]))) == "boathook_axe", "换武器写板（世界状态）")
+		check(not sm.submit_command(sm.command_from_action(equip_a)), "物品互动每回合一次")
+	var flask_n := b.item_count("ink_flask")
+	var enemy := sm.first_alive_enemy()
+	check(sm.submit_command(sm.command_from_action(flask, enemy)), "投掷墨瓶命令合法")
+	check(b.item_count("ink_flask") == flask_n - 1 and bool(sm.get_unit(actor)["action_used"]), "投掷耗动作并消耗 1 瓶")
+	var thrown := s.query_by_type(EventTypes.ITEM_USE).filter(func(ev: Dictionary) -> bool:
+		return bool((ev["payload"] as Dictionary).get("thrown", false)))
+	var atk := s.query_by_type(EventTypes.BATTLE_ATTACK).filter(func(ev: Dictionary) -> bool:
+		return str((ev["payload"] as Dictionary).get("skill", "")) == "ink_flask")
+	check(thrown.size() == 1 and atk.size() == 1, "投掷 = item.use(thrown) + 攻击检定事件")
+	check(str((thrown[0]["payload"] as Dictionary).get("name", "")) == "墨瓶", "道具事件携带显示名（日志不显内部 id）")
+
 # ---------------------------------------------------------------- 节点流程视图模型（双壳共用内容源，godot-dev §7）
 
 func test_story_vm() -> void:
@@ -3434,8 +3515,8 @@ func test_story_vm() -> void:
 	graph.take_edge(_edge_to(graph, "N1-1"))
 	vm = StoryVM.build(graph, board, pack)
 	check(str(vm["type"]) == "hub" and int(vm["gold"]) == 30
-		and (vm["stock"] as Array).size() == 2 and (vm["rumors"] as Array).size() >= 4,
-		"vm：hub 金币/货单（潮汐表+药水，裁决 B）/传闻齐备")
+		and (vm["stock"] as Array).size() == 7 and (vm["rumors"] as Array).size() >= 4,
+		"vm：hub 金币/货单（7 件在售）/传闻齐备")
 	# 对话选项声望角标（N1-3：接触三方 → 目标节点 on_enter rep 效果）
 	graph.take_edge(_edge_to(graph, "N1-2"))
 	graph.roll_check(graph.available_edges()[0]) # d20=17 成功 → N1-3
@@ -4226,11 +4307,18 @@ func test_camp_flow() -> void:
 	(m.current_screen as ScreenEntry).start_requested.emit()
 	await process_frame
 	await process_frame
+	m.board.give_item("boathook_axe", 1, {"event_id": m.stream.tail(), "node_id": "N1-7", "pack_id": "campaign01"})
 	m.graph._enter("N1-7")
 	m._present_node()
 	await process_frame
-	(m.current_screen as ScreenLoadout)._on_confirm()
+	var lo := m.current_screen as ScreenLoadout
+	check(lo != null and lo.party_bar.get_child_count() == 3, "战役整备：三张队伍卡（逐角色整备）")
+	lo.tap_library(ScreenLoadout.LIB_GEAR, "boathook_axe")
+	lo._on_confirm()
 	await create_timer(1.4).timeout
+	check(str(m.board.read("campaign01.equip.player_blank.weapon")) == "boathook_axe",
+		"整备确认 → 装备写板（世界状态）")
+	check(m.board.read("campaign01.loadout_last") is Dictionary, "上次整备落簿记（下次预填）")
 	var prov := {"event_id": m.stream.tail(), "node_id": "N1-7", "pack_id": "campaign01"}
 	m.board.write("campaign01.gold", 50, prov)
 	m.stream.emit(EventTypes.COMBAT_END, {"result": &"victory", "rounds": 2}, &"core", "N1-7")
@@ -4238,6 +4326,8 @@ func test_camp_flow() -> void:
 	check(m.current_screen is ScreenSettle, "胜利 → 结算屏")
 	var st := m.current_screen as ScreenSettle
 	check(st.camp_button.visible, "胜利结算出现「扎营」出口（战斗之间回血/补给）")
+	check(not st.summary_text.text.contains("equip") and not st.summary_text.text.contains("loadout_last"),
+		"装备/整备簿记键不念给玩家")
 	m.board.write("campaign01.hp.player_blank", 4, prov)
 	st.camp_button.pressed.emit()
 	await process_frame
@@ -4266,6 +4356,67 @@ func test_camp_flow() -> void:
 	check(m.graph.hp_of("player_blank") == m.graph.max_hp_of("player_blank")
 		and m.board.get_doom_clock() >= clock0 + 1, "营地长休：满血 + 时钟 +1")
 	m.queue_free()
+	await process_frame
+
+# ---------------------------------------------------------------- 整备 v2：逐角色 / 资源库 / 拖放与点按双通道（09 §9.1 v2）
+
+func test_loadout_v2() -> void:
+	print("[loadout_v2]")
+	var pack := _load_campaign01()
+	var cfg := Loadout.resolve_config(pack, "N1-7")
+	var rs := func(id: String) -> Dictionary: return BattleDef.runtime_skill(pack["skills"][id])
+	var cands := {"skills": [rs.call("inkbolt"), rs.call("inkshield"), rs.call("inklance")],
+		"items": [{"id": "heal_potion", "name": "补给药水", "count": 2, "use": pack["items"]["heal_potion"]["use"]},
+			{"id": "ink_flask", "name": "墨瓶", "count": 1, "use": pack["items"]["ink_flask"]["use"]}],
+		"gear": [{"id": "boathook_axe", "name": "船钩斧", "count": 1, "equip": pack["items"]["boathook_axe"]["equip"]},
+			{"id": "padded_coat", "name": "衬垫外套", "count": 1, "equip": pack["items"]["padded_coat"]["equip"]}],
+		"party": [{"id": "player_blank", "name": "白页者", "kind": "player_template", "hp": 14, "max_hp": 14, "ac": 11,
+				"learned": [rs.call("inkbolt")], "equipment": {}},
+			{"id": "companion_kelan", "name": "珂兰", "kind": "companion", "hp": 10, "max_hp": 10, "ac": 11,
+				"learned": [rs.call("kelan_bolt")], "skill_slots": -1, "equipment": {}}],
+		"attr_points": 0, "basic_attacks": ["slash"],
+		"last": {"skills_by_char": {"player_blank": ["inklance", "nope"]}, "items": ["heal_potion"]}}
+	var lo: ScreenLoadout = (load("res://shell/ui/screen_loadout.tscn") as PackedScene).instantiate()
+	root.add_child(lo)
+	await process_frame
+	lo.bind(cfg, cands)
+	await process_frame
+	check(lo.selected_character() == "player_blank" and lo.party_bar.get_child_count() == 2,
+		"队伍卡两张，默认打开玩家角色表")
+	check(lo.picked_skills() == ["inklance"] and lo.picked_items() == ["heal_potion"],
+		"沿用上次整备（非法条目 nope 跳过）")
+	lo.tap_library(ScreenLoadout.LIB_GEAR, "boathook_axe")
+	check(str(lo.equipment_of("player_blank").get("weapon", "")) == "boathook_axe", "点按资源库装备 = 交给当前角色")
+	lo.drop_on_character("companion_kelan", {"kind": "gear", "id": "boathook_axe"})
+	check(str(lo.equipment_of("companion_kelan").get("weapon", "")) == "boathook_axe"
+		and not lo.equipment_of("player_blank").has("weapon") and lo.hint_label.text.contains("珂兰"),
+		"拖到另一角色 = 唯一一件直接转手（提示谁交给谁）")
+	check(lo.selected_character() == "companion_kelan", "拖放后角色表切到接收者")
+	lo.drop_on_slot("companion_kelan", "weapon", {"kind": "gear", "id": "padded_coat"})
+	check(not lo.equipment_of("companion_kelan").has("armor"), "槽位不符的拖放被忽略（外套不进武器槽）")
+	lo.drop_on_slot("companion_kelan", "armor", {"kind": "gear", "id": "padded_coat"})
+	check(str(lo.equipment_of("companion_kelan").get("armor", "")) == "padded_coat", "拖到护甲槽 = 穿上")
+	await process_frame
+	var slot_btn := lo.equip_grid.get_node_or_null("Slot_armor") as Button
+	check(slot_btn != null and slot_btn.text.contains("衬垫外套"), "角色表护甲槽显示外套")
+	lo.drop_on_character("companion_kelan", {"kind": "skills", "id": "inkbolt"})
+	check(lo.hint_label.text.contains("珂兰") and lo.picked_skills() == ["inklance"], "同伴不会的技能拒绝并提示")
+	lo.drop_on_character("player_blank", {"kind": "skills", "id": "inkbolt"})
+	check(lo.picked_skills() == ["inklance", "inkbolt"], "拖技能到玩家卡 = 备战（槽位内）")
+	lo.drop_on_pouch({"kind": "items", "id": "ink_flask"})
+	check(lo.picked_items() == ["heal_potion", "ink_flask"], "拖道具到快取袋 = 放进")
+	lo.set_library_tab(ScreenLoadout.LIB_GEAR)
+	await process_frame
+	var card := lo.lib_list.get_node_or_null("Lib_boathook_axe") as Button
+	check(card != null and card.text.contains("珂兰") and card.text.contains("伤害骰 1d8"),
+		"资源库装备卡：一句话说明 + 当前持有者")
+	var sel: Array = []
+	lo.confirmed.connect(func(x: Dictionary) -> void: sel.append(x))
+	lo._on_confirm()
+	check(sel.size() == 1 and str((sel[0]["equipment"] as Dictionary)["companion_kelan"]["weapon"]) == "boathook_axe"
+		and (sel[0]["skills_by_char"] as Dictionary)["player_blank"] == ["inklance", "inkbolt"],
+		"确认上报：逐角色装备 + 逐角色备战技能")
+	lo.queue_free()
 	await process_frame
 
 # ---------------------------------------------------------------- 锁定态与购买流程（06 §3.1/§6；04 §3.3；tech/02 §2.2 硬门槛）
@@ -4966,9 +5117,9 @@ func test_loadout_settle_landscape() -> void:
 	check(lo.party_bar != null and lo.skill_box != null and lo.item_box != null
 		and lo.preset_label != null and lo.confirm_button != null,
 		"横屏整备控件齐备：队伍条/技能列/道具列/预设卡/开战")
-	check(lo.skill_box.get_parent() == lo.col_skills and lo.item_box.get_parent() == lo.col_items
-		and lo.attr_box.get_parent() == lo.col_items,
-		"横屏整备：左技能列 / 中道具+属性点（04 §④.8）")
+	check(lo.skill_box.get_parent() == lo.col_skills and lo.equip_grid.get_parent() == lo.col_skills
+		and lo.item_box.get_parent() == lo.col_items and lo.attr_box.get_parent() == lo.col_items,
+		"横屏整备：左角色表（装备槽+备战技能）/ 中资源库+快取袋+属性点（04 §④.8）")
 	check(lo.preset_label.get_parent() == lo.col_right and lo.confirm_button.get_parent() == lo.col_right
 		and lo.back_button.get_parent() == lo.col_right,
 		"横屏整备：右预设与开战列（04 §④.8）")
@@ -4983,8 +5134,8 @@ func test_loadout_settle_landscape() -> void:
 	await process_frame
 	var party_texts := ""
 	for c: Node in lo.party_bar.get_children():
-		if c is Label:
-			party_texts += (c as Label).text
+		if c is Button:
+			party_texts += (c as Button).text
 	check(party_texts.contains("白页者") and party_texts.contains("14/18"),
 		"队伍状态条置顶：HP 概览实数据（04 §④.8，04 §3.1 同口径）")
 	# 功能等价：同数据同操作路径（toggle → 预设卡摘要 → confirm 信号）
@@ -5096,8 +5247,8 @@ func test_loadout_settle_landscape() -> void:
 	var lo2: ScreenLoadout = (load("res://shell/ui/screen_loadout.tscn") as PackedScene).instantiate()
 	root.add_child(lo2)
 	await process_frame
-	check(not lo2.is_landscape_layout() and lo2.party_bar == null and lo2.preset_label == null,
-		"竖屏整备回归：居中纵列不变（无横屏容器）")
+	check(not lo2.is_landscape_layout() and lo2.cols == null and lo2.preset_label == null
+		and lo2.party_bar != null, "竖屏整备：纵列布局（无横屏三段容器；队伍卡两形态共有）")
 	lo2.queue_free()
 	var st2: ScreenSettle = (load("res://shell/ui/screen_settle.tscn") as PackedScene).instantiate()
 	root.add_child(st2)
@@ -5128,7 +5279,7 @@ func test_loadout_settle_landscape() -> void:
 	await process_frame
 	var party_ok := false
 	for c: Node in mlo.party_bar.get_children():
-		if c is Label and (c as Label).text.contains("白页者"):
+		if c is Button and (c as Button).text.contains("白页者"):
 			party_ok = true
 	check(party_ok, "横屏战役整备：队伍状态条实数据（graph.party_status）")
 	mlo._on_confirm()

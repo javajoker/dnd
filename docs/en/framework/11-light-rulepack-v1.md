@@ -136,6 +136,26 @@ Recovery between fights follows the d20 core rules' two kinds of rest, turning "
 - No spell slots; **use-limited skills**: each active skill can be used N times per encounter (marked on the skill card, usually 1–3), refilled at the start of every encounter (counts as a short-rest recharge, §7.2);
 - Classes are presented as **skill-combination bundles** (three at launch: Harbor Guard / Scavenger / Ink Adept — players feel a style rather than read clauses, doc 05 §8).
 
+### 8.1 Equipment (four slots, d20 core-rules style)
+
+| Slot | Effect | Swap in combat? |
+|---|---|---|
+| Weapon | Replaces the basic attack's damage die (keeps the existing modifier: `1d6+2` with a Boathook Axe → `1d8+2`); may add a to-hit bonus | ✅ Object interaction: once per turn, costs no action |
+| Armor | AC bonus | ❌ Donning armor takes time; change it outside combat only |
+| Shield | AC bonus (+1 in the Light rules, tighter than the core rules' +2, to fit the AC 10–12 band) | ❌ Outside combat |
+| Trinket | Small bonuses to max HP / AC / to-hit | ❌ Outside combat |
+
+- Equipment = the `equip` block of an `items.json` entry (tech/04 §4.1); ownership lives in the inventory, and "who wears what" is written to `<ns>.equip.<char_id>.<slot>` (world state, with provenance);
+- An item can be worn by at most as many characters as you own copies; with only one, giving it to someone else hands it over;
+- Bonuses are applied when the battle is assembled; max HP / AC use the same single source as the status band and resting (§7.1).
+
+### 8.2 Quick pouch and pack (the action economy of items)
+
+- Items picked into the **quick pouch** at loadout (`item_slots` of them) are used in combat as a **bonus action**;
+- Every other usable item you own is in the **pack**: still usable in combat, but rummaging costs **1 action** — choosing what goes in the pouch is a real trade-off, not "if you didn't bring it you can't use it";
+- Items are shared by the party: anyone can use them on their turn, drawing from the same stock;
+- Items with `use.timing: action` (such as a thrown Ink Flask) cost an action wherever they are; items with `use.target: enemy` make an attack roll (d20 + Finesse vs AC, rolling `use.damage` on a hit) and can be dragged onto an enemy.
+
 ## 9. Difficulty calibration and placement pacing (for content authors)
 
 | Campaign stage | Recommended encounter difficulty | Check difficulty mix (easy/medium/hard) |

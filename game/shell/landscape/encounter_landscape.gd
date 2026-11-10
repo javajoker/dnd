@@ -54,6 +54,7 @@ var quest_chip: Label
 var flash_label: Label
 var wheel_title: Label
 var hub_popup: HubPopup
+var pack_open := false # 行动轮盘「背包」组展开态（11 §8.2：背包道具 / 换武器按需展开）
 var info_popup: InfoPopup
 
 # ---- 节点（_ready 构建）----
@@ -885,7 +886,11 @@ func _refresh_wheel() -> void:
 		wheel_actor.text = ""
 		return
 	wheel_actor.text = Texts.s(&"BRACKET_FMT") % str(sm.get_unit(sm.current_actor_id())["name"])
-	for a: Dictionary in actions:
+	var groups := Texts.split_pack_actions(actions) # 背包组按需展开（11 §8.2；纯呈现分组）
+	var shown: Array = groups["main"]
+	if pack_open:
+		shown = shown + (groups["pack"] as Array)
+	for a: Dictionary in shown:
 		var b := Button.new()
 		b.text = Texts.action_label(a)
 		b.disabled = bool(a["disabled"])
@@ -893,6 +898,14 @@ func _refresh_wheel() -> void:
 		var action := a
 		b.pressed.connect(func() -> void: press_action(action))
 		wheel_box.add_child(b)
+	if not (groups["pack"] as Array).is_empty():
+		var pb := Button.new()
+		pb.name = "PackToggle"
+		pb.text = Texts.s(&"CHIP_PACK_OPEN") if pack_open else Texts.s(&"CHIP_PACK_FMT") % (groups["pack"] as Array).size()
+		pb.pressed.connect(func() -> void:
+			pack_open = not pack_open
+			_refresh_wheel())
+		wheel_box.add_child(pb)
 
 ## 轮盘点按（09 §9.2 点按=默认目标；enemy 目标优先用格地图点选，12 §1）。
 func press_action(action: Dictionary) -> void:

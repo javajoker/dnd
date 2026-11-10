@@ -52,6 +52,7 @@ var story_text: RichTextLabel
 var clock_chip: Button
 var quest_chip: Label
 var hub_popup: HubPopup
+var pack_open := false # 快捷栏「背包」组展开态（11 §8.2：背包道具 / 换武器按需展开）
 var info_popup: InfoPopup
 
 # ---- 节点（_ready 构建）----
@@ -874,9 +875,19 @@ func _refresh_quickbar() -> void:
 	var actor_label := Label.new()
 	actor_label.text = Texts.s(&"BRACKET_FMT") % str(sm.get_unit(sm.current_actor_id())["name"])
 	quickbar.add_child(actor_label)
-	for a: Dictionary in actions:
+	var groups := Texts.split_pack_actions(actions) # 背包组按需展开（11 §8.2；纯呈现分组）
+	var shown: Array = groups["main"]
+	if pack_open:
+		shown = shown + (groups["pack"] as Array)
+	for a: Dictionary in shown:
 		var chip := _add_chip(Texts.action_label(a), bool(a["disabled"]), func() -> void: press_action(a))
 		chip.set_meta("action", a) # 芯片拖动 = 指定目标使用（12 §3.6）
+	if not (groups["pack"] as Array).is_empty():
+		var pb := _add_chip(Texts.s(&"CHIP_PACK_OPEN") if pack_open
+			else Texts.s(&"CHIP_PACK_FMT") % (groups["pack"] as Array).size(), false, func() -> void:
+				pack_open = not pack_open
+				_refresh_quickbar())
+		pb.name = "PackToggle"
 
 func _add_chip(label: String, disabled: bool, on_press: Callable) -> Button:
 	var b := Button.new()

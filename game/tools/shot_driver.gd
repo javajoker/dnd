@@ -11,6 +11,7 @@ const FLAGS := {
 	"--home-shot": "_run_shot_home", "--home-bar-shot": "_run_shot_home_bar", "--promo-shot": "_run_shot_promo",
 	"--mode-shots": "_run_shots_mode", "--ls-shots": "_run_shots_ls", "--text-shots": "_run_shots_text",
 	"--font-shot": "_run_shot_font", "--trans-shots": "_run_shots_trans", "--lock-shot": "_run_shot_lock",
+	"--loadout-shots": "_run_shots_loadout",
 }
 const SHOT_SEED := 20260009 # 固定种子：截图路径确定（主线两次检定均为成功路）
 
@@ -473,6 +474,7 @@ func _run_shots_ls() -> void:
 	entry.pick_mode(ShellRouter.MODE_SPACE)
 	entry.start_requested.emit()
 	await m.get_tree().create_timer(0.5).timeout
+	_give_gear()
 	m.graph._enter("N1-7") # 战斗节点 → 横屏整备（04 §④.8：三段横列 + 队伍状态条置顶）
 	m._present_node()
 	await m.get_tree().create_timer(0.5).timeout
@@ -505,4 +507,49 @@ func _run_shot_promo() -> void:
 		await m.get_tree().create_timer(0.5).timeout
 		await _shot("/tmp/m2_promo_entry.png") # 路由落点证据（锁定卡 + 购买弹层）
 	print("[shots] 运营位两张完成：/tmp/m2_promo.png /tmp/m2_promo_entry.png")
+	m.get_tree().quit()
+
+# ---------------------------------------------------------------- 整备 v2 截图（09 §9.1 v2 逐角色整备证据 /tmp，不提交）
+
+func _give_gear() -> void:
+	var prov := {"event_id": m.stream.tail(), "node_id": m.graph.current_id, "pack_id": m._campaign_id}
+	for iid: String in ["boathook_axe", "padded_coat", "tide_charm", "dock_buckler"]:
+		m.board.give_item(iid, 1, prov)
+	m.board.give_item("ink_flask", 2, prov)
+
+## `-- --loadout-shots`：竖屏整备——装备页签（斧交给珂兰）+ 技能页签。
+func _run_shots_loadout() -> void:
+	await m.get_tree().create_timer(0.8).timeout
+	m._on_home_navigate(&"entry")
+	await m.get_tree().create_timer(0.3).timeout
+	var entry := m.current_screen as ScreenEntry
+	entry.pick_mode(ShellRouter.MODE_TIME)
+	entry.start_requested.emit()
+	await m.get_tree().create_timer(0.5).timeout
+	_give_gear()
+	m.graph._enter("N1-7")
+	m._present_node()
+	await m.get_tree().create_timer(0.5).timeout
+	var lo := m.current_screen as ScreenLoadout
+	lo.tap_library(ScreenLoadout.LIB_GEAR, "padded_coat")
+	lo.drop_on_character("companion_kelan", {"kind": "gear", "id": "boathook_axe"})
+	lo.set_library_tab(ScreenLoadout.LIB_GEAR)
+	await m.get_tree().create_timer(0.3).timeout
+	await _shot("/tmp/lo_gear.png")
+	lo.select_character("player_blank")
+	lo.set_library_tab(ScreenLoadout.LIB_SKILLS)
+	lo.tap_library(ScreenLoadout.LIB_SKILLS, "inkbolt")
+	await m.get_tree().create_timer(0.3).timeout
+	await _shot("/tmp/lo_skills.png")
+	lo.set_library_tab(ScreenLoadout.LIB_ITEMS)
+	lo.tap_library(ScreenLoadout.LIB_ITEMS, "heal_potion")
+	lo._on_confirm()
+	await m.get_tree().create_timer(2.4).timeout
+	var sh := m.shell as EncounterPortrait
+	if sh != null:
+		sh.pack_open = true
+		sh._refresh_quickbar()
+	await m.get_tree().create_timer(0.3).timeout
+	await _shot("/tmp/lo_battle_pack.png")
+	print("[shots] 整备 v2 三张：/tmp/lo_gear.png /tmp/lo_skills.png /tmp/lo_battle_pack.png")
 	m.get_tree().quit()
