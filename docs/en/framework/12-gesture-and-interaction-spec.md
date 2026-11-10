@@ -16,7 +16,7 @@
 | Long-press | Held ≥400 ms, movement <10 pt | Inspect / skip | Unit and item detail cards, skip cutscenes |
 | Drag | Lift after moving >10 pt | Move | Move units on the battlefield, scroll lists, drag the camera |
 | Drag path | A drag that passes ≥2 semantic target points | Cast / aim | Skill casting: start = caster, path = trajectory, end = target |
-| Swipe | Horizontal movement >60 pt, vertical <30 pt | Switch | The console's four tabs, the strip of past rooms |
+| Swipe | Horizontal movement >60 pt, vertical <30 pt | Switch | The console's three tabs, the strip of past rooms |
 | Pinch | Distance between two touches changes >20% | Zoom | Battlefield: follow camera ↔ overview |
 | Two-finger drag | Two touches move in the same direction | Pan | Pan the zoomed battlefield |
 
@@ -42,7 +42,7 @@ Iron rule: **every gesture has a button alternative** — gestures are an effici
 | Gesture | Effect |
 |---|---|
 | Tap | Options / console buttons / highlighted interactables |
-| Swipe (console) | Switch the four tabs (Action / Dice / Log / Character) |
+| Swipe (console) | Switch the three tabs (Action / Log / Character; the dice strip is always visible) |
 | Drag (own unit, vertically) | Adjust position on the vertical battlefield (advance / fall back) |
 | Drag path (own → enemy, upward) | Cast a targeted skill (same command as landscape, just a vertical composition) |
 | Two-finger tap (main view) | One-tap quick roll for normal checks / end turn |

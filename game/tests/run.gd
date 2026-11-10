@@ -5693,14 +5693,15 @@ func test_gap_features() -> void:
 	portrait._on_gesture_dragged({"start": Vector2.ZERO, "end": Vector2(-9999, -9999), "delta": Vector2(-30, -30)})
 	check(stream.query_by_type(EventTypes.BATTLE_MOVE).size() == moves_before,
 		"移动段耗尽：拖动拒绝（command.rejected，tech/01 §6.2）")
-	# 横滑切 Tab（12 §2.2：四 Tab 循环）
+	# 横滑切 Tab（12 §2.2：三 Tab 循环；骰子改为常驻骰子条）
 	var tab0: int = portrait.tabs.current_tab
 	portrait._on_gesture_h_swipe(1, portrait.console_panel.get_global_rect().get_center())
 	check(portrait.tabs.current_tab == tab0 + 1, "竖屏：横滑操作台 = 切 Tab（12 §2.2）")
-	portrait._on_gesture_h_swipe(1, portrait.console_panel.get_global_rect().get_center())
-	portrait._on_gesture_h_swipe(1, portrait.console_panel.get_global_rect().get_center())
-	portrait._on_gesture_h_swipe(1, portrait.console_panel.get_global_rect().get_center())
-	check(portrait.tabs.current_tab == tab0, "横滑四 Tab 循环一周（13 §3 Tab 循环）")
+	for _i: int in portrait.tabs.get_tab_count() - 1:
+		portrait._on_gesture_h_swipe(1, portrait.console_panel.get_global_rect().get_center())
+	check(portrait.tabs.current_tab == tab0, "横滑 Tab 循环一周（13 §3 Tab 循环）")
+	check(portrait.tabs.get_tab_count() == 3 and portrait.dice_strip.is_visible_in_tree(),
+		"操作台三 Tab（行动/日志/角色）+ 常驻骰子条：掷骰结果与行动同屏（04 §④.5 v2）")
 	# 长按单位 = 详情半屏卡（12 §2.2）
 	portrait._on_gesture_long_press(portrait.enemy_row.get_child(0).get_global_rect().get_center())
 	check(portrait.info_popup.visible and portrait.info_popup.body_label.text.contains("AC"),

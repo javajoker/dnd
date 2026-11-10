@@ -7,7 +7,6 @@ extends RefCounted
 
 # Console tabs (04 §④.5)
 const TAB_ACTION := "Action"
-const TAB_DICE := "Dice"
 const TAB_LOG := "Log"
 const TAB_CHAR := "Party"
 
@@ -395,3 +394,4 @@ const MSG_RESTORED := "Restored {n} purchase(s)."
 const MSG_PURCHASE_FAILED := "The purchase didn't go through: {error}"
 const MSG_STORE_UNAVAILABLE := "The store isn't available right now."
 const SHOP_LINE_CAMPAIGN := "%s — %s. One unlock, and your codex carries on from this page."
+const DICE_STRIP_IDLE := "Your rolls appear here"

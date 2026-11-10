@@ -6,7 +6,6 @@ extends RefCounted
 
 # 操作台四 Tab（04 §④.5）
 const TAB_ACTION := "行动"
-const TAB_DICE := "骰子"
 const TAB_LOG := "日志"
 const TAB_CHAR := "角色"
 
@@ -466,3 +465,4 @@ const MSG_RESTORED := "已恢复 {n} 项购买。"
 const MSG_PURCHASE_FAILED := "购买未完成：{error}"
 const MSG_STORE_UNAVAILABLE := "商店暂不可用。"
 const SHOP_LINE_CAMPAIGN := "《%s》——%s。一次解锁，抄本会从这一页接着写下去。"
+const DICE_STRIP_IDLE := "掷骰结果会显示在这里"

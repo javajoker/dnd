@@ -46,7 +46,7 @@ N0-1 Tidewake (cutscene)
               N0-4 Three Gazes (cutscene: three stares fall on you) ──→ Act I
 ```
 
-Tutorial duties: the console's four tabs, quick dice rolls, dialogue options, viewing the log.
+Tutorial duties: the console's three tabs and always-visible dice strip, quick dice rolls, dialogue options, viewing the log.
 
 ### SL-1 Act I "The Faded Street" (dual-mode, 8 nodes)
 

@@ -36,7 +36,7 @@
 |---|---|---|---|---|
 | Three-band breathing | Explore 8/62/30, combat 12/55/33, dialogue 8/50/42, key check full screen; heights change only with state changes | Driven by state changes | ✅ | ✅ |
 | Room progress bar | Past lit / current pulsing / future silhouettes; swipe down to review past rooms | Advance → review (completed rooms don't reset) | ✅ (no review) | ✅ (swipe-down/tap review, read-only) |
-| Console four tabs | Action / Dice / Log / Character; swipe to switch | Tab cycle | ✅ | ✅ (swipe + tap, two channels) |
+| Console dice strip + three tabs | Always-visible dice strip; Action / Log / Character, swipe to switch | Tab cycle | ✅ | ✅ (swipe + tap, two channels) |
 | Quickbar chips | Skills / items / companions / first aid; tap = default target, drag onto target = targeted use | Use → uses/disabled state refresh | ✅ | ✅ (tap + drag to target; release on empty space cancels) |
 | Vertical battlefield | Enemies above, party below; unit cards show HP/AC | Combat presentation | ✅ | ✅ |
 | Room types | Battle / check / dialogue / pickup / branch door presented differently | 04 §④.3 | ✅ | ✅ |

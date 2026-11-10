@@ -128,7 +128,7 @@ Each screen is described in the same format: purpose / composition / core action
 │ ② Main view (55–62%)  │ Current room / encounter scene / dialogue cutscene
 │                      │
 ├──────────────────────┤
-│ ③ Console (30–37%)    │ Tabs: Action / Dice / Log / Character
+│ ③ Console (30–37%)    │ Dice strip + tabs: Action / Log / Character
 └──────────────────────┘
 ```
 
@@ -159,7 +159,7 @@ A Portrait · Temporal campaign is built from a **room sequence**; each room is 
 | Room type | Main view | Console |
 |---|---|---|
 | Battle room | Vertical battlefield (see ④.4) | Action tab with the action wheel |
-| Check room | Scene close-up + highlighted interactables | Dice tab in front, one-tap quick roll |
+| Check room | Scene close-up + highlighted interactables | Check button on the Action tab + the always-visible dice strip; one-tap quick roll |
 | Dialogue room | Camera pushes in on the NPC | Console becomes an option list with check badges |
 | Pickup room | Scene + glinting hint points | Log tab records what you got |
 | Branch door | Split-door cutscene with two option cards | Not involved; choose directly in the main view |
@@ -174,12 +174,13 @@ A portrait screen is too narrow for a wide battlefield; three mechanisms combine
 
 Constraint: portrait campaign level design must respect an **on-screen unit cap** (≤8 suggested; exact value to be validated in prototypes); large-scale battles should be declared as Landscape · Spatial at design time — one of the bases for a pack's mode declaration.
 
-#### ④.5 The console's four tabs
+#### ④.5 The console: an always-visible dice strip + three tabs
 
-Switch with a horizontal swipe at the bottom; tab indicator dots are always visible but take no row height:
+Rolls and actions happen together, so both must be visible together: dice are **no longer a tab** but an always-visible **dice strip** at the top of the console (one row, ~44 pt) — a large die face on the left shows the latest roll, with a one-line explanation on the right (check name / DC / modifier / outcome). Normal checks are a one-tap quick roll (bar animation, result in ≤0.5 s); key checks still trigger a full-screen physical presentation — presentations are tiered by importance to avoid fatigue.
 
-- **Action**: the current unit's action wheel (main action / bonus / move / item), filtered in real time by context; selecting highlights target cells in the main view; a second confirmation executes;
-- **Dice**: a persistent D20 tray. Normal checks are a one-tap quick roll (bar animation, result in ≤0.5 s); key checks trigger a full-screen physical presentation — presentations are tiered by importance to avoid fatigue;
+Below the strip sit three tabs, switched with a horizontal swipe; tab indicator dots are always visible but take no row height:
+
+- **Action**: the current unit's action wheel (main action / bonus / move / item), filtered in real time by context; selecting highlights target cells in the main view; a second confirmation executes; the result lands in the dice strip above at the same time;
 - **Log**: this encounter's event stream as a half-screen feed; tapping any entry can call up a camera replay of that moment (same source as the History Scroll);
 - **Character**: a compact character card for the current unit (HP / skill uses / statuses / equipment slots); swipe up for the full-screen card.
 
@@ -191,7 +192,7 @@ Switch with a horizontal swipe at the bottom; tab indicator dots are always visi
 |---|---|---|
 | Tap | Main view | Select a unit / target cell / interactable |
 | Long-press | A unit in the main view | Pop up an info card (half-screen sheet) |
-| Swipe | Console | Switch the four tabs |
+| Swipe | Console | Switch the three tabs (the dice strip stays put) |
 | Swipe up | Console Log tab | Expand the full log to half screen |
 | Pinch | Main view | Overview ↔ follow camera |
 | Swipe down | Progress bar | View the list of past rooms, quick rewind |

@@ -70,6 +70,7 @@ var console_panel: PanelContainer
 var tabs: TabContainer
 const CHIP_WRAP_CHARS := 22 # 超过即视为长文案芯片（独占一行换行）
 var quickbar: HFlowContainer
+var dice_strip: HBoxContainer # 常驻骰子条（04 §④.5 v2：与行动同屏）
 var dice_label: Label
 var dice_detail: Label
 var log_view: RichTextLabel
@@ -210,8 +211,17 @@ func _build_ui() -> void:
 	console_panel = PanelContainer.new()
 	console_panel.name = "Console"
 	add_child(console_panel)
+	var console_v := VBoxContainer.new()
+	console_v.add_theme_constant_override("separation", 2)
+	console_panel.add_child(console_v)
+	# 骰子条（04 §④.5 v2）：常驻操作台顶部——掷骰结果与引发它的行动同屏可见，不再藏在独立 Tab 里
+	dice_strip = HBoxContainer.new()
+	dice_strip.name = "DiceStrip"
+	dice_strip.add_theme_constant_override("separation", 10)
+	console_v.add_child(dice_strip)
 	tabs = TabContainer.new()
-	console_panel.add_child(tabs)
+	tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	console_v.add_child(tabs)
 	var tab_action := VBoxContainer.new()
 	tab_action.name = Texts.s(&"TAB_ACTION")
 	tabs.add_child(tab_action)
@@ -219,16 +229,19 @@ func _build_ui() -> void:
 	quickbar.add_theme_constant_override("h_separation", 6)
 	quickbar.add_theme_constant_override("v_separation", 6)
 	tab_action.add_child(quickbar)
-	var tab_dice := VBoxContainer.new()
-	tab_dice.name = Texts.s(&"TAB_DICE")
-	tabs.add_child(tab_dice)
 	dice_label = Label.new()
-	dice_label.add_theme_font_size_override("font_size", 56)
+	dice_label.add_theme_font_size_override("font_size", 34)
 	dice_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	tab_dice.add_child(dice_label)
+	dice_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	dice_label.custom_minimum_size = Vector2(56, 44)
+	dice_label.text = "d20"
+	dice_strip.add_child(dice_label)
 	dice_detail = Label.new()
-	dice_detail.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	tab_dice.add_child(dice_detail)
+	dice_detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	dice_detail.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	dice_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	dice_detail.text = Texts.s(&"DICE_STRIP_IDLE")
+	dice_strip.add_child(dice_detail)
 	log_view = RichTextLabel.new()
 	log_view.name = Texts.s(&"TAB_LOG")
 	log_view.bbcode_enabled = false
@@ -947,7 +960,7 @@ func _apply_dice_skin() -> void:
 		lbl.add_theme_constant_override("outline_size", 12)
 	dice_detail.add_theme_color_override("font_color", (pal["pip"] as Color).lightened(0.35))
 
-## 普通：骰子 Tab 托盘快掷（≤0.5s 出结果）。
+## 普通：常驻骰子条快掷（≤0.5s 出结果，与行动芯片同屏可见）。
 func _tray_roll(p: Dictionary) -> void:
 	if _tray_rolling:
 		return

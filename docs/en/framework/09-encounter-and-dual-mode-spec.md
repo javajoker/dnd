@@ -56,7 +56,7 @@ Tactical-grid readability: cell side ≥ 8% of screen height; ≤ 12×8 cells on
 - The three-band breathing layout keeps the ratio table of doc 04 §④.1 (explore 8/62/30, combat 12/55/33, dialogue 8/50/42, key checks take over the full screen), frozen here;
 - Room-advance pacing: transitions ≤1 second; the progress bar sits below the status bar; future rooms show only door-icon silhouettes;
 - Door-preview rules: type icon (battle / check / dialogue / pickup / branch door) + danger color scale (three tiers, matching the Light rules difficulty table); a branch door splits into left/right option cards;
-- The console's four tabs (Action / Dice / Log / Character) are frozen per doc 04 §④.5; hot-zone iron rule: high-frequency actions live in the lower-half thumb arc.
+- The console's always-visible dice strip + three tabs (Action / Log / Character) are frozen per doc 04 §④.5; hot-zone iron rule: high-frequency actions live in the lower-half thumb arc.
 
 ## 6. Dice-presentation tier standard
 

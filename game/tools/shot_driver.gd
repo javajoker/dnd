@@ -391,9 +391,7 @@ func _run_shots_skin() -> void:
 	m._present_node()
 	await m.get_tree().create_timer(0.5).timeout
 	m.stream.emit(EventTypes.CHECK_ROLL, {"keep": 17, "rolls": [17], "mod": 0, "total": 17,
-		"success": true, "key": false}, &"core", "N1-3")
-	if m.shell is EncounterPortrait:
-		(m.shell as EncounterPortrait).tabs.current_tab = 1 # 骰子 Tab（托盘快掷呈现位）
+		"success": true, "key": false}, &"core", "N1-3") # 常驻骰子条即呈现位（04 §④.5 v2）
 	await m.get_tree().create_timer(0.8).timeout # 快掷 0.35s 落定后取图
 	await _shot("/tmp/skin_dice.png")
 	print("[shots] 皮肤两张完成：/tmp/skin_cosmetics.png /tmp/skin_dice.png")
