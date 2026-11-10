@@ -1,63 +1,67 @@
-# 交互原型：抄本纪元 ·《烬港残页》切片
+# Interactive prototype: The Age of the Codex · *Ashenport Fragments* slice
 
-> 对应设计文档：`../docs/framework/04-UI-UX设计文档.md`（九类界面与导航闭环）、`../docs/framework/09-遭遇与双模式交互规范.md`（六态与演出分级）、`../docs/framework/11-轻规则包-v1.md`（数值）
-> 内容来源：`../docs/story/campaign01/`（序章 + 幕一切片，文本为原型改写）
+> 中文版：[`README.zh-CN.md`](README.zh-CN.md). The prototype UI text itself is Chinese.
+> Design docs: `../docs/en/framework/04-ui-ux-design.md` (nine screens and navigation loop), `../docs/en/framework/09-encounter-and-dual-mode-spec.md` (six states and presentation tiers), `../docs/en/framework/11-light-rulepack-v1.md` (numbers)
+> Content source: `../docs/story/campaign01/` (Prologue + Act I slice; text rewritten for the prototype)
 
-## 运行
+## Running it
 
-零依赖、零构建。任选其一：
+Zero dependencies, no build. Either:
 
 ```bash
-# 直接双击
 open prototype/index.html
-
-# 或本地服务
-cd prototype && python3 -m http.server 8642
-# 浏览器打开 http://localhost:8642
 ```
 
-## 切片范围
+```bash
+cd prototype && python3 -m http.server 8642
+```
 
-序章「潮醒」+ 幕一「褪色的街」：10 个节点、2 场战斗（含教学 Boss）、3 场三方对话、商店与休整 Hub、关键/普通两级掷骰演出、失败路分支、结算与历史卷轴闭环。
+then open http://localhost:8642 in a browser.
 
-## 规则实现（对齐 framework/11-轻规则包-v1.1）
+## Slice scope
 
-- D20 检定（易/中/难 DC 8/12/16）+ 熟练 +2；**攻击暴击 nat20 伤害骰翻倍**；
-- **优势/劣势**（2d20 取高/取低）：「见证撤销」旗标 → Boss 战首回合全队优势；「墨盾格挡」→ 攻击者劣势；
-- **豁免**：Boss「墨雨溅射」全员敏捷豁免 DC 11、成功半伤（偶数回合）；
-- **同伴规则**：珂兰/老费为可控单位（快捷栏芯片各带 1 招牌技能，每回合 1 动作），倒地可用「急救」扶起，战后 1 HP 起身；
-- **死亡豁免三局两胜**（关键判定全屏演出）；行动经济：PC 1 动作 + 每存活同伴 1 动作 + 附赠 + 移动，全员行动完自动进入敌方回合。
+Prologue "Tidewake" + Act I "The Faded Street": 10 nodes, 2 battles (including the tutorial boss), 3 faction dialogues, the shop and rest hub, two-tier dice presentation (key / normal), failure-path branching, and the Settlement and History Scroll loop.
 
-## 界面覆盖对照（04 文档）
+## Rules implemented (Light rule pack v1.1)
 
-| 界面 | 原型实现 |
+- D20 checks (easy/medium/hard DC 8/12/16) + proficiency +2; **critical attacks: nat 20 doubles the damage dice**;
+- **Advantage/disadvantage** (2d20 take high/low): the "witnessed_revocation" flag → whole-party advantage on the boss's first round; "Ink Shield" → attackers have disadvantage;
+- **Saving throws**: the boss's "Ink Rain Splash" forces a Finesse save DC 11 on everyone, half damage on success (even rounds);
+- **Companion rules**: Kelan / Old Fei are controllable units (each quickbar chip has 1 signature skill, 1 action per round); downed allies can be revived with "First Aid" and get up with 1 HP after battle;
+- **Death saves best of three** (key check, full screen); action economy: PC 1 action + 1 per living companion + bonus + move; the enemy turn starts automatically when everyone has acted.
+
+## Screen coverage (doc 04)
+
+| Screen | Prototype implementation |
 |---|---|
-| ① 主屏（营地） | 世界图景随褪墨度变化、五入口、运营位、角标 |
-| ② 战役入口 | 战役卡、双模式形态卡选择（选择前开始按钮禁用）、强制模式叙事说明、分支收集 |
-| ③ 遭遇 · 横屏 | 五区：上缘先攻条 / 左栏行动轮盘 / 中央 8×5 战术格 / 右栏骰子盘 / 下缘日志带（点击展开半屏） |
-| ④ 遭遇 · 竖屏 | 三段式呼吸（探索 62/30、战斗 55/37、对话 50/42）、房间推进条（门图标+当前 pulsate）、操作台四 Tab |
-| ⑤ 事件中心 | 事件卡、新旗标提示区、时间边预告（墨雨夜袭 2 格） |
-| ⑥ 背包图鉴 | 背包（四重身份标签）/ 图鉴（四系列进度与集齐奖励） |
-| ⑦ 角色 | 三维属性、熟练、次数制技能、羁绊、倾向轴 |
-| ⑧ 历史卷轴 | 事件流倒序时间轴、点击展开检定明细、关键判定金标、来源节点溯源 |
-| ⑨ 结算 | 写板结果逐项念出（旗标/声望/时钟/道具）、新增卷轴条目跳转 |
+| ① Home (Camp) | World view changes with the Fading level, five entrances, promo slot, badges |
+| ② Campaign Entry | Campaign card, dual-mode form cards (Start disabled until chosen), forced-mode narrative note, branch collection |
+| ③ Encounter · Landscape | Five zones: top initiative bar / left action wheel / central 8×5 tactical grid / right dice tray / bottom log strip (tap to expand) |
+| ④ Encounter · Portrait | Three-band breathing (explore 62/30, combat 55/37, dialogue 50/42), room progress bar (door icons + pulsing current room), four-tab console |
+| ⑤ Event Center | Event cards, new-flag notices, time-edge preview (Ink-Rain Night Raid at 2 segments) |
+| ⑥ Inventory / Compendium | Inventory (four identity tags) / Compendium (progress of four series and completion rewards) |
+| ⑦ Character | Three attributes, proficiencies, use-limited skills, bonds, alignment axis |
+| ⑧ History Scroll | Reverse-chronological event timeline, tap to expand check details, gold markers on key checks, source-node trace |
+| ⑨ Settlement | Board results read out one by one (flags / reputation / clock / items), jump to new scroll entries |
 
-## 架构与框架铁律的对应（tech/01）
+> The prototype's combat ratio 55/37 predates the frozen 12/55/33 in doc 09 §5; the Godot build uses the frozen value.
 
-- `Board`：世界状态板，一切写入（`writeFlag`/`tickClock`/`addRep`/`giveItem`）走统一原语；
-- `emit()`：追加式事件流，是日志、历史卷轴、状态栏带的唯一输入；
-- 遭遇六态驱动竖屏呼吸布局（`runtime.phase` → CSS class），渲染壳不持逻辑；
-- 一核两壳：`enterNode`/`doNodeCheck`/`attack` 为核，竖屏三段与横屏五区是两壳——顶部"形态对比"按钮（原型调试）可随时验证同一状态两套渲染；正式版模式在入口择定并锁定（F1.4），序章强制竖屏（战役书模式声明）。
+## Architecture vs framework iron rules (tech/01)
 
-## 已验证的交互路径（浏览器走查）
+- `Board`: the World State Board; every write (`writeFlag` / `tickClock` / `addRep` / `giveItem`) goes through shared primitives;
+- `emit()`: an append-only event stream, the only input to the log, History Scroll and status bar;
+- The six encounter states drive the portrait breathing layout (`runtime.phase` → CSS class); shells hold no logic;
+- One core, two shells: `enterNode` / `doNodeCheck` / `attack` are the core; the portrait three bands and landscape five zones are the two shells — a "compare forms" debug button at the top shows the same state in both renderings; in the real game the mode is chosen and locked at the entrance (F1.4), and the Prologue is forced portrait.
 
-模式选择禁用态 → 首进手势教程（可跳过、localStorage 一次原则）→ 序章强制竖屏提示 → 关键判定全屏演出（可长按跳过）→ 检定失败走失败路（封锁巷遭遇）→ 战斗情境教程 → 商店购买 → 休整恢复 → **整备界面**（系统预设一键套用「强攻/稳守/均衡」+ 逐槽微调，槽位由 `loadout` 配置决定）→ 横屏战术格 Boss 战（**快捷栏芯片**：点按=默认目标、拖到敌人=指定施法、拖到友方=用道具；拖动=移动、双指点击=结束回合、捏合=缩放）→ **托管**（代掷骰、按整备顺序用技能、HP<50% 自动用药，节拍 ≥0.8s/动作可调 1×/2×，随时接管，战斗结束自停）→ 死亡豁免 → 撤退"失败即分支" → ☰ 保存并回主屏 → 结算（成长属性点）→ 历史卷轴旗标追溯（托管动作带 🤖 标记、事件流 `auto` 溯源）。
+## Interaction paths verified (browser walkthrough)
 
-## 手势（framework/12 的实现侧）
+Mode choice disabled state → first-run gesture tutorial (skippable, shown once via localStorage) → forced-portrait notice in the Prologue → full-screen key check (long-press to skip) → failed check takes the failure path (Cordoned Alley encounter) → contextual battle tutorial → shop purchase → rest → **Loadout** (one-tap system presets "Assault / Defensive / Balanced" + per-slot tweaks; slot counts from the `loadout` config) → landscape tactical-grid boss battle (**quickbar chips**: tap = default target, drag onto an enemy = targeted cast, drag onto an ally = use item; drag = move, two-finger tap = end turn, pinch = zoom) → **Auto-play** (rolls for you, uses skills in loadout order, auto-potion below 50% HP, ≥0.8 s per action at 1×/2×, take over any time, stops when the battle ends) → death saves → retreat as "failure is a branch" → ☰ save and return Home → Settlement (growth attribute points) → History Scroll flag trace (auto-play actions marked 🤖, event source `auto`).
 
-拖动（移动/芯片使用）/ 拖动轨迹（施法）/ 双指点击（结束回合）/ 长按（详情/跳过）/ 横滑（切 Tab）/ 双指捏合（缩放）均有实现；**一切手势有按钮等价路径**。帮助页在主屏「帮助」入口，可随时重学。
+## Gestures (implementation side of doc 12)
 
-## 明确不做（原型边界）
+Drag (move / use chip), drag path (cast), two-finger tap (end turn), long-press (details / skip), swipe (switch tab), pinch (zoom) are all implemented; **every gesture has an equivalent button path**. The help page is under "Help" on Home and tutorials can be replayed any time.
 
-- 无存档/快照、无音频、无真实物理骰子（CSS 演出示意）；主屏热点图为呈现方向（见 `../docs/framework/12-手势与交互规范.md` §5），原型以文字入口实现；
-- 数值为轻规则包 v1 的示意实现，非平衡性结论。
+## Explicitly out of scope (prototype boundary)
+
+- No saves/snapshots, no audio, no real physics dice (CSS presentation only); the Home hotspot painting is only a direction (see `../docs/en/framework/12-gesture-and-interaction-spec.md` §5) — the prototype uses text entrances;
+- Numbers are an illustrative implementation of Light rule pack v1, not balance conclusions.

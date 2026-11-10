@@ -1,6 +1,6 @@
 # Documentation Index (English)
 
-> English mirror of [`docs/README.md`](../README.md). The Chinese documents under `docs/` remain the design source of truth; this tree mirrors them in English, with change-history logs omitted. Terms follow [`GLOSSARY.md`](GLOSSARY.md).
+> English mirror of the Chinese index [`docs/README.zh-CN.md`](../README.zh-CN.md). The Chinese documents under `docs/` remain the design source of truth; this tree mirrors them in English, with change-history logs omitted. Terms follow [`GLOSSARY.md`](GLOSSARY.md).
 >
 > The repo has three layers: **framework/** is the game framework that doesn't change with the story (design intent), **tech/** is the framework's technical implementation, and **story/** is the world and content that grows on top of the framework.
 >

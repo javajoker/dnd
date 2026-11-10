@@ -1,21 +1,20 @@
-# game/packs —— 运行时内容包副本
+# game/packs — runtime content-pack copies
 
-> 格式契约：`docs/tech/02-内容包格式规范.md` §1（包目录结构）。
+> 中文版：[`README.zh-CN.md`](README.zh-CN.md). Format contract: `docs/tech/02-内容包格式规范.md` §1 (English: `docs/en/tech/02-content-pack-format-spec.md`).
 
-## 同步关系
+## Sync relationship
 
-- **编写源**：`docs/story/<pack_id>/`（战役）；子游戏编写源为 `docs/subgames/<子游戏名>/pack/`（README 目录约定）；
-- **运行时副本**：`game/packs/<pack_id>/`（加载器与仿真只读本目录）；
-- 两者必须逐字节一致：改内容先改 docs 源，再 `cp <源>/*.json game/packs/<pack_id>/` 同步；
-- 一致性由 CI / packlint 前置步骤保证（TP1 阶段人工执行）；发布时按 tech/01 §8 将本目录打包为 PCK。
+- **Authoring source**: `docs/story/<pack_id>/` (campaigns and arcs); sub-game sources are `docs/subgames/<name>/pack/`;
+- **Runtime copy**: `game/packs/<pack_id>/` (the loader and simulation read only this directory);
+- The two must be byte-identical: change the docs source first, then sync with `cp <source>/*.json game/packs/<pack_id>/`;
+- Consistency is meant to be enforced by a CI / packlint pre-step (currently manual); for release, this directory is packaged as PCK files per tech/01 §8 (not implemented yet).
+- `_ops/` is operations-side data (entitlement registry, cosmetics registry, ops_config) and is not a content pack.
 
-## 当前包
+## Current packs
 
-| 包 | 源 | 说明 |
+| Pack | Source | Notes |
 |---|---|---|
-| campaign01 | `docs/story/campaign01/` | 《烬港残页》首个战役实例 |
-| arc_tide | `docs/story/arc_tide/` | 支线《雾码头的回声》（pack_type=arc，graft 挂接 N1-1） |
-| arena | `docs/subgames/arena/pack/` | 子游戏「竞技场连战」（pack_type=subgame，M3 验证白皮书 §10.2） |
-| riddle_maze | `docs/subgames/riddle-maze/pack/` | 子游戏「谜回廊」（pack_type=subgame，免费，零战斗） |
-
-`_ops/` 为运营侧数据（权利注册表、皮肤注册表、ops_config），不是内容包。
+| campaign01 | `docs/story/campaign01/` | *Ashenport Fragments*, the first campaign |
+| arc_tide | `docs/story/arc_tide/` | Side arc *Echoes of Fog Wharf* (pack_type=arc, grafted onto N1-1) |
+| arena | `docs/subgames/arena/pack/` | Sub-game Arena Gauntlet (pack_type=subgame, DLC) |
+| riddle_maze | `docs/subgames/riddle-maze/pack/` | Sub-game Riddle Maze (pack_type=subgame, free, zero combat) |
