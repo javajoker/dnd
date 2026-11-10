@@ -188,9 +188,10 @@ Goal: turn the framework into a reusable D&D-style engine — new narrative game
 - [ ] Interactive layout prototype for the new screens (⑩ region map, ⑪ site map, split view) in `prototype/` or as a shareable page
 
 ### 5.1 Dice (smallest step, unblocks the rest)
-- [ ] `Dice3D` shape table: d4 / d6 / d8 / d10 / d12 (+ d100 as two d10) with per-shape face tests
-- [ ] DiceTray (multi-dice, ~1 s, skippable) and dice-strip shape glyphs
-- [ ] Core emits `dice` lists on check / attack / item / rest / table events (doc 17 §5)
+- [x] `Dice3D` shape table: d4 / d6 / d8 / d10 / d12 (+ d100 as two d10) with per-shape face tests (`DiceShapes`; every shape settles on the given value)
+- [x] DiceTray (multi-dice, ~1 s) with the On / Crits only / Off setting, and dice-strip shape glyphs in both shells
+- [x] Core emits `dice` lists on check / attack / item / rest events (`table.roll` follows with 5.2)
+- [x] Fixed: 3D dice meshes were wound counter-clockwise, so Godot culled the outer faces and showed the interior (hidden before by the near-black d20 body); number labels now alpha-discard
 
 ### 5.2 Maps and tables
 - [ ] `tables.json` loader + roller (modifiers, nested, `once`), event cards, `table.roll` events; packlint V20–V21

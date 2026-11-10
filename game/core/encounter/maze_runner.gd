@@ -83,6 +83,7 @@ func resolve() -> Dictionary:
 			"kind": "maze_ambush" if btype == BEAT_AMBUSH else "maze_check",
 			"skill": skill, "rolls": res["rolls"], "keep": res["keep"], "mod": mod,
 			"total": res["total"], "dc": dc, "success": success,
+			"dice": LightV1.d20_dice(res["rolls"], int(res["keep"])),
 			"key": false, # 迷宫节拍默认普通演出（09 §6；内容包可另行标记）
 			"extreme": bool(res["nat20"]) or bool(res["nat1"]),
 			"source": &"core"}, &"core", node_id)

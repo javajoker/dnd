@@ -540,3 +540,8 @@ const STORY_ADV_TAG := " · 优势"
 const MSG_INSPIRATION_GAIN := "天然 1——失败也写进了你的故事。获得一枚激励 ✦。"
 const MSG_INSPIRATION_SPENT := "你举起激励 ✦：这次检定以优势掷骰。"
 const STORY_CLOCK_NEXT_SHORT := "→ %d 格 ⚠"
+
+# ---- 多面骰（17 §3）----
+const DICE_DAMAGE_FMT := " · 伤害 %s：%s%+d = %d"
+const MENU_DICE_TRAY := "伤害骰显示：%s"
+const DICE_TRAY_MODES := {"on": "全部", "key": "仅暴击", "off": "关闭"}

@@ -27,4 +27,16 @@ func _run() -> void:
 	await _d.finished
 	await _snap("/tmp/dice3d_settle.png")   # ③ 定格顶面 20 + 时间恢复
 	print("[shoot] top_face=", _d.top_face(), " time_scale=", Engine.time_scale)
+	# 多面骰全家福（17 §2）：d4 读顶点 / d6 / d8 / d10 / d12 / d20 同场落定
+	_d.speed = 3.0
+	_d.play_set([{"die": "d4", "value": 4}, {"die": "d6", "value": 6}, {"die": "d8", "value": 8},
+		{"die": "d10", "value": 10}, {"die": "d12", "value": 12}, {"die": "d20", "value": 20}], 7)
+	await _d.finished
+	await _snap("/tmp/dice3d_set.png")
+	print("[shoot] set values=", _d.top_values())
+	# d100 = 十位 + 个位（37 → 30 + 7）
+	_d.play_set(Dice3D.d100_spec(37), 11)
+	await _d.finished
+	await _snap("/tmp/dice3d_d100.png")
+	print("[shoot] d100 values=", _d.top_values())
 	quit()

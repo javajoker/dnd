@@ -73,6 +73,9 @@ var grid: GridContainer
 var right_dice: PanelContainer
 var dice_label: Label
 var dice_detail: Label
+var dice_glyph: DieGlyph             # 骰子条骰型图标（17 §3）
+var dice_tray: DiceTray              # 托盘档多骰（17 §3：伤害 / 回复 / 生命骰）
+var dice_tray_button: Button         # ☰ 菜单：伤害骰显示三档
 var log_band: PanelContainer
 var log_last: Label
 var log_toggle: Button
@@ -220,6 +223,9 @@ func _build_ui() -> void:
 	dice_title.text = Texts.s(&"ZONE_DICE")
 	dice_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	dice_v.add_child(dice_title)
+	dice_glyph = DieGlyph.new()
+	dice_glyph.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	dice_v.add_child(dice_glyph)
 	dice_label = Label.new()
 	dice_label.add_theme_font_size_override("font_size", 48)
 	dice_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -299,6 +305,9 @@ func _build_ui() -> void:
 	juice.unit_node_of = func(uid: String) -> Control: return _find_unit_node(uid)
 	juice.shake_target = self # 屏幕震动 = 整壳位移（呈现层，不进事件流）
 	add_child(juice)
+	dice_tray = DiceTray.new() # 托盘档多骰：右侧骰子盘下段（白皮书 §7.2 横屏骰子盘在右，17 §3）
+	add_child(dice_tray)
+	_set_rect(dice_tray, RATIO_LEFT + RATIO_CENTER, 0.42, RATIO_LEFT + RATIO_CENTER + RATIO_RIGHT, 1.0 - RATIO_BOTTOM)
 	# 战斗跟随镜头（14 清单 #8，与竖屏同一 BattleCamera/参数源）：目标 = 战术格，横屏战场平移对焦
 	# （04 §④.4 智能镜头横屏对应）；可视区/锚点查询壳收口，与 JuiceLayer 同一套格位查询
 	camera = BattleCamera.new()
@@ -364,6 +373,12 @@ func _build_menu() -> void:
 		_sync_shake_button())
 	v.add_child(shake_button)
 	_sync_shake_button()
+	dice_tray_button = Button.new() # 伤害骰显示三档（17 §3：on / 仅暴击 / off；关键演出不受影响）
+	dice_tray_button.pressed.connect(func() -> void:
+		DiceTray.cycle_mode(audio_settings_path)
+		_sync_dice_tray_button())
+	v.add_child(dice_tray_button)
+	_sync_dice_tray_button()
 	AudioSettingsUi.append_to(v, audio_settings_path) # 音量三档滑条（14 #5；双壳同一构建器）
 	add_child(menu_popup)
 
@@ -730,6 +745,12 @@ func _on_event(ev: Dictionary) -> void:
 	var t := StringName(ev["type"])
 	if juice != null:
 		juice.on_event(ev) # 打击感/震动：纯呈现消费同一事件流（14 #3/#4，与竖屏同一事件源）
+	if dice_tray != null:
+		dice_tray.settings_path = audio_settings_path
+		dice_tray.palette = _dice_palette()
+		dice_tray.speed = float(speed) if auto_on else 1.0
+		dice_tray.on_event(ev) # 托盘档多骰（17 §3）：伤害 / 回复 / 生命骰
+	_strip_from_dice(ev)
 	if camera != null and not _story and sm != null:
 		camera.on_event(ev) # 跟随镜头/关键推拉：纯呈现消费同一事件流（14 #8，只在战斗态）
 	# 掷骰两级演出与战斗/故事同一事件源（09 §6）
@@ -1007,6 +1028,7 @@ func _tray_roll(p: Dictionary) -> void:
 		dice_label.text = str(visual.d20())
 		await get_tree().create_timer(0.07).timeout # 5×0.07=0.35s ≤0.5s
 	dice_label.text = keep
+	_strip_show("d20", keep)
 	# 托盘动效轻量升级（14 #2：落定缩放回弹一拍，仍 ≤0.5s 总量；与竖屏同一手法）
 	dice_label.pivot_offset = dice_label.size * 0.5
 	var pop := create_tween()
@@ -1016,6 +1038,7 @@ func _tray_roll(p: Dictionary) -> void:
 	dice_detail.text = Texts.s(&"DICE_DETAIL") % [str(rolls), int(p.get("mod", p.get("atk_mod", 0))),
 		int(p.get("total", p.get("keep", 0))),
 		Texts.s(&"RESULT_SUCCESS") if bool(p.get("success", p.get("hit", false))) else Texts.s(&"RESULT_FAIL")]
+	dice_detail.text += damage_text(p)
 	_tray_rolling = false
 
 ## 关键：全屏 3D 物理演出（14 清单 #2 / 09 §6，与竖屏同一事件源；长按 ≥400ms 跳过）。
@@ -1151,3 +1174,47 @@ func _unit_name(id: String) -> String:
 	if sm == null:
 		return id
 	return str(sm.get_unit(id).get("name", id))
+
+# ---------------------------------------------------------------- 多面骰呈现（17 §3：骰子条骰型图标 + 托盘多骰）
+
+## 骰子条：骰型图标 + 数值（dice 清单首枚定骰型）。
+func _strip_show(die: String, _value_text: String) -> void:
+	if dice_glyph != null:
+		dice_glyph.die = die
+		var pal := _dice_palette()
+		dice_glyph.face_color = pal["face"]
+		dice_glyph.edge_color = pal["edge"]
+
+## 伤害骰明细（"5+3+2 = 10"）：骰值和 + 固定修正 = 伤害（暴击翻倍骰数随 dice）。
+static func damage_text(p: Dictionary) -> String:
+	var dd: Array = p.get("damage_dice", [])
+	if dd.is_empty() or not bool(p.get("hit", false)):
+		return ""
+	var vals: Array[String] = []
+	var sum := 0
+	for d: Variant in dd:
+		vals.append(str(int((d as Dictionary)["value"])))
+		sum += int((d as Dictionary)["value"])
+	return Texts.s(&"DICE_DAMAGE_FMT") % [str((dd[0] as Dictionary)["die"]), "+".join(vals),
+		int(p.get("damage", 0)) - sum, int(p.get("damage", 0))]
+
+## 非 d20 骰（回复 / 生命骰）上骰子条：图标换骰型、数值 = 骰值和。
+func _strip_from_dice(ev: Dictionary) -> void:
+	var p: Dictionary = ev.get("payload", {})
+	var dice: Array = p.get("dice", [])
+	if dice.is_empty() or StringName(str(ev.get("type", ""))) == EventTypes.CHECK_ROLL \
+			or StringName(str(ev.get("type", ""))) == EventTypes.BATTLE_ATTACK:
+		return
+	var sum := 0
+	for d: Variant in dice:
+		sum += int((d as Dictionary)["value"])
+	_strip_show(str((dice[0] as Dictionary)["die"]), str(sum))
+	dice_label.text = str(sum)
+	var line := BattleText.event_log_text(ev, _unit_name)
+	if line != "":
+		dice_detail.text = line
+
+func _sync_dice_tray_button() -> void:
+	if dice_tray_button != null:
+		dice_tray_button.text = Texts.s(&"MENU_DICE_TRAY") % str((Texts.t(&"DICE_TRAY_MODES") as Dictionary).get(
+			DiceTray.load_mode(audio_settings_path), ""))

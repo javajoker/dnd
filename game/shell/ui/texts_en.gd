@@ -469,3 +469,8 @@ const STORY_ADV_TAG := " · advantage"
 const MSG_INSPIRATION_GAIN := "A natural 1 — even failure writes your story. You gain Inspiration ✦."
 const MSG_INSPIRATION_SPENT := "You call on your Inspiration ✦: this check rolls with advantage."
 const STORY_CLOCK_NEXT_SHORT := "→ %d ⚠"
+
+# ---- Polyhedral dice (17 §3) ----
+const DICE_DAMAGE_FMT := " · Damage %s: %s%+d = %d"
+const MENU_DICE_TRAY := "Damage dice: %s"
+const DICE_TRAY_MODES := {"on": "On", "key": "Crits only", "off": "Off"}

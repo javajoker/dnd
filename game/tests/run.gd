@@ -98,6 +98,7 @@ func _async_shell_tests() -> void:
 	await test_portrait_shell()
 	await test_landscape_shell()
 	await test_dice_3d()
+	await test_dice_tray()
 	await test_juice()
 	await test_audio()
 	await test_landscape_story()
@@ -1380,7 +1381,40 @@ func test_dice_3d() -> void:
 	check(await _wait_dice(d, 2.0), "跳过路径立即收束")
 	check(d.top_face() == 5, "跳过后顶面仍=给定结果 5")
 	check(absf(Engine.time_scale - 1.0) < 0.001, "跳过后 time_scale 恢复 1.0")
+	# 多面骰（17 §2/§7）：几何共面、编号合规，且每种骰落定读数 = 给定值
+	for kind: String in DiceShapes.KINDS:
+		var shp := DiceShapes.build(kind)
+		check(DiceShapes.faces_planar(shp) and DiceShapes.values_valid(shp)
+			and int(shp["sides"]) == int(kind.substr(1)), "%s：面共面、1~N 编号合规（有对面者和为 N+1）" % kind)
+	for spec: Array in [[{"die": "d4", "value": 3}], [{"die": "d6", "value": 6}], [{"die": "d8", "value": 2}],
+			[{"die": "d10", "value": 10}], [{"die": "d12", "value": 7}],
+			[{"die": "d8", "value": 5}, {"die": "d8", "value": 1}, {"die": "d4", "value": 4}]]:
+		d.play_set(spec, 4242 + spec.size())
+		check(await _wait_dice(d, 8.0), "多面骰演出完成 %s" % str(spec))
+		var want: Array = spec.map(func(x: Dictionary) -> int: return int(x["value"]))
+		check(d.top_values() == want, "落定读数 = 给定值 %s（d4 读顶点）" % str(want))
+	var hundred := Dice3D.d100_spec(100)
+	var h37 := Dice3D.d100_spec(37)
+	var h5 := Dice3D.d100_spec(5)
+	check(int(hundred[0]["value"]) == 9 and int(hundred[1]["value"]) == 10
+		and int(h5[0]["value"]) == 10 and int(h5[1]["value"]) == 5
+		and int(h37[0]["value"]) == 3 and int(h37[1]["value"]) == 7 and bool(h37[0]["tens"]),
+		"d100 = 十位 d10（00~90，面值 10 显示 00）+ 个位 d10：37 → 30 + 7，100 → 90 + 10，5 → 00 + 5")
+	d.play_set(h37, 99)
+	check(await _wait_dice(d, 8.0) and d.top_values() == [3, 7], "d100 两枚 d10 落定")
 	d.queue_free()
+	await process_frame
+	# 托盘档（17 §3）：透明底、无慢镜头、短收束
+	var tray: Dice3D = scene.instantiate() as Dice3D
+	tray.compact = true
+	root.add_child(tray)
+	await process_frame
+	tray.speed = 4.0
+	tray.play_set([{"die": "d8", "value": 8}, {"die": "d8", "value": 3}], 7)
+	await process_frame
+	check(absf(Engine.time_scale - 1.0) < 0.001, "托盘档不开慢镜头")
+	check(await _wait_dice(tray, 3.0) and tray.top_values() == [8, 3], "托盘档两枚 d8 落定给定值")
+	tray.queue_free()
 	await process_frame
 	# 事件流不变（14 #2 验收口径）：同种子同指令两局，B 局额外套 3D 演出消费关键事件
 	#（纯呈现订阅，与壳内接线同源）——事件流 JSON 逐字节一致（tech/01 §10 TP3 同一比对法）
@@ -1388,6 +1422,52 @@ func test_dice_3d() -> void:
 	var json_b: String = await _run_battle_with_dice3d(true)
 	check(json_a == json_b, "3D 演出前后同种子同结果：事件流逐字节一致")
 	check(absf(Engine.time_scale - 1.0) < 0.001, "整局结束 time_scale=1.0（析构兜底恢复）")
+
+# ---------------------------------------------------------------- 托盘档多骰（17 §3/§5）：事件 → 骰组 / 三档设置 / 壳内实战
+
+func test_dice_tray() -> void:
+	print("[dice_tray]")
+	var cfg_path := TEST_DIR.path_join("dice_tray.cfg")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(cfg_path))
+	check(DiceTray.load_mode(cfg_path) == DiceTray.MODE_ON, "缺省：伤害骰全部显示")
+	check(DiceTray.cycle_mode(cfg_path) == DiceTray.MODE_KEY and DiceTray.cycle_mode(cfg_path) == DiceTray.MODE_OFF
+		and DiceTray.cycle_mode(cfg_path) == DiceTray.MODE_ON, "三档循环 on → 仅暴击 → off → on（写本地设置）")
+	var hit := {"type": EventTypes.BATTLE_ATTACK, "id": 5, "payload": {"hit": true, "crit": false, "damage": 7,
+		"damage_dice": [{"die": "d8", "value": 5}]}}
+	var crit := {"type": EventTypes.BATTLE_ATTACK, "id": 6, "payload": {"hit": true, "crit": true, "damage": 9,
+		"damage_dice": [{"die": "d8", "value": 4}, {"die": "d8", "value": 3}]}}
+	var miss := {"type": EventTypes.BATTLE_ATTACK, "id": 7, "payload": {"hit": false, "damage_dice": []}}
+	var heal := {"type": EventTypes.ITEM_USE, "id": 8, "payload": {"dice": [{"die": "d4", "value": 2}]}}
+	check(DiceTray.dice_for_event(hit, DiceTray.MODE_ON).size() == 1 and DiceTray.dice_for_event(miss, DiceTray.MODE_ON).is_empty(),
+		"命中上托盘、落空不上")
+	check(DiceTray.dice_for_event(hit, DiceTray.MODE_KEY).is_empty() and DiceTray.dice_for_event(crit, DiceTray.MODE_KEY).size() == 2
+		and DiceTray.dice_for_event(heal, DiceTray.MODE_KEY).is_empty(), "仅暴击档：普通命中 / 回复不上托盘，暴击翻倍骰上")
+	check(DiceTray.dice_for_event(crit, DiceTray.MODE_OFF).is_empty(), "关闭档：一律不上托盘")
+	check(EncounterPortrait.damage_text(hit["payload"]).contains("d8") and EncounterPortrait.damage_text(hit["payload"]).contains("5+2 = 7"),
+		"骰子条伤害明细：骰型 + 骰值 + 修正 = 伤害")
+	# 壳内实战：竖屏托管打满一场，命中即触发托盘、骰子条图标换骰型
+	var portrait: EncounterPortrait = (load("res://shell/portrait/encounter_portrait.tscn") as PackedScene).instantiate()
+	portrait.audio_settings_path = cfg_path
+	root.add_child(portrait)
+	await process_frame
+	var stream := EventStream.new()
+	var board := Board.new(stream)
+	var sm := EncounterSM.new(board, stream, Rng.new(11), "campaign01")
+	portrait.bind(sm, AutoAgent.new())
+	sm.enter("N1-7")
+	sm.transition(EncounterSM.S_EXPLORE)
+	var pack := _load_campaign01()
+	sm.begin_combat(BattleDef.assemble(pack, "N1-7", {}, board)["def"])
+	var guard := 0
+	while not sm.is_over() and guard < 60 and portrait.dice_tray.played == 0:
+		guard += 1
+		portrait.debug_step_auto()
+		await process_frame
+	check(portrait.dice_tray.played > 0, "实战命中触发托盘多骰（伤害骰 3D 落定）")
+	check(portrait.dice_glyph != null and DiceShapes.KINDS.has(portrait.dice_glyph.die), "骰子条图标为合法骰型")
+	portrait.queue_free()
+	await process_frame
+	check(absf(Engine.time_scale - 1.0) < 0.001, "托盘演出不动 time_scale")
 
 ## 无壳脚本化遭遇（与 shell_diff.run_battle 同种子/同指令序列风格，指令直发 sm）；
 ## with_3d=true 时挂独立 Dice3D 订阅关键检定事件——纯呈现消费，不触碰 core。
@@ -6433,26 +6513,21 @@ func test_texts_en() -> void:
 		"英文消息模板渲染")
 	Texts.set_locale(Texts.SOURCE_LOCALE)
 
-# ---------------------------------------------------------------- 内容包双副本一致（docs 编写源 = game 运行副本；packs/README）
+# ---------------------------------------------------------------- 内容包单副本（game/packs 为唯一数据源；docs/en/tech/03 §6）
 
 func test_pack_copies_in_sync() -> void:
-	print("[pack_copies_in_sync]")
-	var pairs := {"campaign01": "story/campaign01", "arc_tide": "story/arc_tide",
-		"arena": "subgames/arena/pack", "riddle_maze": "subgames/riddle-maze/pack"}
+	print("[pack_single_copy]")
+	# 旧"docs 编写源 = 运行副本"双副本已归档（archive/zh-CN/docs）；现行 docs/ 下不得再出现包数据副本
 	var docs_root := ProjectSettings.globalize_path("res://").path_join("../docs")
-	var diffs: Array = []
-	for pid: String in pairs.keys():
-		var run_dir := "res://packs/%s" % pid
-		var src_dir := docs_root.path_join(pairs[pid])
-		for sub: String in ["", "texts"]:
-			for f: String in DirAccess.get_files_at(run_dir.path_join(sub)):
-				if not f.ends_with(".json"):
-					continue
-				var a := FileAccess.get_file_as_string(run_dir.path_join(sub).path_join(f))
-				var b := FileAccess.get_file_as_string(src_dir.path_join(sub).path_join(f))
-				if a != b:
-					diffs.append("%s/%s" % [pid, sub.path_join(f)])
-	check(diffs.is_empty(), "内容包运行副本与 docs 编写源逐文件一致：%s" % ";".join(diffs))
+	var stray: Array = []
+	for rel: String in ["story/campaign01", "story/arc_tide", "subgames/arena/pack", "subgames/riddle-maze/pack",
+			"en/story/campaign01", "en/subgames/arena/pack", "en/subgames/riddle-maze/pack"]:
+		for f: String in DirAccess.get_files_at(docs_root.path_join(rel)):
+			if f.ends_with(".json"):
+				stray.append(rel.path_join(f))
+	check(stray.is_empty(), "包数据只在 game/packs（docs 下无 JSON 副本）：%s" % ";".join(stray))
+	for pid: String in ["campaign01", "arc_tide", "arena", "riddle_maze"]:
+		check(FileAccess.file_exists("res://packs/%s/manifest.json" % pid), "运行包 %s 在位" % pid)
 
 # ---------------------------------------------------------------- 框架零内容常量（白皮书 §2；代码评审 M1）
 

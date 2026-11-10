@@ -183,7 +183,7 @@ func roll_check(edge: Dictionary) -> Dictionary:
 	board.stream.emit(EventTypes.CHECK_ROLL, {"roller": "pc", "kind": "story_check",
 		"skill": skill, "rolls": res["rolls"], "keep": res["keep"], "mod": mod,
 		"total": res["total"], "dc": dc, "success": success, "key": key, "extreme": extreme,
-		"mode": String(mode)}, &"graph", current_id)
+		"mode": String(mode), "dice": LightV1.d20_dice(res["rolls"], int(res["keep"]))}, &"graph", current_id)
 	if bool(res["nat1"]) and inspiration() < 1:
 		# 失败也是故事：天然 1 换来一枚激励（11 §3.2 失败即分支的正反馈）
 		board.write(_insp_key(), 1, _hub_prov())
@@ -387,6 +387,7 @@ func short_rest(cid: String) -> Dictionary:
 	board.write("%s.hp.%s" % [pack_id, cid], new_hp, _hub_prov())
 	board.write(_hd_key(cid), int(hd["max"]) - int(hd["left"]) + 1, _hub_prov())
 	board.stream.emit(EventTypes.LOG, {"msg_key": "MSG_SHORT_REST", "toast": true,
+		"dice": [{"die": str(hd["die"]), "value": roll}],
 		"args": {"name": str(c.get("name", cid)), "die": str(hd["die"]), "roll": roll,
 			"heal": new_hp - hp, "hp": new_hp, "max_hp": mx}}, &"graph", current_id)
 	return {"ok": true, "roll": roll, "heal": new_hp - hp, "hp": new_hp, "max_hp": mx}

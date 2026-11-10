@@ -11,7 +11,7 @@ const FLAGS := {
 	"--home-shot": "_run_shot_home", "--home-bar-shot": "_run_shot_home_bar", "--promo-shot": "_run_shot_promo",
 	"--mode-shots": "_run_shots_mode", "--ls-shots": "_run_shots_ls", "--text-shots": "_run_shots_text",
 	"--font-shot": "_run_shot_font", "--trans-shots": "_run_shots_trans", "--lock-shot": "_run_shot_lock",
-	"--loadout-shots": "_run_shots_loadout",
+	"--loadout-shots": "_run_shots_loadout", "--dice-shots": "_run_shots_dice",
 }
 const SHOT_SEED := 20260009 # 固定种子：截图路径确定（主线两次检定均为成功路）
 
@@ -558,4 +558,35 @@ func _run_shots_loadout() -> void:
 	await m.get_tree().create_timer(0.3).timeout
 	await _shot("/tmp/lo_battle_pack.png")
 	print("[shots] 整备 v2 三张：/tmp/lo_gear.png /tmp/lo_skills.png /tmp/lo_battle_pack.png")
+	m.get_tree().quit()
+
+# ---------------------------------------------------------------- 多面骰托盘截图（17 §3 证据 /tmp，不提交）
+
+## `-- --dice-shots`：竖屏实战——托管打到第一次命中，伤害骰托盘落定时截图（骰子条同时换骰型图标）。
+func _run_shots_dice() -> void:
+	await m.get_tree().create_timer(0.8).timeout
+	m._on_home_navigate(&"entry")
+	await m.get_tree().create_timer(0.3).timeout
+	var entry := m.current_screen as ScreenEntry
+	entry.pick_mode(ShellRouter.MODE_TIME)
+	entry.start_requested.emit()
+	await m.get_tree().create_timer(0.5).timeout
+	m.graph._enter("N1-7")
+	m._present_node()
+	await m.get_tree().create_timer(0.5).timeout
+	(m.current_screen as ScreenLoadout)._on_confirm()
+	await m.get_tree().create_timer(2.4).timeout
+	var sh := m.shell as EncounterPortrait
+	if sh.tutorial.is_hint_visible():
+		sh.tutorial._dismiss_hint()
+	var guard := 0
+	while sh.dice_tray.played == 0 and guard < 80 and not sh.sm.is_over():
+		guard += 1
+		sh.debug_step_auto()
+		await m.get_tree().create_timer(0.05).timeout
+	while sh.dice_tray.dice3d.is_playing():
+		await m.get_tree().process_frame
+	await m.get_tree().create_timer(0.15).timeout
+	await _shot("/tmp/dice_tray_battle.png")
+	print("[shots] 托盘：/tmp/dice_tray_battle.png played=", sh.dice_tray.played, " glyph=", sh.dice_glyph.die)
 	m.get_tree().quit()

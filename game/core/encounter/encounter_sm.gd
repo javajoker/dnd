@@ -255,6 +255,7 @@ func _roll_death_save(u: Dictionary) -> void:
 	var ds: Dictionary = u["death_saves"]
 	stream.emit(EventTypes.CHECK_ROLL, {"roller": u["id"], "kind": "death_save",
 		"rolls": [res["roll"]], "keep": res["roll"], "dc": LightV1.DEATH_SAVE_DC,
+		"dice": LightV1.d20_dice([res["roll"]], int(res["roll"])),
 		"success": res["success"], "s": ds["s"], "f": ds["f"],
 		"key": true, # 11 §7：死亡豁免是框架恒定关键判定（全屏演出，09 §6）
 		"extreme": bool(res["nat20"]) or bool(res["nat1"]),
@@ -337,6 +338,8 @@ func _resolve_aoe_saves(u: Dictionary, aoe: Dictionary) -> void:
 			"skill": aoe["id"], "rolls": res["rolls"], "keep": res["keep"], "mod": res["mod"],
 			"total": res["total"], "dc": res["dc"], "success": res["success"],
 			"damage": res["damage_taken"], "on_success": res["on_success"],
+			"dice": LightV1.d20_dice(res["rolls"], int(res["keep"])),
+			"damage_dice": LightV1.expr_dice(str(aoe.get("damage", "1d4")), res["damage_rolls"]),
 			"target_hp_after": int(t["hp"]),
 			"key": bool(aoe.get("key", false)), # 豁免默认普通演出，内容包可标记关键（11 §5.1）
 			"extreme": bool(res["nat20"]) or bool(res["nat1"]),
@@ -608,6 +611,8 @@ func _resolve_attack(u: Dictionary, target_id: String, skill: Dictionary, src: S
 		"atk_mod": res["atk_mod"], "target_ac": res["target_ac"],
 		"hit": res["hit"], "crit": res["crit"], "fumble": res["fumble"],
 		"damage_rolls": res["damage_rolls"], "damage": res["damage"],
+		"dice": LightV1.d20_dice(res["rolls"], int(res["keep"])),
+		"damage_dice": LightV1.expr_dice(dmg_expr, res["damage_rolls"]),
 		"target_hp_before": hp_before, "target_hp_after": int(t["hp"]),
 		"key": false, # 普通攻击=普通演出（09 §6）
 		"extreme": bool(res["crit"]) or bool(res["fumble"]), # nat20/nat1 追加一档反馈
@@ -656,12 +661,14 @@ func _resolve_item(u: Dictionary, cmd: Dictionary, src: StringName) -> void:
 		if bool(use.get("consume", false)) and board.has_item(str(it["id"])):
 			board.remove_item(str(it["id"]), 1, {"event_id": ev_t["id"], "node_id": node_id, "pack_id": pack_id})
 		return
+	var heal_dice: Array = []
 	if use.has("heal"):
 		var hr := LightV1.roll_damage(rng, str(use["heal"]))
 		healed = mini(int(hr["total"]), int(t["max_hp"]) - int(t["hp"]))
 		t["hp"] = int(t["hp"]) + healed
+		heal_dice = LightV1.expr_dice(str(use["heal"]), hr["rolls"])
 	var ev := stream.emit(EventTypes.ITEM_USE, {"unit": u["id"], "item": it["id"],
-		"name": str(it.get("name", it["id"])),
+		"name": str(it.get("name", it["id"])), "dice": heal_dice,
 		"target": t["id"], "healed": healed, "left": int(it.get("count", 0)),
 		"source": src}, &"core", node_id)
 	if bool(use.get("consume", false)) and board.has_item(str(it["id"])):
@@ -677,6 +684,7 @@ func _resolve_first_aid(u: Dictionary, target_id: String, src: StringName) -> vo
 	stream.emit(EventTypes.CHECK_ROLL, {"roller": u["id"], "kind": "first_aid",
 		"target": target_id, "rolls": res["rolls"], "keep": res["keep"], "mod": res["mod"],
 		"total": res["total"], "dc": res["dc"], "success": res["success"],
+		"dice": LightV1.d20_dice(res["rolls"], int(res["keep"])),
 		"key": false, "extreme": bool(res["nat20"]) or bool(res["nat1"]),
 		"source": src}, &"core", node_id)
 	if bool(res["success"]):

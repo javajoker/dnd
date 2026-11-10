@@ -178,7 +178,31 @@ static func save_throw(rng: Rng, attr_mod: int, save_def: Dictionary, damage_exp
 		taken = 0 if on_success == "none" else int(floori(float(full["total"]) / 2.0))
 	return {"rolls": r["rolls"], "keep": r["keep"], "mode": mode, "mod": attr_mod,
 		"total": r["total"], "dc": dc, "success": r["success"], "nat20": r["nat20"], "nat1": r["nat1"],
-		"on_success": on_success, "damage_full": full["total"], "damage_taken": taken}
+		"on_success": on_success, "damage_full": full["total"], "damage_taken": taken,
+		"damage_rolls": full["rolls"]}
+
+# ---------------------------------------------------------------- 呈现用骰子清单（docs/en/framework/17 §5）
+# 纯数据：告诉壳"掷了哪些骰、各是几"，好画出正确骰型；不改任何规则结果。
+
+## d20 检定/攻击：rolls（优劣势时两枚）+ keep → [{die:"d20", value, kept}]（首个等于 keep 者 kept=true）。
+static func d20_dice(rolls: Array, keep: int) -> Array:
+	var out: Array = []
+	var marked := false
+	for r: Variant in rolls:
+		var kept := not marked and int(r) == keep
+		marked = marked or kept
+		out.append({"die": "d20", "value": int(r), "kept": kept})
+	return out
+
+## 伤害/回复表达式 + 实际骰值 → [{die:"dN", value}]（"2d4+1" 的两枚 d4；暴击翻倍时骰数随 rolls）。
+static func expr_dice(expr: String, rolls: Array) -> Array:
+	var sides := int(parse_dice(expr).get("sides", 0))
+	var out: Array = []
+	if sides <= 0:
+		return out
+	for r: Variant in rolls:
+		out.append({"die": "d%d" % sides, "value": int(r)})
+	return out
 
 # ---------------------------------------------------------------- tech/04 §2 资源公式求值
 

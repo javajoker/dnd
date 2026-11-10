@@ -162,7 +162,7 @@ Note: the Godot gesture layer implements all of 12 §1's recognition parameters 
 | Region map | Point-crawl travel, pace, navigation, event rolls, watches → Doom Clock, fog/reveal | doc 16 §2 | ⬜ | ⬜ |
 | Site map | Areas, features, doors (locked/stuck/secret), wandering table; room sequence (portrait) / fogged map (landscape) | doc 16 §3 | ⬜ | ⬜ (maze beats exist) |
 | Event tables and cards | d4–d100 tables with modifiers, nested and `once` rows; choice-and-roll event cards | doc 16 §4 | ⬜ | ⬜ |
-| Polyhedral dice | d4–d100 in 3D; strip glyphs; tray for multi-dice; key presentation for every shape | doc 17 | ⬜ | ◐ (d20 only) |
+| Polyhedral dice | d4–d100 in 3D; strip glyphs; tray for multi-dice (damage / healing / Hit Dice); key presentation for every shape | doc 17 | ⬜ | ✅ |
 | New-game kit | Game manifest (theme/audio/packs), template pack, recipe | tech/07 | — | ⬜ |
 | Multiplayer readiness | Seats, host authority, command channel, server-side dice, auto-play on disconnect | doc 15 §8 | — | ◐ (command channel exists) |
 

@@ -1,16 +1,16 @@
 # 17 · Polyhedral Dice — Usage and Presentation Spec
 
-> Status: **design final; implementation partial** (TASKS P5). Related: doc 04 §3.2 (dice system), doc 09 §6 (presentation tiers), doc 11 (rules), doc 14 #2 (3D dice), doc 16 (tables).
+> Status: **implemented** (TASKS P5.1, 2026-11-10) except tray rolls for map tables, which arrive with doc 16. Related: doc 04 §3.2 (dice system), doc 09 §6 (presentation tiers), doc 11 (rules), doc 14 #2 (3D dice), doc 16 (tables).
 
-## 1. Current state (verified in code)
+## 1. State (verified in code)
 
-| Piece | State |
-|---|---|
-| 3D physical die (`shell/ui/dice_3d.gd`) | **d20 only** — an icosahedron with numbered faces; the logic result is given, physics only performs it, and the target face is aligned to the top in slow motion (fair by construction). |
-| Dice strip (portrait console) | Shows "d20" and the latest result for every roll, including damage and healing. |
-| Logic | Every die is already rolled by the seeded RNG with full detail in events: `check.roll.rolls`, `battle.attack.damage_rolls`, healing, Hit Dice (short rest). |
-
-So the rolls exist everywhere, but only the d20 is *shown* as a die. This spec makes every die visible and uses the physical presentation where it matters.
+| Piece | Where | State |
+|---|---|---|
+| Shape table | `shell/ui/dice_shapes.gd` (`DiceShapes`) | d4 (read at the top vertex), d6, d8, d10 (pentagonal trapezohedron), d12 (icosahedron dual), d20; planar faces, standard numbering (opposite faces sum to N+1) — unit-tested per shape |
+| 3D stage | `shell/ui/dice_3d.gd` (`Dice3D`) | `play(result)` (single d20, unchanged) and `play_set([{die, value, tens?}])` for up to 6 dice at once; the logic value is aligned to the reading position and the result face is turned to read upright; aspect-aware layout (rows of 3 in portrait); `d100_spec(r)` splits a percentile roll into a tens d10 (00–90) and a units d10 |
+| Tray | `shell/ui/dice_tray.gd` (`DiceTray`) | Compact mode of the same stage (transparent, no slow motion, ~1 s), over the main view (portrait) / under the dice column (landscape); setting **Damage dice: On / Crits only / Off** in ☰ |
+| Strip glyph | `shell/ui/die_glyph.gd` (`DieGlyph`) | Drawn die outline per type in both shells' dice strips; damage detail line ("Damage d8: 5+2 = 7") |
+| Event data | core | `dice` on `check.roll` (all kinds), `battle.attack`, `item.use` (healing), short rest; `damage_dice` on `battle.attack` and AoE saves |
 
 ## 2. The set
 
