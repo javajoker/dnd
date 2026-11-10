@@ -44,6 +44,8 @@ Design constraints (from doc 02): fixed file names; a new resource = a new data 
 
 enemies.json entries may also have `art_ref` (tech/05 §6): enemy unit art reference (`"units/<id>"`); passed through BattleDef (including inline summon templates); both shells' battlefield tokens show the image.
 
+**Animation fields (presentation only, tech/05 §9; the core never reads them):** a skill (skills.json or an enemy's `skills` entry) may declare `"fx"` — one of `slash`, `stab`, `claw`, `smash`, `bolt`, `lance`, `arc`, `burst`, `wave`, `heal`, `shield`, `smoke`, `summon`, `aura` — and an optional `"fx_color"` (hex). An enemy may declare `"attack_fx"` for its basic attack. Without them the effect is inferred (heal → `heal`; save-based area → `burst`; utility → `shield`; attacks by attribute: Wits `bolt`, Finesse `stab`, Might `slash`; enemy basic attacks `claw`). Packlint V22 warns on unknown names.
+
 ## 3. skills.json
 
 ```json

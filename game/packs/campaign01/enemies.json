@@ -31,6 +31,7 @@
       {
         "id": "ink_rain",
         "name": "墨雨溅射",
+        "fx": "burst",
         "kind": "aoe",
         "damage": "1d6",
         "uses": 2,
@@ -72,6 +73,7 @@
     },
     "attack_mod": 3,
     "damage": "1d6",
+    "attack_fx": "smash",
     "note": "断墨会暗桩卫队（N2U-1b 暴露战）"
   },
   {
@@ -87,6 +89,7 @@
     },
     "attack_mod": 3,
     "damage": "1d6",
+    "attack_fx": "stab",
     "note": "撕页行动（N2U-2）护税吏的卫队"
   },
   {
@@ -102,6 +105,7 @@
     },
     "attack_mod": 3,
     "damage": "1d4+1",
+    "attack_fx": "stab",
     "note": "雾码头打捞（N2G-2/2c）伏击判定的演出引用"
   },
   {
@@ -117,6 +121,7 @@
     },
     "attack_mod": 3,
     "damage": "1d6+1",
+    "attack_fx": "slash",
     "note": "独狼失败路通缉战（N2L-1b，难）：三方共同雇佣的追兵"
   },
   {
@@ -132,11 +137,13 @@
     },
     "attack_mod": 5,
     "damage": "1d6+2",
+    "attack_fx": "smash",
     "boss": true,
     "skills": [
       {
         "id": "seal_shock",
         "name": "封印冲击",
+        "fx": "burst",
         "kind": "aoe",
         "damage": "1d6+2",
         "save": {
@@ -149,6 +156,7 @@
       {
         "id": "rewrite_rules",
         "name": "重写守则",
+        "fx": "aura",
         "kind": "buff",
         "effect": {
           "attack_mod": 1
@@ -187,6 +195,7 @@
       {
         "id": "tide_sweep",
         "name": "墨潮席卷",
+        "fx": "wave",
         "kind": "aoe",
         "damage": "1d6+2",
         "save": {
@@ -199,6 +208,7 @@
       {
         "id": "call_imps",
         "name": "召唤幼体",
+        "fx": "summon",
         "kind": "summon",
         "ref": "ink_imp",
         "count": 2,

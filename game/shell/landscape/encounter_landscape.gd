@@ -87,6 +87,7 @@ var key_overlay: ColorRect
 var key_dice_label: Label
 var dice3d: Dice3D                   # 关键判定 3D 物理演出层（14 清单 #2，与竖屏同一事件源）
 var juice: JuiceLayer                # 打击感三件套 + 屏幕震动（14 清单 #3/#4，与竖屏同一组件/配置源）
+var action_fx: ActionFx               # 角色动作动画 + 技能特效（与竖屏同一组件）
 var camera: BattleCamera             # 战斗跟随镜头与关键推拉（14 清单 #8，与竖屏同一组件/参数源）
 var shake_button: Button             # ☰ 菜单内震动开关（14 #4：UI 偏好不写状态板，12 §5 同机制）
 var audio_settings_path := UiSettings.PATH # ☰ 音量三档滑条设置路径（14 #5；测试可注入隔离文件）
@@ -297,7 +298,9 @@ func _build_ui() -> void:
 	flash_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	flash_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.4))
 	flash_label.add_theme_font_size_override("font_size", 18)
-	_set_rect(flash_label, 0.25, RATIO_TOP + 0.01, 0.75, RATIO_TOP + 0.07)
+	flash_label.theme_type_variation = &"ToastLabel" # 横幅提示（UI 套件丝带底板）
+	flash_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_set_rect(flash_label, 0.25, RATIO_TOP + 0.01, 0.75, RATIO_TOP + 0.075)
 	flash_label.modulate = Color(1, 1, 1, 0)
 	add_child(flash_label)
 	# 打击感三件套 + 屏幕震动覆盖层（14 清单 #3/#4，与竖屏同一 JuiceLayer/JuiceConfig）：
@@ -312,6 +315,33 @@ func _build_ui() -> void:
 	juice.unit_node_of = func(uid: String) -> Control: return _find_unit_node(uid)
 	juice.shake_target = self # 屏幕震动 = 整壳位移（呈现层，不进事件流）
 	add_child(juice)
+	# 角色动作动画 + 技能特效（ActionFx：替身动画 + 程序化特效；纯呈现消费同一事件流）
+	action_fx = ActionFx.new()
+	action_fx.name = "ActionFx"
+	action_fx.anchor_of = juice.anchor_of
+	action_fx.rect_of = func(uid: String) -> Rect2:
+		var cell: Vector2i = unit_cell(uid)
+		if cell.x < 0 or _cells.size() != GRID_COLS * GRID_ROWS:
+			return Rect2()
+		return _cells[cell.y * GRID_COLS + cell.x].get_global_rect()
+	action_fx.art_ref_of = func(uid: String) -> String:
+		return str(sm.get_unit(uid).get("art_ref", "")) if sm != null and sm.get_units().has(uid) else ""
+	action_fx.side_of = func(uid: String) -> StringName:
+		return StringName(sm.get_unit(uid).get("side", &"party")) if sm != null and sm.get_units().has(uid) else &"party"
+	action_fx.units_of = func(side: StringName) -> Array:
+		var out: Array = []
+		if sm != null:
+			for id: String in sm.get_units():
+				var uu: Dictionary = sm.get_unit(id)
+				if StringName(uu["side"]) == side and not bool(uu["dead"]):
+					out.append(id)
+		return out
+	action_fx.skill_def_of = func(uid: String, sid: String) -> Dictionary:
+		return ActionFx.skill_in_unit(sm.get_unit(uid), sid) if sm != null and sm.get_units().has(uid) else {}
+	action_fx.art_alpha = func(uid: String, a: float) -> void: ActionFx.unit_art_alpha(_find_unit_node(uid), a)
+	action_fx.item_icon_of = func(iid: String) -> Texture2D: return ArtLoader.item_icon(iid)
+	add_child(action_fx)
+
 	dice_tray = DiceTray.new() # 托盘档多骰：右侧骰子盘下段（白皮书 §7.2 横屏骰子盘在右，17 §3）
 	add_child(dice_tray)
 	_set_rect(dice_tray, RATIO_LEFT + RATIO_CENTER, 0.42, RATIO_LEFT + RATIO_CENTER + RATIO_RIGHT, 1.0 - RATIO_BOTTOM)
@@ -437,8 +467,13 @@ func _layout_grid() -> void:
 ## 格边长（扣除分隔缝，保证 grid 最小尺寸 ≤ 栏内可用区，不触发父容器膨胀）。
 func cell_side() -> float:
 	var sep := 2.0
-	var w := maxf(center_map.size.x - float(GRID_COLS - 1) * sep, float(GRID_COLS))
-	var h := maxf(center_map.size.y - float(GRID_ROWS - 1) * sep, float(GRID_ROWS))
+	# 扣除面板自身内容边距（主题框体有内边距：不扣则 grid 恰好撑大面板 → resized → 重建，死循环）
+	var pad := Vector2.ZERO
+	var sb := center_map.get_theme_stylebox("panel")
+	if sb != null:
+		pad = sb.get_minimum_size()
+	var w := maxf(center_map.size.x - pad.x - float(GRID_COLS - 1) * sep, float(GRID_COLS))
+	var h := maxf(center_map.size.y - pad.y - float(GRID_ROWS - 1) * sep, float(GRID_ROWS))
 	return floorf(minf(w / float(GRID_COLS), h / float(GRID_ROWS)))
 
 ## 点按敌格选目标（12 §1 点按；目标选择是 UI 状态，不进事件流）。
@@ -539,6 +574,8 @@ func _refresh_grid() -> void:
 			tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			tr.mouse_filter = Control.MOUSE_FILTER_IGNORE # 不截手势命中（12 §2.1）
 			tr.set_meta("art_token", true) # 无头断言探针：格内单位图
+			if action_fx != null and action_fx.is_hidden(id):
+				tr.modulate.a = 0.0 # 替身动画进行中：真身美术透明
 			if bool(u["dead"]):
 				tr.modulate = Color(0.45, 0.45, 0.45) # 死亡变暗与底色同口径
 			elif bool(u["downed"]):
@@ -728,6 +765,7 @@ func bind(p_sm: EncounterSM, p_agent: AutoAgent) -> void:
 	_stream = sm.stream
 	_stream.subscribe(_on_event)
 	juice.reset() # 新遭遇清零消散名单与计数（14 #3/#4）
+	action_fx.reset()
 	camera.reset() # 镜头随新遭遇归零（14 #8）
 	show_combat_layout() # 故事态 → 战斗态：同一壳内布局切换
 	_refresh_all()
@@ -756,6 +794,9 @@ func _on_event(ev: Dictionary) -> void:
 	var t := StringName(ev["type"])
 	if juice != null:
 		juice.on_event(ev) # 打击感/震动：纯呈现消费同一事件流（14 #3/#4，与竖屏同一事件源）
+	if action_fx != null and not _story and sm != null:
+		action_fx.time_scale = float(speed) if auto_on else 1.0
+		action_fx.on_event(ev) # 动作动画 / 技能特效（纯呈现）
 	if dice_tray != null:
 		dice_tray.settings_path = audio_settings_path
 		dice_tray.palette = _dice_palette()
@@ -911,8 +952,10 @@ func _open_forecast() -> void:
 func _flash(text: String) -> void:
 	flash_label.text = text
 	flash_label.modulate = Color(1, 1, 1, 1)
+	UiFx.pop(flash_label)
 	var tw := create_tween()
-	tw.tween_property(flash_label, "modulate:a", 0.0, 1.6)
+	tw.tween_interval(0.6)
+	tw.tween_property(flash_label, "modulate:a", 0.0, 1.2)
 
 ## 测试探针：当前故事选项按钮文案。
 func story_option_texts() -> Array:

@@ -123,6 +123,8 @@ func bind(gold: int, stock: Array, party: Array = [], p_mode: StringName = &"") 
 		if b.disabled:
 			b.text += Texts.s(&"PAREN_FMT") % Texts.s(&"HUB_NO_GOLD").trim_suffix("。").trim_suffix(".")
 		b.custom_minimum_size = Vector2(0, 40)
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART # 长货名换行，不把弹层撑出屏幕
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		var iid := str(it.get("id", ""))
 		ArtLoader.decorate_item_button(b, iid, it)
 		b.pressed.connect(func() -> void: buy_requested.emit(iid))

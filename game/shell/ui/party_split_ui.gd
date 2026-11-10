@@ -30,7 +30,7 @@ var _divide: Dictionary = {}
 var _assign: Dictionary = {} # {groups:[{id,label,min,max,requires}], roster:[{id,name}], assign:{gid:[cid]}} # {groups:[{id,label}], items:[{id,name,count}], assign:{gid:{iid:n}}}
 var _pane_gid := ""
 
-static func _sheet_style() -> StyleBoxFlat:
+static func _sheet_style() -> StyleBox:
 	return Palette.sheet_style()
 
 func _init() -> void:

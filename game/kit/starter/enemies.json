@@ -11,7 +11,8 @@
       "might": 1,
       "finesse": 1,
       "wits": 0
-    }
+    },
+    "attack_fx": "slash"
   },
   {
     "id": "wolf",
@@ -39,6 +40,7 @@
       "might": 0,
       "finesse": 1,
       "wits": 0
-    }
+    },
+    "attack_fx": "lance"
   }
 ]

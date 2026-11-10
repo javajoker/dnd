@@ -72,7 +72,6 @@ var _history_origin: StringName = &"home"
 var _shot_driver: RefCounted = null # tools/shot_driver.gd（仅命令行截图旗标时加载）
 
 func _ready() -> void:
-	_setup_cjk_font()
 	var args := OS.get_cmdline_user_args()
 	_cli_mode = ShellRouter.cli_mode(args) if args.has("--mode=space") or args.has("--mode=time") else &""
 	var shots: Script = null
@@ -98,6 +97,8 @@ func _ready() -> void:
 			GameManifest.override_path = packs_root.path_join("_game/game.json")
 			GameManifest.reset()
 			Texts.clear_cache()
+	_setup_cjk_font() # 主题在 --packs-root 之后构建：换游戏的调色板 / 字体进主题（tech/07 §3）
+	UiFx.install(get_tree()) # UI 动效：按钮回弹 / 标题样式 / 弹层入场（tech/05 §10）
 	# 界面语言（tech/01 E-5）：玩家偏好 → 系统语言；内容包按同一语言加载文本
 	Texts.set_locale(Texts.detect_locale(UiSettings.load_locale()))
 	PackLoader.locale = Texts.locale

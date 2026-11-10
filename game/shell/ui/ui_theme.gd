@@ -48,6 +48,7 @@ static func apply(root: Window = null) -> bool:
 		theme.set_color("font_pressed_color", "Button", Palette.color("accent"))
 		theme.set_color("font_hover_color", "Button", Palette.color("accent"))
 		theme.set_color("font_disabled_color", "Button", Palette.color("muted"))
+		UiKit.build(theme) # 游戏化 UI 套件：全部控件九宫格框体 / 标题 / 横幅 / 滑条 / 滚动条（tech/05 §10）
 		theme_res = theme
 		if root != null:
 			root.theme = theme
@@ -64,6 +65,15 @@ static func apply(root: Window = null) -> bool:
 			ThemeDB.fallback_font = sys
 			return false
 	return false
+
+## 标题字体（游戏清单 theme.title_font；缺省 = 正文粗体变体）。
+static func title_font() -> Font:
+	var p := str((GameManifest.data().get("theme", {}) as Dictionary).get("title_font", ""))
+	if p != "":
+		var f := _load(p)
+		if f != null:
+			return f
+	return bold
 
 static func _load(path: String) -> FontFile:
 	if path.begins_with("res://") and ResourceLoader.exists(path):

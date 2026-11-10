@@ -13,7 +13,7 @@ const FLAGS := {
 	"--font-shot": "_run_shot_font", "--trans-shots": "_run_shots_trans", "--lock-shot": "_run_shot_lock",
 	"--loadout-shots": "_run_shots_loadout", "--dice-shots": "_run_shots_dice",
 	"--map-shots": "_run_shots_map", "--split-shots": "_run_shots_split", "--hero-shots": "_run_shots_hero",
-	"--icon-shots": "_run_shots_icons", "--camp-shots": "_run_shots_camp",
+	"--icon-shots": "_run_shots_icons", "--camp-shots": "_run_shots_camp", "--fx-shots": "_run_shots_fx",
 }
 const SHOT_SEED := 20260009 # 固定种子：截图路径确定（主线两次检定均为成功路）
 
@@ -658,6 +658,42 @@ func _run_shots_camp() -> void:
 	await _shot("/tmp/camp_used_%s.png" % tag)
 	m.get_tree().quit()
 
+## 动作动画 + 技能特效（ActionFx）：`-- --locale=en --fx-shots [--landscape]` → /tmp/fx_<n>_<form>.png
+## 真实战斗里向特效层投喂演示事件（纯呈现，不进事件流），在动画中段取帧。
+func _run_shots_fx() -> void:
+	var land := OS.get_cmdline_user_args().has("--landscape")
+	var tag := "land" if land else "port"
+	await m.get_tree().create_timer(0.8).timeout
+	m._on_home_navigate(&"entry")
+	await m.get_tree().create_timer(0.3).timeout
+	var entry := m.current_screen as ScreenEntry
+	entry.pick_mode(ShellRouter.MODE_SPACE if land else ShellRouter.MODE_TIME)
+	entry.start_requested.emit()
+	await m.get_tree().create_timer(0.5).timeout
+	m.graph._enter("N1-7")
+	m._present_node()
+	await m.get_tree().create_timer(0.5).timeout
+	(m.current_screen as ScreenLoadout)._on_confirm()
+	await m.get_tree().create_timer(2.6).timeout
+	var fx: ActionFx = m.shell.action_fx
+	var foes: Array = fx.units_of.call(&"enemy")
+	var demos := [
+		["slash", {"type": EventTypes.BATTLE_ATTACK, "payload": {"attacker": "pc", "target": foes[0], "skill": "slash", "hit": true}}, 0.16],
+		["bolt", {"type": EventTypes.BATTLE_ATTACK, "payload": {"attacker": "kelan", "target": foes[1], "skill": "kelan_bolt", "hit": true}}, 0.2],
+		["heal", {"type": EventTypes.LOG, "payload": {"msg_key": "MSG_SKILL_HEAL", "unit": "kelan", "target": "pc", "skill": "kelan_mend"}}, 0.3],
+		["burst", {"type": EventTypes.SKILL_USE, "payload": {"unit": foes[0], "skill": "ink_rain", "source": &"enemy"}}, 0.3],
+		["claw", {"type": EventTypes.BATTLE_ATTACK, "payload": {"attacker": foes[0], "target": "laofei", "skill": "", "hit": true}}, 0.18],
+	]
+	var i := 0
+	for d: Array in demos:
+		i += 1
+		fx.on_event(d[1])
+		await m.get_tree().create_timer(float(d[2])).timeout
+		await _shot_raw("/tmp/fx_%d_%s_%s.png" % [i, d[0], tag])
+		await m.get_tree().create_timer(0.7).timeout
+	print("[shots] fx stats=", fx.stats)
+	m.get_tree().quit()
+
 func _run_shots_map() -> void:
 	var land := OS.get_cmdline_user_args().has("--landscape")
 	var tag := "land" if land else "port"
@@ -722,6 +758,12 @@ func _run_shots_split() -> void:
 		if str((edges[i] as Dictionary).get("type", "")) == "split":
 			m._on_story_edge(i)
 	await m.get_tree().create_timer(0.5).timeout
+	if m.shell.party_ui.is_assigning(): # 自选分组（P6.1 assign: player）：先截分组表，再按默认分组确认
+		if m.shell.tutorial.is_hint_visible():
+			m.shell.tutorial._dismiss_hint()
+		await _shot("/tmp/split_assign_%s.png" % tag)
+		(m.shell.find_child("AssignDone", true, false) as Button).pressed.emit()
+		await m.get_tree().create_timer(0.5).timeout
 	if m.shell.tutorial.is_hint_visible():
 		m.shell.tutorial._dismiss_hint()
 	await _shot("/tmp/split_divide_%s.png" % tag)

@@ -100,6 +100,67 @@ Shown in the inventory, loadout, camp shop and battle quickbar (tech/05 §7.2). 
 | `longsword` *(starter kit)* | plain steel longsword with a leather grip |
 | `riddle_page` *(Riddle Maze)* | parchment page with a spiral puzzle glyph |
 
+### 3.4 UI kit frames (`ui/`, 9-slice) — optional, the game draws its own from the palette
+
+Each file replaces the generated frame of the same name (tech/05 §10). Draw **one square frame per file**, centred, with flat, even edges so it stretches cleanly; ornaments only in the corners (the corners are not stretched). Transparent outside the frame. Keep text-free.
+
+| File | Size | Corner margin | Prompt (after the style prefix) |
+|---|---|---|---|
+| `ui_button.png` | 48×48 (draw at 192, downscale) | 14 | game UI button frame, dark ink-blue gradient fill, thin double gold-ink border, tiny gold diamond studs in the four corners, flat straight edges, no text, transparent background |
+| `ui_button_hover.png` | 48×48 | 14 | same frame, slightly lighter fill, brighter gold border with a soft outer glow (glow inside the 3 px padding) |
+| `ui_button_pressed.png` | 48×48 | 14 | same frame pressed in: darker fill with an inner shadow at the top, bright gold border |
+| `ui_button_disabled.png` | 48×48 | 14 | same frame greyed out: grey fill, faded grey border, no studs |
+| `ui_panel.png` | 96×96 (draw at 384) | 26 | ornate dark panel frame, deep ink gradient fill, double gold-ink border with an inner hairline, gold filigree corner ornaments with a small diamond, plain straight edges between corners |
+| `ui_sheet.png` | 96×96 | 26 | bottom-sheet frame: rounded top corners with gold filigree, square bottom edge with no border, deep ink fill |
+| `ui_toast.png` | 64×64 | 22 | ribbon banner frame, pill shape, dark fill, gold border, small notches at both ends |
+| `ui_field.png`, `ui_tooltip.png` | 32×32 | 10 | simple inset field frame, very dark fill, thin gold border |
+| `ui_track.png` / `ui_fill.png` / `ui_grabber.png` | 16×16 | 7 | slider track (dark groove, faint gold rim) / filled part (gold gradient) / scroll grabber (translucent gold pill) |
+
+**Fonts** (`theme.title_font`): pick an openly licensed display face (SIL Open Font License) for titles — a classical serif in the spirit of carved inscriptions or old book titles works with this world; check it covers every character your locales need (the body font stays Noto Sans SC for Chinese). Put the file in `game/assets/fonts/` with its licence text, and set `"title_font": "res://assets/fonts/<file>"` in `packs/_game/game.json`.
+
+### 3.5 Unit action animations (`anims/`, sprite strips) — optional
+
+The game animates a still portrait procedurally (tech/05 §9); a strip replaces that for one unit and one action. Format: **one horizontal strip of square frames**, frame size = image height (256 px recommended), **8–12 frames**, transparent background, the character centred and the same scale in every frame, feet on the same baseline. File `anim_<art id>_<action>.png` where `<art id>` is the unit's art id (`ink_fiend`, `companion_kelan`, `class_scavenger` …) and `<action>` ∈ `lunge`, `cast`, `throw`, `hop`, `brace`, `down`, `revive`.
+
+Generic prompt (image tools that make sprite sheets, e.g. a model fine-tuned for sprite sheets, or generate frames one by one with a fixed seed and the same reference image):
+
+```
+[style prefix] sprite sheet, 10 frames in one horizontal row, same character in every frame: <character description from §3.1/§3.2>, performing <action>: <action description>, consistent proportions and lighting, transparent background, no text
+```
+
+| Action | Description to insert |
+|---|---|
+| `lunge` | steps forward and strikes with the weapon, then recovers to the start pose |
+| `cast` | raises a hand or quill, a glow gathers, releases forward, returns |
+| `throw` | winds up and throws an object forward, follow-through, returns |
+| `hop` | small hop forward and lands with a slight squash |
+| `brace` | plants feet and raises guard or shield, holds, relaxes |
+| `down` | staggers and collapses to the ground, ends lying still |
+| `revive` | pushes up from the ground to standing, a faint golden glow |
+
+Tip: if the tool can't keep the character consistent, generate the key poses (start / peak / end) and in-between with an interpolation tool, then lay them out in a strip.
+
+### 3.6 Skill effects (`fx/`, sprite strips) — optional
+
+Format as §3.5 (horizontal strip of square frames, 256 px, 8–16 frames, transparent background, **effect centred**, additive-looking glow on black is fine if your tool can't do transparency — remove the black with a "screen" blend or a luminance key). File `fx_<name>.png`.
+
+| File | Prompt (after "game VFX sprite sheet, N frames in one row, transparent background, no text,") |
+|---|---|
+| `fx_slash.png` | a curved white-gold blade slash arc sweeping across, ink droplets trailing |
+| `fx_stab.png` | a quick straight thrust streak with a spark burst at the tip |
+| `fx_claw.png` | three parallel violet-black ink claw marks raking diagonally |
+| `fx_smash.png` | a heavy impact shockwave ring with radiating cracks and dust |
+| `fx_bolt.png` | a glowing violet ink orb with a short trailing tail, then a small burst |
+| `fx_lance.png` | a narrow violet ink spear of light, then a piercing flash |
+| `fx_arc.png` | a splash of sea water bursting outward in droplets (the thrown-bomb impact) |
+| `fx_burst.png` | an expanding ring of dark violet ink with droplets flung outward |
+| `fx_wave.png` | a black ink tide wave rising and crashing forward |
+| `fx_heal.png` | soft green-gold sparkles and small crosses rising, a gentle ring |
+| `fx_shield.png` | a hexagonal gold-ink barrier forming, pulsing once, fading |
+| `fx_smoke.png` | a grey smoke puff expanding and thinning out |
+| `fx_summon.png` | a swirling dark portal of ink opening on the ground |
+| `fx_aura.png` | rising red-gold streaks around a figure's silhouette area, empowering aura |
+
 ## 4. Scenes and maps
 
 Delivery: opaque PNG/JPG. Portrait **1080×1920** (time form), landscape **1920×1080** (space form). Keep the edges calm — screens crop with "cover" scaling.
@@ -209,5 +270,6 @@ Common prompt suffix: *"instrumental, no vocals, seamless loop, game background 
 ```
 
   The art test checks every `art_ref` resolves, sizes and transparency; the audio test checks sample rate and **length windows** — if a new track is longer than the window in `test_audio` (`expects` in `game/tests/run.gd`), widen that window in the same change.
+- [ ] For animations and UI frames: `--fx-shots` (effects mid-animation, add `--landscape`), `--camp-shots`, `--split-shots`, `--home-shot` show the UI kit on real screens.
 - [ ] Look at it in context: `godot --path game -- --locale=en --hero-shots` (class portraits), `--icon-shots` (item icons), `--home-shot` (home art), `--map-shots` (maps; add `--landscape` for the space form), `--m3-shots` (battle units); images land in `/tmp`.
 - [ ] Add the asset to the log (§1) and keep the placeholder generator unchanged (it stays the fallback for new games).

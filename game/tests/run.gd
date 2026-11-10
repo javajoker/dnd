@@ -105,6 +105,8 @@ func _async_shell_tests() -> void:
 	await test_dice_tray()
 	await test_juice()
 	await test_audio()
+	await test_action_fx()
+	await test_ui_kit()
 	await test_landscape_story()
 	await test_shell_diff()
 	await test_cosmetic_neutral()
@@ -1992,6 +1994,162 @@ func test_audio() -> void:
 			check(w.get_length() >= float(r[0]) and w.get_length() <= float(r[1]),
 				"%s 时长 %.2fs ∈ [%.1f, %.1f]" % [String(asset_name), w.get_length(),
 					float(r[0]), float(r[1])])
+
+# ---------------------------------------------------------------- 角色动作动画 + 技能特效（ActionFx）
+
+func test_action_fx() -> void:
+	print("[action_fx]")
+	# ---- 特效推断：数据优先，形态兜底 ----
+	check(ActionFx.resolve_fx({"fx": "lance", "attr": "wits"}) == "lance", "fx 声明优先")
+	check(ActionFx.resolve_fx({"kind": "attack", "attr": "wits"}) == "bolt"
+		and ActionFx.resolve_fx({"kind": "attack", "attr": "finesse"}) == "stab"
+		and ActionFx.resolve_fx({"kind": "attack", "attr": "might"}) == "slash", "攻击按属性推断：智 bolt / 敏 stab / 力 slash")
+	check(ActionFx.resolve_fx({"kind": "utility", "heal": "1d8"}) == "heal" and ActionFx.resolve_fx({"kind": "utility"}) == "shield"
+		and ActionFx.resolve_fx({"kind": "aoe", "save": {}}) == "burst" and ActionFx.resolve_fx({}, &"enemy") == "claw",
+		"治疗 heal / 辅助 shield / 范围 burst / 敌方普攻 claw")
+	check(ActionFx.resolve_fx({"fx": "nonsense", "attr": "might"}) == "slash", "未知 fx 回落形态推断")
+	check(ActionFx.action_for("slash") == "lunge" and ActionFx.action_for("bolt") == "cast"
+		and ActionFx.action_for("arc") == "throw" and ActionFx.action_for("shield") == "brace", "特效 → 施放者动作")
+	check(ActionFx.skill_in_unit({"skills": [{"id": "x", "fx": "bolt"}]}, "x")["fx"] == "bolt"
+		and ActionFx.skill_in_unit({"attack_fx": "smash"}, "")["fx"] == "smash", "单位内查技能 / 普攻 attack_fx")
+	# ---- 播出：替身动画期间真身透明，播完还原；区域技覆盖我方全员 ----
+	var fx := ActionFx.new()
+	root.add_child(fx)
+	var alpha := {}
+	var units := {"pc": [&"party", Vector2(100, 400)], "kelan": [&"party", Vector2(200, 400)],
+		"imp": [&"enemy", Vector2(150, 100)]}
+	fx.anchor_of = func(uid: String) -> Vector2: return units[uid][1] if units.has(uid) else Vector2.ZERO
+	fx.rect_of = func(uid: String) -> Rect2: return Rect2(Vector2(units[uid][1]) - Vector2(40, 40), Vector2(80, 80))
+	fx.art_ref_of = func(uid: String) -> String: return "portraits/player_blank" if uid == "pc" else ("units/ink_imp" if uid == "imp" else "")
+	fx.side_of = func(uid: String) -> StringName: return units[uid][0]
+	fx.units_of = func(side: StringName) -> Array: return units.keys().filter(func(k: String) -> bool: return units[k][0] == side)
+	fx.skill_def_of = func(_uid: String, sid: String) -> Dictionary: return {"kind": "aoe", "save": {}, "fx": "burst"} if sid == "ink_rain" else {}
+	fx.art_alpha = func(uid: String, a: float) -> void: alpha[uid] = a
+	fx.on_event({"type": EventTypes.BATTLE_ATTACK, "payload": {"attacker": "pc", "target": "imp", "skill": "", "hit": true}})
+	await process_frame
+	await process_frame
+	check(fx.last_actions.back()["action"] == "lunge" and fx.last_fx.back()["fx"] == "slash", "普攻：扑击动作 + 斩击特效")
+	check(fx.is_hidden("pc") and float(alpha.get("pc", 1.0)) == 0.0, "替身在演：真身美术透明")
+	await create_timer(0.6).timeout
+	check(not fx.is_hidden("pc") and float(alpha.get("pc", 0.0)) == 1.0, "动画结束：真身美术还原")
+	fx.on_event({"type": EventTypes.BATTLE_ATTACK, "payload": {"attacker": "kelan", "target": "imp", "skill": "", "hit": true}})
+	await process_frame
+	await process_frame
+	await process_frame
+	check(not fx.is_hidden("kelan") and fx.last_fx.back()["from"] == "kelan", "无美术的单位：只播特效，不出替身")
+	var before := int(fx.stats["fx"])
+	fx.on_event({"type": EventTypes.SKILL_USE, "payload": {"unit": "imp", "skill": "ink_rain", "source": &"enemy"}})
+	await process_frame
+	await process_frame
+	var bursts: Array = fx.last_fx.filter(func(r: Dictionary) -> bool: return str(r["fx"]) == "burst")
+	check(int(fx.stats["fx"]) > before and bursts.size() == 2
+		and bursts.map(func(r: Dictionary) -> String: return str(r["to"])).has("kelan"), "敌方范围技：我方每人一个爆发特效")
+	fx.on_event({"type": EventTypes.LOG, "payload": {"msg_key": "MSG_SKILL_HEAL", "unit": "kelan", "target": "pc", "skill": ""}})
+	fx.on_event({"type": EventTypes.ITEM_USE, "payload": {"unit": "pc", "target": "imp", "item": "tide_bomb", "thrown": true}})
+	fx.on_event({"type": EventTypes.BATTLE_DOWN, "payload": {"unit": "pc"}})
+	await process_frame
+	await process_frame
+	var kinds: Array = fx.last_fx.map(func(r: Dictionary) -> String: return str(r["fx"]))
+	var acts: Array = fx.last_actions.map(func(r: Dictionary) -> String: return str(r["action"]))
+	check(kinds.has("heal") and kinds.has("arc") and acts.has("throw") and acts.has("down"), "治疗 / 投掷弧线 / 倒地 各有演出")
+	fx.reset()
+	check(not fx.is_hidden("pc") and float(alpha["pc"]) == 1.0 and not fx.is_busy(), "换局 reset：清空并还原真身")
+	fx.queue_free()
+	# ---- 纯呈现：挂上特效层，同种子同指令事件流逐字节一致 ----
+	var json_a: String = await _run_battle_with_fx(false)
+	var json_b: String = await _run_battle_with_fx(true)
+	check(json_a == json_b and json_a.length() > 100, "特效层接入前后事件流逐字节一致（纯呈现零污染）")
+
+func _run_battle_with_fx(with_fx: bool) -> String:
+	var sd: GDScript = load("res://tools/shell_diff.gd")
+	var stream := EventStream.new()
+	var board := Board.new(stream)
+	var sm := EncounterSM.new(board, stream, Rng.new(20261109), "campaign01")
+	var fx: ActionFx = null
+	if with_fx:
+		fx = ActionFx.new()
+		root.add_child(fx)
+		fx.anchor_of = func(_u: String) -> Vector2: return Vector2(100, 100)
+		fx.side_of = func(u: String) -> StringName: return StringName(sm.get_unit(u).get("side", &"party"))
+		fx.skill_def_of = func(u: String, sid: String) -> Dictionary: return ActionFx.skill_in_unit(sm.get_unit(u), sid)
+		stream.subscribe(fx.on_event)
+	sm.enter("N1-7")
+	sm.transition(EncounterSM.S_EXPLORE)
+	sm.begin_combat(sd.battle_def())
+	var agent := AutoAgent.new()
+	var guard := 0
+	while not sm.is_over() and guard < 300:
+		guard += 1
+		var cmd := agent.next_command(sm)
+		if cmd.is_empty():
+			break
+		sm.submit_command(cmd)
+		if guard % 10 == 0:
+			await process_frame
+	if fx != null:
+		fx.queue_free()
+	return JSON.stringify(stream.all())
+
+# ---------------------------------------------------------------- 游戏 UI 套件 + UI 动效（UiKit / UiFx）
+
+func test_ui_kit() -> void:
+	print("[ui_kit]")
+	var img := UiKit.render("button")
+	check(img.get_width() == 48 and img.get_pixel(0, 0).a < 0.05 and img.get_pixel(24, 24).a > 0.95,
+		"按钮框体：九宫格纹理（圆角外透明、中心实底）")
+	var mid := img.get_pixel(24, 4)
+	check(mid.a > 0.5, "按钮框体：边框可见")
+	var sheet := UiKit.render("sheet")
+	check(sheet.get_pixel(1, sheet.get_height() - 1).a > 0.9 and sheet.get_pixel(0, 0).a < 0.1, "弹层底板：上圆角、下直角（贴屏幕下沿）")
+	var th := Theme.new()
+	UiKit.build(th)
+	check(th.get_stylebox("normal", "Button") is StyleBoxTexture and th.get_stylebox("pressed", "Button") is StyleBoxTexture
+		and th.get_stylebox("disabled", "Button") is StyleBoxTexture, "主题：按钮四态九宫格")
+	check(th.has_stylebox("panel", "PanelContainer") and th.has_stylebox("grabber", "VScrollBar")
+		and th.has_icon("grabber", "HSlider") and th.has_stylebox("fill", "ProgressBar"), "主题：面板 / 滚动条 / 滑条 / 进度条")
+	check(th.is_type_variation(&"TitleLabel", &"Label") and th.is_type_variation(&"ToastLabel", &"Label")
+		and th.get_stylebox("normal", "ToastLabel") is StyleBoxTexture, "主题：标题 / 横幅变体")
+	check(th.get_stylebox("panel", "PanelContainer").get_minimum_size() == Vector2(8, 8),
+		"默认面板内容边距收窄（不改变既有布局最小尺寸）")
+	check(Palette.sheet_style().has_meta(&"ui_sheet"), "弹层底板带 ui_sheet 标记（UiFx 入场动画）")
+	# ---- UiFx：加入树即生效 ----
+	UiFx.install(self)
+	var host := Control.new()
+	var title := Label.new()
+	title.add_theme_font_size_override("font_size", 24)
+	var body := Label.new()
+	var colored := Label.new()
+	colored.add_theme_font_size_override("font_size", 24)
+	colored.add_theme_color_override("font_color", Color.RED)
+	var b := Button.new()
+	b.size = Vector2(100, 40)
+	host.add_child(title)
+	host.add_child(body)
+	host.add_child(colored)
+	host.add_child(b)
+	root.add_child(host)
+	await process_frame
+	check(title.theme_type_variation == &"TitleLabel" and body.theme_type_variation == &""
+		and colored.theme_type_variation == &"", "大字号标签自动成标题；正文 / 自定颜色的不动")
+	b.button_down.emit()
+	await create_timer(0.1).timeout
+	check(b.scale.x < 0.99, "按钮按下：缩小")
+	b.button_up.emit()
+	await create_timer(0.25).timeout
+	check(absf(b.scale.x - 1.0) < 0.01, "按钮松开：回弹到 1")
+	var sheet_panel := PanelContainer.new()
+	sheet_panel.add_theme_stylebox_override("panel", Palette.sheet_style())
+	sheet_panel.visible = false
+	host.add_child(sheet_panel)
+	await process_frame
+	var ins := int(UiFx.stats["sheet_ins"])
+	sheet_panel.visible = true
+	await process_frame
+	check(int(UiFx.stats["sheet_ins"]) == ins + 1 and sheet_panel.modulate.a < 1.0, "弹层显现：入场动画（淡入 + 弹起）")
+	await create_timer(0.3).timeout
+	check(absf(sheet_panel.modulate.a - 1.0) < 0.01 and absf(sheet_panel.scale.y - 1.0) < 0.01, "入场动画结束归位")
+	host.queue_free()
+	await process_frame
 
 ## 无壳脚本化遭遇（与 _run_battle_with_juice 同种子/同指令序列风格）；
 ## with_audio=true 时挂 AudioManager 订阅事件流——纯呈现消费，不触碰 core。

@@ -317,6 +317,8 @@ static func _build_enemy_unit(inst_id: String, def: Dictionary, enemies: Diction
 	}
 	if def.has("art_ref"): # art_ref 纯呈现透传（tech/05 §6）
 		unit["art_ref"] = str(def["art_ref"])
+	if def.has("attack_fx"): # 普攻特效纯呈现透传（ActionFx；缺省按阵营推断）
+		unit["attack_fx"] = str(def["attack_fx"])
 	var unit_skills: Array = []
 	for sk: Variant in def.get("skills", []):
 		var s: Dictionary = sk
@@ -330,6 +332,9 @@ static func _build_enemy_unit(inst_id: String, def: Dictionary, enemies: Diction
 			out["uses"] = int(s["uses"])
 		if s.has("cooldown"):
 			out["cooldown"] = int(s["cooldown"])
+		for fk2: String in ["fx", "fx_color"]: # 技能特效纯呈现透传（ActionFx）
+			if s.has(fk2):
+				out[fk2] = str(s[fk2])
 		if s.has("save"):
 			var sv: Dictionary = s["save"]
 			out["save"] = {"attr": str(sv.get("attr", "finesse")), "dc": int(sv.get("dc", 12)),
@@ -401,6 +406,9 @@ static func runtime_skill(s: Dictionary) -> Dictionary:
 		out["heal"] = str(s["heal"]) # 治疗技能（utility + heal 骰）
 	if bool(s.get("adv", false)):
 		out["adv"] = true # 攻击自带优势（如偷袭）
+	for fk: String in ["fx", "fx_color"]: # 技能特效纯呈现透传（ActionFx；core 不读）
+		if s.has(fk):
+			out[fk] = str(s[fk])
 	if s.has("save"):
 		out["save"] = (s["save"] as Dictionary).duplicate(true)
 	return out

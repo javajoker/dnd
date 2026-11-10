@@ -162,7 +162,7 @@ func _hit_feedback(spec: Dictionary) -> void:
 	var home: Vector2 = node.get_meta(&"juice_home", node.position)
 	node.set_meta(&"juice_home", home)
 	stats["knockbacks"] += 1
-	var prev: Variant = node.get_meta(&"juice_kb", null)
+	var prev: Variant = node.get_meta(&"juice_kb") if node.has_meta(&"juice_kb") else null
 	if prev is Tween and (prev as Tween).is_valid():
 		(prev as Tween).kill() # 新击退接管：旧击退不再写位置
 	var ktw := node.create_tween()

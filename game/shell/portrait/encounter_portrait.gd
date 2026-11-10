@@ -87,6 +87,7 @@ var key_dice_label: Label
 var key_result_label: Label
 var dice3d: Dice3D                   # 关键判定 3D 物理演出层（14 清单 #2；结果由事件流给定）
 var juice: JuiceLayer                # 打击感三件套 + 屏幕震动（14 清单 #3/#4；纯呈现消费事件流）
+var action_fx: ActionFx               # 角色动作动画 + 技能特效（替身 + 程序化特效；纯呈现）
 var camera: BattleCamera             # 战斗跟随镜头与关键推拉（14 清单 #8；纯呈现消费同一事件流）
 var shake_button: Button             # ☰ 菜单内震动开关（14 #4：UI 偏好不写状态板，12 §5 同机制）
 var audio_settings_path := UiSettings.PATH # ☰ 音量三档滑条设置路径（14 #5；测试可注入隔离文件）
@@ -213,6 +214,9 @@ func _build_ui() -> void:
 	flash_label = Label.new()
 	flash_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	flash_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.4))
+	flash_label.theme_type_variation = &"ToastLabel" # 横幅提示（UI 套件丝带底板，tech/05 §10）
+	flash_label.size_flags_horizontal = Control.SIZE_SHRINK_CENTER # 丝带贴合文字宽度
+	flash_label.modulate = Color(1, 1, 1, 0)
 	main_v.add_child(flash_label)
 	party_row = HBoxContainer.new()
 	party_row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -253,6 +257,7 @@ func _build_ui() -> void:
 	dice_detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	dice_detail.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	dice_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	dice_detail.custom_minimum_size = Vector2(140, 0) # 未排版（壳隐藏）时不塌成 1px 宽逐字换行，把操作台撑高
 	dice_detail.text = Texts.s(&"DICE_STRIP_IDLE")
 	dice_strip.add_child(dice_detail)
 	log_view = RichTextLabel.new()
@@ -303,6 +308,31 @@ func _build_ui() -> void:
 	juice.unit_node_of = func(uid: String) -> Control: return _find_unit_node(uid)
 	juice.shake_target = self # 屏幕震动 = 整壳位移（呈现层，不进事件流）
 	add_child(juice)
+	# 角色动作动画 + 技能特效（ActionFx：替身动画 + 程序化特效；纯呈现消费同一事件流）
+	action_fx = ActionFx.new()
+	action_fx.name = "ActionFx"
+	action_fx.anchor_of = juice.anchor_of
+	action_fx.rect_of = func(uid: String) -> Rect2:
+		var n := _find_unit_node(uid)
+		return n.get_global_rect() if n != null else Rect2()
+	action_fx.art_ref_of = func(uid: String) -> String:
+		return str(sm.get_unit(uid).get("art_ref", "")) if sm != null and sm.get_units().has(uid) else ""
+	action_fx.side_of = func(uid: String) -> StringName:
+		return StringName(sm.get_unit(uid).get("side", &"party")) if sm != null and sm.get_units().has(uid) else &"party"
+	action_fx.units_of = func(side: StringName) -> Array:
+		var out: Array = []
+		if sm != null:
+			for id: String in sm.get_units():
+				var uu: Dictionary = sm.get_unit(id)
+				if StringName(uu["side"]) == side and not bool(uu["dead"]):
+					out.append(id)
+		return out
+	action_fx.skill_def_of = func(uid: String, sid: String) -> Dictionary:
+		return ActionFx.skill_in_unit(sm.get_unit(uid), sid) if sm != null and sm.get_units().has(uid) else {}
+	action_fx.art_alpha = func(uid: String, a: float) -> void: ActionFx.unit_art_alpha(_find_unit_node(uid), a)
+	action_fx.item_icon_of = func(iid: String) -> Texture2D: return ArtLoader.item_icon(iid)
+	add_child(action_fx)
+
 	dice_tray = DiceTray.new() # 托盘档多骰：主视野下段，不拦截输入（17 §3）
 	dice_tray.anchor_left = 0.0
 	dice_tray.anchor_right = 1.0
@@ -655,6 +685,7 @@ func bind(p_sm: EncounterSM, p_agent: AutoAgent) -> void:
 	_stream = sm.stream
 	_stream.subscribe(_on_event)
 	juice.reset() # 新遭遇清零消散名单与计数（14 #3/#4）
+	action_fx.reset()
 	camera.reset() # 镜头随新遭遇归零（14 #8：对焦/让位状态不跨场残留）
 	show_combat_layout() # 故事态 → 战斗态：同一壳内布局切换（04 §④.1 呼吸随状态切换）
 	_restore_breathing()
@@ -683,6 +714,9 @@ func _on_event(ev: Dictionary) -> void:
 	var t := StringName(ev["type"])
 	if juice != null:
 		juice.on_event(ev) # 打击感/震动：纯呈现消费同一事件流（14 #3/#4）
+	if action_fx != null and not _story and sm != null:
+		action_fx.time_scale = float(speed) if auto_on else 1.0
+		action_fx.on_event(ev) # 动作动画 / 技能特效（纯呈现）
 	if dice_tray != null:
 		dice_tray.settings_path = audio_settings_path
 		dice_tray.palette = _dice_palette()
@@ -1189,6 +1223,8 @@ func _unit_button(u: Dictionary) -> Button:
 		b.add_theme_constant_override("shadow_offset_x", 1)
 		b.add_theme_constant_override("shadow_offset_y", 1)
 	b.set_meta("unit_id", str(u["id"])) # 手势命中测试（12 §3.1 起点定语义）
+	if action_fx != null and action_fx.is_hidden(str(u["id"])):
+		ActionFx.unit_art_alpha(b, 0.0) # 替身动画进行中：真身美术透明
 	if juice != null and juice.is_dissolved(str(u["id"])):
 		b.visible = false # 已消散单位保持隐去（14 #3：击杀 = 消散，而非瞬间消失后重建复活）
 	if bool(u["dead"]):
@@ -1232,8 +1268,10 @@ func _log_line(text: String) -> void:
 func _flash(text: String) -> void:
 	flash_label.text = text
 	flash_label.modulate = Color(1, 1, 1, 1)
+	UiFx.pop(flash_label)
 	var tw := create_tween()
-	tw.tween_property(flash_label, "modulate:a", 0.25, 1.2)
+	tw.tween_interval(1.0)
+	tw.tween_property(flash_label, "modulate:a", 0.0, 1.2) # 丝带横幅停留后淡出（全文留在日志）
 
 func _unit_name(id: String) -> String:
 	if sm == null:

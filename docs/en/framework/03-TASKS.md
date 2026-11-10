@@ -242,8 +242,13 @@ Goal: turn the framework into a reusable D&D-style engine — new narrative game
 - [x] Prompt pack for external AI tools (portraits, units, item icons, home art, map backgrounds, act scenes, store art, BGM, SFX) — `docs/en/tech/08-asset-prompts.md`
 - [x] Map / site background images (`maps.json` `background` with a grid `frame`, doc 16 §6; packlint V19) and item icons on every item list (inventory, loadout, shop, battle quickbar; tech/05 §7.2); procedural placeholders for all of them
 
+### 6.6 Animation and game UI
+- [x] Character action animation (lunge / cast / throw / hop / brace / down / revive) and skill effects (14 kinds) — `ActionFx`, data `fx` / `attack_fx`, packlint V22, optional sprite strips (tech/05 §9)
+- [x] Game UI kit for every control (palette-generated 9-slice frames, title / toast variations, optional title font and art overrides) and UI motion (button press, sheet pop-in, toast pop) — `UiKit` / `UiFx` (tech/05 §10)
+- [x] Prompts for sprite strips, effect strips and a hand-drawn UI kit (tech/08 §3.4–§3.6)
+
 ### 6.5 Owner actions (outside the code)
-- [ ] Generate final art and music with the prompt pack (tech/08) and replace the placeholders file by file
+- [ ] Generate final art and music with the prompt pack (tech/08) and replace the placeholders file by file (incl. optional animation / effect strips, UI frames and a title font)
 - [ ] Store accounts, signing, devices, billing adapters (tech/06; `docs/en/store/`)
 - [ ] Human playtest of the three classes and four backgrounds (feel, not just win rates); localisation review of the new English text
 

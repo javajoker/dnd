@@ -82,6 +82,7 @@ static func lint(pack: Dictionary, registry: Dictionary = {}) -> Array:
 	issues.append_array(_v19_maps(pack))
 	issues.append_array(_v20_tables(pack))
 	issues.append_array(_v21_outcome_refs(pack))
+	issues.append_array(_v22_fx(pack))
 	return issues
 
 static func has_failures(issues: Array) -> bool:
@@ -1222,6 +1223,34 @@ static func _v19_background(issues: Array, label: String, def: Dictionary, key: 
 				issues.append({"v": "V19", "level": LEVEL_WARN, "msg": "%s 的 %s 落在 background.frame 之外" % [label, str((p as Dictionary).get("id", "?"))]})
 	if not FileAccess.file_exists(ArtLoader.path_for(ref, int((bg as Dictionary).get("tier", 1080)))):
 		issues.append({"v": "V19", "level": LEVEL_WARN, "msg": "%s 背景图缺文件（%s，运行时退回程序化底）" % [label, ref]})
+
+# ---------------------------------------------------------------- V22 特效名（ActionFx，tech/05 §9）
+
+## skills.json / enemies.json 的 fx / attack_fx 须为已知特效名（未知 = WARN：运行时按形态推断兜底）。
+static func _v22_fx(pack: Dictionary) -> Array:
+	var issues: Array = []
+	var n := 0
+	for sid: String in (pack.get("skills", {}) as Dictionary).keys():
+		var sk: Dictionary = pack["skills"][sid]
+		if sk.has("fx"):
+			n += 1
+			if not ActionFx.FX_KINDS.has(str(sk["fx"])):
+				issues.append({"v": "V22", "level": LEVEL_WARN, "msg": "技能 %s 的 fx '%s' 未知（可用：%s）" % [sid, str(sk["fx"]), ", ".join(ActionFx.FX_KINDS)]})
+	for eid: String in (pack.get("enemies", {}) as Dictionary).keys():
+		var en: Dictionary = pack["enemies"][eid]
+		var refs: Array = []
+		if en.has("attack_fx"):
+			refs.append(["%s.attack_fx" % eid, str(en["attack_fx"])])
+		for es: Variant in en.get("skills", []):
+			if (es as Dictionary).has("fx"):
+				refs.append(["%s.%s" % [eid, str((es as Dictionary).get("id", ""))], str(es["fx"])])
+		for r: Array in refs:
+			n += 1
+			if not ActionFx.FX_KINDS.has(str(r[1])):
+				issues.append({"v": "V22", "level": LEVEL_WARN, "msg": "敌人 %s 的特效 '%s' 未知" % [r[0], r[1]]})
+	if issues.is_empty() and n > 0:
+		issues.append({"v": "V22", "level": LEVEL_PASS, "msg": "特效声明 %d 处均为已知特效名" % n})
+	return issues
 
 # ---------------------------------------------------------------- V20 事件表覆盖（16 §4.1）
 

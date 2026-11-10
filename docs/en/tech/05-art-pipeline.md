@@ -110,3 +110,27 @@ Every `art_ref` in campaign01, arena and the starter kit now resolves (the test 
 - Landscape (`shell/landscape/`): a grid-cell token lays down a TextureRect first (aspect-fit, centered), then the HP text; dimming for dead/downed applies to the image and the background alike;
 - Both shells share one `ArtLoader` (no duplicated "landscape/portrait" loading logic); no art_ref or a failed load = the §5 fallback;
 - Home painting: phase 1 uses no external images; `_draw` adds procedural layers (shed-roof light strings, tower windows and beam, glints on the water), still driven by breathing and the Fading level (12 §5).
+
+## 9. Character action animation and skill effects (P6.6)
+
+`shell/ui/action_fx.gd` (`ActionFx`) is a presentation layer in both shells, beside the hit-feedback layer (`JuiceLayer`). It consumes the event stream only — never writes the Board or emits events (a test checks the stream is byte-identical with and without it).
+
+- **Why a "ghost":** the shells rebuild unit nodes after every event, so a tween on the real node would be cut off. For an action, ActionFx draws a copy of the unit's art on its own layer and animates that, while the real art is made transparent (`art_alpha`); it is restored when the action ends.
+- **Actions:** `lunge` (melee, toward the target), `cast` (rise and glow), `throw`, `hop` (move), `brace` (defend / buff), `down` (falls over), `revive` (rises with a glow). About 0.4 s; scaled by the auto-play speed.
+- **Effects:** `slash`, `stab`, `claw`, `smash`, `bolt`, `lance`, `arc` (thrown, drawn with the item's icon), `burst`, `wave`, `heal`, `shield`, `smoke`, `summon`, `aura` — procedural strokes with a glow halo, coloured by effect and side.
+- **Event mapping:** `battle.attack` → actor action + effect at the target; enemy area skills (`skill.use` from an enemy, `battle.skill`) → cast + effect on every party member; healing skills (`MSG_SKILL_HEAL`) → cast + `heal`; utility skills (`MSG_SKILL_USED`) → `brace`/`cast` + their effect; thrown items → `throw` + `arc`; `battle.move` → `hop`; `battle.down` / `battle.revive`.
+- **Data:** `fx` / `fx_color` / `attack_fx` (tech/04 §2); inference fallback when absent.
+- **Sprite strips (optional, override the procedural drawing):**
+  - effects: `game/assets/art/fx/fx_<name>.png` — one horizontal strip of square frames (frame width = image height), played at 24 fps at the target (projectiles travel along their path);
+  - unit actions: `game/assets/art/anims/anim_<art id>_<action>.png` — same format; `<art id>` is the `<id>` part of the unit's `art_ref` (e.g. `anim_ink_fiend_lunge.png`, `anim_class_scavenger_cast.png`).
+  Prompts: tech/08 §3.5–§3.6.
+
+## 10. Game UI kit (P6.6)
+
+- **`UiKit`** (`shell/ui/ui_kit.gd`) builds the whole theme: buttons (normal / hover with outer glow / pressed / disabled), panels, bottom sheets (rounded top, square bottom), toast ribbons, input fields, sliders (gem grabber), scroll bars, progress bars, tabs, tooltips, popup menus. Frames are **9-slice textures rendered at start-up from the palette tokens** (double gold-ink border, inner rule, corner studs and filigree, gradient fill), so a new game's `theme.palette` re-colours everything with no new art.
+- **External art overrides:** a file `ui_<name>.png` in `game/assets/art/ui/` (or the manifest's `theme.ui_dir`) replaces the generated frame of that name. Names, sizes and 9-slice margins: `button`, `button_hover`, `button_pressed`, `button_disabled` (48 px, margin 14), `panel` and `sheet` (96 px, margin 26), `toast` (64 px, margin 22), `field` and `tooltip` (32 px, margin 10), `track`, `fill`, `grabber` (16 px, margin 7). Prompts: tech/08 §3.4.
+- **Type variations:** `TitleLabel` (gold, outlined, title font), `ToastLabel` (ribbon), `FramePanel` (roomy ornate panel — the default panel keeps 4 px content margins so existing layouts don't change size).
+- **Title font:** the manifest's `theme.title_font` (a font file path) is used for `TitleLabel`; without it, the bold body font.
+- **`UiFx`** (`shell/ui/ui_fx.gd`), installed on the scene tree by `main`, applies motion with no per-screen code: buttons press to 0.94 and spring back (hover brightens on desktop); labels with a font size ≥ 20 and no custom colour become `TitleLabel`; bottom sheets (marked by `Palette.sheet_style()`) pop up and fade in when shown; toasts pop in (`UiFx.pop`). Only `scale`, `modulate` and the type variation are touched — never layout positions. A node with meta `no_ui_fx` is skipped.
+- **Layout rule learned the hard way:** any code that sizes children from a container's `size` must subtract that container's stylebox `get_minimum_size()` — otherwise themed padding makes the child exactly too big and the layout loops (the landscape grid did this).
+

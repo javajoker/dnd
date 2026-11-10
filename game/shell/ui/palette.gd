@@ -21,8 +21,12 @@ static func color(token: String) -> Color:
 	var hex := str(p.get(token, DEFAULTS.get(token, "#ff00ff")))
 	return Color.from_string(hex, Color.MAGENTA)
 
-## 半屏弹层的统一样式（hub / 营地 / 地图事件卡 / 联络 / 分装 共用）。
-static func sheet_style() -> StyleBoxFlat:
+## 半屏弹层的统一样式（hub / 营地 / 地图事件卡 / 联络 / 分装 共用）：游戏 UI 套件底板（UiKit）。
+static func sheet_style() -> StyleBox:
+	return UiKit.sheet_style()
+
+## 旧版纯色底板（UI 套件不可用时的兜底 / 测试对照）。
+static func flat_sheet_style() -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = color("sheet")
 	sb.corner_radius_top_left = 14
