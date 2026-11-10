@@ -454,3 +454,15 @@ const STATE_NAMES := {"enter": "进场", "explore": "探索", "discover": "发�
 const ATTR_SHORT := {"might": "力", "finesse": "敏", "wits": "智"}
 const NOTICE_FORCED_TIME := "这一段记忆只能以碎片的方式回放——它按自己的节奏展开。"
 const NOTICE_FORCED_SPACE := "这一幕无法从内部讲述，只能以全局的视野摊开。"
+
+# 商店与章节锁定（06 §3.1/§7；P4 阶段 4）
+const LOCK_CHAPTER_TEXT := "抄本在这里合上了——后面的书页，还没有为你写开。"
+const LOCK_CHAPTER_DEMO := "免费试玩到此为止：序章与幕一。一次性解锁完整战役，之后的一切选择都会接着这一页写下去。"
+const LOCK_CHAPTER_GET := "解锁完整战役 · %s"
+const LOCK_CHAPTER_GET_NOPRICE := "解锁完整战役"
+const LOCK_BACK_HOME := "回营地"
+const STORE_RESTORE := "恢复购买"
+const MSG_RESTORED := "已恢复 {n} 项购买。"
+const MSG_PURCHASE_FAILED := "购买未完成：{error}"
+const MSG_STORE_UNAVAILABLE := "商店暂不可用。"
+const SHOP_LINE_CAMPAIGN := "《%s》——%s。一次解锁，抄本会从这一页接着写下去。"

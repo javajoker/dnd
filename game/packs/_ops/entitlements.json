@@ -6,6 +6,11 @@
       "id": "entitlement.arena",
       "name": "竞技场连战入场权利",
       "registered_at": "2026-11-09"
+    },
+    {
+      "id": "entitlement.campaign01_full",
+      "name": "烬港残页完整战役（幕二至终章）",
+      "registered_at": "2026-11-10"
     }
   ]
 }

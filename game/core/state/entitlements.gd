@@ -40,6 +40,58 @@ func missing(pack_manifest: Dictionary) -> Array:
 			out.append(str(r))
 	return out
 
+# ---------------------------------------------------------------- 幕级门槛（tech/02 §2.2 幕级；06 §7 英文市场：免费试玩 + 一次性解锁）
+
+## 某幕声明的权利门槛（nodes.json acts[].entitlement.requires；缺省 = 无门槛）。
+static func act_requires(pack: Dictionary, act_id: String) -> Array:
+	for a: Variant in pack.get("acts", []):
+		if str((a as Dictionary).get("id", "")) == act_id:
+			return ((a as Dictionary).get("entitlement", {}) as Dictionary).get("requires", [])
+	return []
+
+## 本局是否已凭权利进入过带门槛的幕（退款后仍可跑完当前一局，06 §5）。键属包命名空间簿记。
+static func run_unlock_key(pack: Dictionary) -> String:
+	return "%s.run_unlocked" % str(pack.get("pack_id", ""))
+
+## 未点亮的幕级门槛（锁定态呈现依据）；本局已解锁过则视为无缺口。
+func missing_for_act(pack: Dictionary, act_id: String) -> Array:
+	var req := act_requires(pack, act_id)
+	if req.is_empty() or bool(board.read(run_unlock_key(pack))):
+		return []
+	return req.filter(func(r: Variant) -> bool: return not bool(board.read(board_key(str(r)))))
+
+## 进入幕前检查：可进入时若该幕有门槛，记下"本局已解锁"（退款不回收进行中的一局）。
+func enter_act(pack: Dictionary, act_id: String) -> bool:
+	if not missing_for_act(pack, act_id).is_empty():
+		return false
+	if not act_requires(pack, act_id).is_empty() and not bool(board.read(run_unlock_key(pack))):
+		board.write(run_unlock_key(pack), true,
+			{"event_id": stream.tail(), "node_id": "", "pack_id": str(pack.get("pack_id", ""))})
+	return true
+
+## 发行市场随本体点亮的权利（运营配置 market_grants.<market>；06 §7 国内本体免费 / 海外试玩 + 解锁）。
+func apply_market_grants(ops_config: Dictionary, market: String) -> Array:
+	var applied: Array = []
+	for key: Variant in ((ops_config.get("market_grants", {}) as Dictionary).get(market, []) as Array):
+		if not bool(board.read("global.entitlement." + str(key))):
+			if _write(str(key), true, {"granted_by": "market", "market": market}):
+				applied.append(str(key))
+	return applied
+
+## 恢复购买点亮（商店回报已拥有的非消耗型商品；App Store 审核要求）。
+func restore_grant(key: String, receipt_id: String) -> bool:
+	if bool(board.read("global.entitlement." + key)):
+		return false
+	return _write(key, true, {"granted_by": "restore", "receipt_id": receipt_id})
+
+## 商店商品 → 权利键（运营配置 shop.<key>.product_id 反查）。
+static func key_for_product(ops_config: Dictionary, product_id: String) -> String:
+	var shop: Dictionary = ops_config.get("shop", {})
+	for k: Variant in shop.keys():
+		if str((shop[k] as Dictionary).get("product_id", "")) == product_id:
+			return str(k)
+	return ""
+
 # ---------------------------------------------------------------- 三类写入方（06 §2.3：写权限仅商店/活动/成就）
 
 ## 商店购买点亮：receipt_id = 购买单号（mock；真实支付接入是运营立项留白，06 §7）。

@@ -6,7 +6,16 @@
     "target": "arena"
   },
   "shop": {
-    "arena": { "name": "竞技场连战", "price_text": "¥12" }
+    "arena": {
+      "name": "竞技场连战",
+      "price_text": "¥12",
+      "product_id": "arena_gauntlet"
+    },
+    "campaign01_full": {
+      "name": "烬港残页 · 完整战役",
+      "price_text": "¥18",
+      "product_id": "campaign01_full"
+    }
   },
   "activities": [
     {
@@ -24,5 +33,12 @@
       "flag": "campaign01.cleared",
       "label": "烬港通关者免费入场"
     }
-  ]
+  ],
+  "market_grants": {
+    "_comment": "按发行市场随本体点亮的权利（06 §7：国内首发本体免费 = 完整战役随本体；海外 = 免费试玩 + 一次性解锁）。市场由工程设置 game/market 决定（导出预设自定义特性覆盖）。",
+    "cn": [
+      "campaign01_full"
+    ],
+    "global": []
+  }
 }

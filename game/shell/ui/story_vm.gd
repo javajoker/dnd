@@ -164,7 +164,7 @@ static func is_bookkeeping_key(key: String) -> bool:
 	if key.begins_with("global.") or not "." in key:
 		return false
 	var rest := key.get_slice(".", 1) if key.count(".") == 1 else key.substr(key.find(".") + 1)
-	return rest in ["gold", "xp_total", "level", "ngplus", "wins", "best"] or rest.begins_with("attr") \
+	return rest in ["gold", "xp_total", "level", "ngplus", "wins", "best", "run_unlocked"] or rest.begins_with("attr") \
 		or rest.begins_with("hp.") or rest.begins_with("maze.")
 
 ## 旗标显示名：flags.json 的 name（已按语言叠加）；找不到时退回键名（不上屏内部键是目标，缺名属数据缺陷）。

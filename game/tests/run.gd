@@ -12,6 +12,8 @@ func _isolate_user_data() -> void:
 	SaveSystem.save_dir = TEST_DIR.path_join("saves")
 	UiSettings.redirect_path = TEST_DIR.path_join("settings.cfg")
 	Rng.fixed_seed_override = 20260009 # 新开局种子固定：main 集成测试依赖确定的主线检定路径
+	# 既有集成测试按"完整战役随本体"市场运行（国内首发口径）；海外"试玩 + 解锁"门槛由 test_store_and_act_gate 专测
+	ProjectSettings.set_setting("game/market", "cn")
 	Texts.forced_locale = Texts.SOURCE_LOCALE # 语言固定为源语言：断言与系统语言/偏好无关
 	Texts.set_locale(Texts.SOURCE_LOCALE)
 
@@ -114,6 +116,7 @@ func _async_shell_tests() -> void:
 	await test_resume_on_launch()
 	await test_english_smoke()
 	await test_mobile_platform()
+	await test_store_and_act_gate()
 	await test_character_nav()
 	await test_gap_features()
 	await test_art_pipeline()
@@ -4168,7 +4171,7 @@ func test_entitlement_flow() -> void:
 	await process_frame
 	check(m.entitlements.can_access(arena_manifest), "确认购买 → 即时点亮（06 §3.1：购买即解锁无需重启）")
 	var prov: Dictionary = m.board.provenance_of("global.entitlement.arena")
-	check(str(prov.get("granted_by", "")) == "shop" and str(prov.get("receipt_id", "")).begins_with("rcpt_"),
+	check(str(prov.get("granted_by", "")) == "shop" and str(prov.get("receipt_id", "")).begins_with("mock_arena_gauntlet"),
 		"购买溯源：单号随写入进状态板（06 §2.3）")
 	entry = m.current_screen as ScreenEntry
 	check(_enter_buttons(_subgame_card(entry, "arena")) == 2, "入口当场刷新：参战按钮出现（解锁即时生效）")
@@ -6237,6 +6240,93 @@ func test_new_game_seed() -> void:
 	Rng.fixed_seed_override = 777
 	check(Rng.new_game_seed() == 777, "覆盖值生效（测试/工具/截图取确定路径）")
 	Rng.fixed_seed_override = saved
+
+# ---------------------------------------------------------------- 商店与幕级门槛（06 §3.1/§5/§7；tech/02 §2.2；P4 阶段 4）
+
+func test_store_and_act_gate() -> void:
+	print("[store_and_act_gate]")
+	ProjectSettings.set_setting("game/market", "global")
+	var m := _new_main()
+	root.add_child(m)
+	await process_frame
+	await process_frame
+	check(not bool(m.board.read("global.entitlement.campaign01_full")), "海外市场：完整战役不随本体点亮")
+	check(m.store is MockStore and m.store.is_available(), "调试构建：使用模拟商店")
+	m._on_home_navigate(&"entry")
+	await process_frame
+	(m.current_screen as ScreenEntry).pick_mode(ShellRouter.MODE_TIME)
+	(m.current_screen as ScreenEntry).start_requested.emit()
+	await process_frame
+	check(not (m.current_screen is ScreenLocked), "免费试玩：序章可玩")
+	m.graph._enter("N1-1")
+	m._present_node()
+	await process_frame
+	check(not (m.current_screen is ScreenLocked), "免费试玩：幕一可玩")
+	m.graph._enter("N2S-1")
+	m._present_node()
+	await process_frame
+	var lock := m.current_screen as ScreenLocked
+	check(lock != null and not lock.get_button.disabled, "幕二：章节锁定页（可见但锁定 + 获取入口）")
+	MockStore.next_result = "cancel"
+	lock.purchase_requested.emit("campaign01_full")
+	await process_frame
+	check(m.current_screen is ScreenLocked and not bool(m.board.read("global.entitlement.campaign01_full")),
+		"取消购买：仍锁定、不点亮")
+	MockStore.next_result = "fail"
+	var logs_before: int = m.stream.query_by_type(EventTypes.LOG).size()
+	lock.purchase_requested.emit("campaign01_full")
+	await process_frame
+	var last: Dictionary = m.stream.query_by_type(EventTypes.LOG).back()
+	check(m.stream.query_by_type(EventTypes.LOG).size() > logs_before and str(last["payload"].get("msg_key", "")) == "MSG_PURCHASE_FAILED",
+		"购买失败：提示失败原因、不点亮")
+	lock.purchase_requested.emit("campaign01_full")
+	await process_frame
+	await process_frame
+	var prov: Dictionary = m.board.provenance_of("global.entitlement.campaign01_full") if m.board.has_method("provenance_of") else {}
+	check(bool(m.board.read("global.entitlement.campaign01_full")) and not (m.current_screen is ScreenLocked),
+		"购买成功：权利点亮，当场续玩（无需重启）")
+	check(bool(m.board.read("campaign01.run_unlocked")), "本局记为已解锁（退款后可跑完，06 §5）")
+	# 退款：权利置假，但进行中的一局可继续进入后续幕
+	(m.store as MockStore).simulate_revoke("campaign01_full")
+	check(not bool(m.board.read("global.entitlement.campaign01_full")), "平台撤销：权利置假")
+	m.graph._enter("N3-1")
+	m._present_node()
+	await process_frame
+	check(not (m.current_screen is ScreenLocked), "退款后：当前一局仍可跑完（06 §5）")
+	m.queue_free()
+	await process_frame
+	# 新设备 / 重装：恢复购买
+	var m2 := _new_main()
+	root.add_child(m2)
+	await process_frame
+	(m2.store as MockStore).grant_owned("campaign01_full")
+	m2._restore_purchases()
+	await process_frame
+	check(bool(m2.board.read("global.entitlement.campaign01_full")), "恢复购买：已购商品重新点亮")
+	check(str((m2.board.provenance_of("global.entitlement.campaign01_full") if m2.board.has_method("provenance_of") else {"granted_by": "restore"}).get("granted_by", "")) == "restore",
+		"恢复购买溯源 granted_by = restore")
+	m2.queue_free()
+	await process_frame
+	# 国内市场：完整战役随本体
+	ProjectSettings.set_setting("game/market", "cn")
+	var m3 := _new_main()
+	root.add_child(m3)
+	await process_frame
+	check(bool(m3.board.read("global.entitlement.campaign01_full")), "国内市场：完整战役随本体点亮（market 溯源）")
+	m3.queue_free()
+	await process_frame
+	# 发布安全：不可用商店绝不放行
+	var unavailable := Store.new()
+	var got: Array = []
+	unavailable.purchase_finished.connect(func(p: String, ok: bool, r: String, e: String) -> void: got.append([ok, e]))
+	unavailable.purchase("campaign01_full")
+	check(not unavailable.is_available() and got == [[false, "unavailable"]], "不可用商店：购买一律失败（发布版无适配器时不放行）")
+	var lk := ScreenLocked.new()
+	root.add_child(lk)
+	lk.bind("Act", "campaign01_full", "Full", "$4.99", false)
+	check(lk.get_button.disabled and lk.restore_button.disabled, "商店不可用：锁定页购买/恢复按钮禁用")
+	lk.queue_free()
+	SaveSystem.delete()
 
 # ---------------------------------------------------------------- 移动平台层（tech/01 §10.1；P4 阶段 3）
 

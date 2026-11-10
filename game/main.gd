@@ -45,6 +45,7 @@ var transition: UiTransition # 统一转场器（14 清单 #8：界面切换淡�
 var board: Board
 var rng: Rng
 var entitlements: Entitlements      # 权利模型运行时（06 §2：商店/活动/成就三类点亮方）
+var store: Store                    # 商店（shell/store：Mock 或平台适配器；06 §7）
 var cosmetics: Cosmetics            # 外观系统运行时（06 §3/§7：皮肤只写外观旗标，纯演出）
 var ops_config: Dictionary = {}     # 运营侧配置（06 §3.2：点亮在运营，不进内容包管线）
 var graph: StoryGraph
@@ -88,6 +89,7 @@ func _ready() -> void:
 	if Array(args).any(func(a: String) -> bool: return a.ends_with("-shot") or a.ends_with("-shots")):
 		shots = load("res://tools/shot_driver.gd") # 开发截图驱动（导出时排除 tools/，代码评审 M2）
 		Rng.fixed_seed_override = shots.SHOT_SEED
+		ProjectSettings.set_setting("game/market", "cn") # 截图走查覆盖完整战役（可用 --market=global 看锁定页）
 		SaveSystem.save_dir = "user://shots/saves" # 截图从全新开局起步，且不触碰玩家真实存档/设置
 		SaveSystem.delete()
 		UiSettings.redirect_path = "user://shots/settings.cfg"
@@ -96,6 +98,8 @@ func _ready() -> void:
 			Rng.fixed_seed_override = int(a.trim_prefix("--seed="))
 		elif a.begins_with("--locale="):
 			Texts.forced_locale = a.trim_prefix("--locale=")
+		elif a.begins_with("--market="): # `-- --market=global|cn`：发行市场（锁定页 / 随本体权利走查）
+			ProjectSettings.set_setting("game/market", a.trim_prefix("--market="))
 		elif a.begins_with("--safe-area="): # `-- --safe-area=上,右,下,左`：桌面模拟刘海/Home 指示条
 			SafeArea.override_insets = SafeArea.parse_arg(a)
 	# 界面语言（tech/01 E-5）：玩家偏好 → 系统语言；内容包按同一语言加载文本
@@ -129,6 +133,11 @@ func _ready() -> void:
 	entitlements = Entitlements.new(board, stream)
 	ops_config = Entitlements.load_ops_config()
 	entitlements.apply_activities(ops_config)
+	entitlements.apply_market_grants(ops_config, _market()) # 国内本体免费 / 海外试玩 + 解锁（06 §7）
+	store = Store.create()
+	store.purchase_finished.connect(_on_store_purchase)
+	store.restore_finished.connect(_on_store_restore)
+	store.revoked.connect(_on_store_revoked)
 	cosmetics = Cosmetics.new(board, stream) # 皮肤注册表 = 运营侧数据（06 §7：packs/_ops/cosmetics.json）
 	graph = StoryGraph.new(board, rng, pack)
 	_pack_host = pack
@@ -347,6 +356,7 @@ func _show_home() -> void:
 	home.tutorial_done.connect(func() -> void: _tutorial_mark("boot")) # 启动卡一次性（12 §4）
 	home.retrain_requested.connect(_on_retrain) # 重学入口（12 §4：可重学）
 	home.language_requested.connect(_on_language_requested)
+	home.restore_requested.connect(_restore_purchases)
 	if not bool(board.read("global.tutorial.boot", false)):
 		home.show_launch_tutorial() # 首次启动 3 页核心手势卡（12 §4 第一层）
 	router = ShellRouter.new() # 回主屏即离场：壳锁定随单局结束（09 §8）
@@ -478,6 +488,10 @@ func _start_campaign() -> void:
 ## 呈现当前节点：ending → 结局屏（tech/02 §9）；battle → 整备/遭遇；
 ## explore（迷宫探索序列，tech/02 §6 maze）→ 逐拍呈现；出切片范围 → 切片结算；其余 → 双壳故事态。
 func _present_node() -> void:
+	var act := str(graph.current().get("act", ""))
+	if act != "" and not entitlements.enter_act(pack, act):
+		_show_act_lock(act) # 幕级门槛未点亮：章节锁定页（06 §3.1；tech/02 §2.2）
+		return
 	if graph.is_at_ending():
 		_present_ending()
 		return
@@ -662,6 +676,7 @@ func _on_ngplus_start() -> void:
 	board = Board.new(stream)
 	entitlements = Entitlements.new(board, stream)
 	entitlements.apply_activities(ops_config)
+	entitlements.apply_market_grants(ops_config, _market())
 	cosmetics = Cosmetics.new(board, stream)
 	var ngplus_conf: Dictionary = ((_pack_host.get("manifest", {}) as Dictionary)
 		.get("ngplus", {})) # tech/02 §2.6：宿主原包 manifest 为唯一继承依据
@@ -1127,13 +1142,81 @@ func _on_acquire_requested(pack_id: String) -> void:
 
 ## 购买确认 → 商店点亮方写板（单号溯源，06 §2.3）→ 入口当场刷新解锁（06 §3.1：购买即解锁无需重启）。
 func _on_purchase_confirmed(pack_id: String) -> void:
-	var receipt_id := "rcpt_%d" % stream.tail() # mock 单号（真实支付接入是运营立项留白，06 §7）
-	if not entitlements.shop_purchase(pack_id, receipt_id):
+	_buy(pack_id)
+
+# ---------------------------------------------------------------- 商店（06 §7；shell/store）：购买 / 恢复 / 撤销
+
+## 发行市场（工程设置 game/market；导出预设自定义特性覆盖，如 cn_store → cn）。
+func _market() -> String:
+	return str(ProjectSettings.get_setting("game/market", "global"))
+
+## 发起购买：key = 运营配置 shop 条目键（= 权利键）。商店不可用时只提示，不点亮任何权利。
+func _buy(key: String) -> void:
+	var item := Entitlements.price_of(ops_config, key)
+	var product_id := str(item.get("product_id", key))
+	if not store.is_available():
+		stream.emit(EventTypes.LOG, {"msg_key": "MSG_STORE_UNAVAILABLE", "toast": true}, &"core")
 		return
-	var pack_name := str((_subgames.get(pack_id, {}) as Dictionary).get("manifest", {}).get("name", pack_id))
+	store.purchase(product_id)
+
+func _on_store_purchase(product_id: String, ok: bool, receipt_id: String, error: String) -> void:
+	var key := Entitlements.key_for_product(ops_config, product_id)
+	if key == "":
+		key = product_id
+	if not ok:
+		if error != "cancel":
+			stream.emit(EventTypes.LOG, {"msg_key": "MSG_PURCHASE_FAILED", "args": {"error": error}, "toast": true}, &"core")
+		return
+	entitlements.shop_purchase(key, receipt_id)
+	var item := Entitlements.price_of(ops_config, key)
 	stream.emit(EventTypes.LOG,
-		{"msg_key": "MSG_PURCHASED", "args": {"pack": pack_name}, "toast": true}, &"core")
-	_show_entry()
+		{"msg_key": "MSG_PURCHASED", "args": {"pack": str(item.get("name", key))}, "toast": true}, &"core")
+	_refresh_after_unlock()
+
+func _restore_purchases() -> void:
+	if not store.is_available():
+		stream.emit(EventTypes.LOG, {"msg_key": "MSG_STORE_UNAVAILABLE", "toast": true}, &"core")
+		return
+	store.restore()
+
+func _on_store_restore(owned: Array) -> void:
+	var n := 0
+	for pid: Variant in owned:
+		var key := Entitlements.key_for_product(ops_config, str(pid))
+		if key != "" and entitlements.restore_grant(key, "restore:%s" % str(pid)):
+			n += 1
+	stream.emit(EventTypes.LOG, {"msg_key": "MSG_RESTORED", "args": {"n": n}, "toast": true}, &"core")
+	_refresh_after_unlock()
+
+## 平台撤销（退款）：权利置假；进行中的一局凭"本局已解锁"可跑完（06 §5）。
+func _on_store_revoked(product_id: String) -> void:
+	var key := Entitlements.key_for_product(ops_config, product_id)
+	if key != "":
+		entitlements.refund(key)
+
+func _refresh_after_unlock() -> void:
+	if current_screen is ScreenLocked:
+		_present_node()
+	elif current_screen is ScreenEntry:
+		_show_entry()
+
+## 章节锁定页（06 §3.1：可见但锁定 + 叙事化 + 购买弹层；回营地不丢进度——节点已落档可继续）。
+func _show_act_lock(act_id: String) -> void:
+	_set_window_orientation(ShellRouter.MODE_TIME)
+	var key := str(Entitlements.act_requires(pack, act_id)[0]).trim_prefix("entitlement.")
+	var item := Entitlements.price_of(ops_config, key)
+	var act_title := ""
+	for a: Variant in pack.get("acts", []):
+		if str((a as Dictionary).get("id", "")) == act_id:
+			act_title = str((a as Dictionary).get("title", act_id))
+	var screen := ScreenLocked.new()
+	_swap(screen)
+	screen.bind(act_title, key, str(item.get("name", key)), str(item.get("price_text", "")), store.is_available())
+	screen.purchase_requested.connect(_buy)
+	screen.restore_requested.connect(_restore_purchases)
+	screen.back_requested.connect(func() -> void:
+		_save("locked_chapter")
+		_show_home())
 
 # ---------------------------------------------------------------- 子游戏流程（委托 SubgameFlow，代码评审 M2）
 

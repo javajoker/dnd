@@ -10,7 +10,7 @@ const FLAGS := {
 	"--act2-shots": "_run_shots_act2", "--act3-shots": "_run_shots_act3", "--gap-shots": "_run_shots_gap",
 	"--home-shot": "_run_shot_home", "--home-bar-shot": "_run_shot_home_bar", "--promo-shot": "_run_shot_promo",
 	"--mode-shots": "_run_shots_mode", "--ls-shots": "_run_shots_ls", "--text-shots": "_run_shots_text",
-	"--font-shot": "_run_shot_font", "--trans-shots": "_run_shots_trans",
+	"--font-shot": "_run_shot_font", "--trans-shots": "_run_shots_trans", "--lock-shot": "_run_shot_lock",
 }
 const SHOT_SEED := 20260009 # 固定种子：截图路径确定（主线两次检定均为成功路）
 
@@ -319,6 +319,27 @@ func _run_shot_home() -> void:
 		await m.get_tree().create_timer(0.6).timeout # 呼吸微光推进到非零相位
 	await _shot("/tmp/home_hotspot.png")
 	print("[shots] 主屏热点图完成：/tmp/home_hotspot.png")
+	m.get_tree().quit()
+
+## 章节锁定页（06 §3.1/§7）：`-- --market=global --lock-shot`——幕二入口锁定页 + 购买弹层。
+func _run_shot_lock() -> void:
+	await m.get_tree().create_timer(1.0).timeout
+	ProjectSettings.set_setting("game/market", "global")
+	m.board.write("global.entitlement.campaign01_full", false, {"event_id": m.stream.tail(), "node_id": "", "pack_id": "system"})
+	m._on_home_navigate(&"entry")
+	await m.get_tree().create_timer(0.4).timeout
+	var entry := m.current_screen as ScreenEntry
+	entry.pick_mode(ShellRouter.MODE_TIME)
+	entry.start_requested.emit()
+	await m.get_tree().create_timer(0.5).timeout
+	m.graph._enter("N2S-1")
+	m._present_node()
+	await m.get_tree().create_timer(0.6).timeout
+	await _shot("/tmp/lock_chapter.png")
+	(m.current_screen as ScreenLocked).get_button.pressed.emit()
+	await m.get_tree().create_timer(0.4).timeout
+	await _shot("/tmp/lock_shop.png")
+	print("[shots] 章节锁定两张完成：/tmp/lock_chapter.png /tmp/lock_shop.png")
 	m.get_tree().quit()
 
 ## 主屏兜底条收起态（12 §5：toggle 可收起，收起为细条把手，绘卷占满）：`-- --home-bar-shot`（/tmp 不提交）。

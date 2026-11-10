@@ -17,6 +17,7 @@ signal save_requested   # 手动"记录抄本"（07 §4.2 手动时机）
 signal idle_timeout     # 主屏闲置（07 §4.2 兜底快照）
 signal tutorial_done          # 启动卡看完/跳过（12 §4；写板由 main 落）
 signal retrain_requested      # 帮助页「重学教程」（12 §4：可重学；清触发记录由 main 落）
+signal restore_requested # 帮助页「恢复购买」（App Store 审核要求；由 main 经 Store 处理）
 signal language_requested(locale: String) # 帮助页语言切换（tech/01 E-5；保存后由 main 重载主屏）
 signal promo_pressed(target: String)  # 运营位点按（06 §6；target = home_promo.target：pack_id 或 "codex"）
 
@@ -218,6 +219,11 @@ func _build_help() -> void:
 	retrain.text = Texts.s(&"HELP_RETRAIN")
 	retrain.pressed.connect(func() -> void: retrain_requested.emit())
 	v.add_child(retrain)
+	var restore := Button.new() # 恢复购买（06 §7；商店审核要求可见入口）
+	restore.text = Texts.s(&"STORE_RESTORE")
+	restore.custom_minimum_size = Vector2(0, 44)
+	restore.pressed.connect(func() -> void: restore_requested.emit())
+	v.add_child(restore)
 	# 语言切换（tech/01 E-5）：只有一种语言时不出现；轮换到下一种可用语言
 	var locales := Texts.available_locales()
 	if locales.size() > 1:

@@ -383,3 +383,15 @@ const STATE_NAMES := {"enter": "Enter", "explore": "Explore", "discover": "Disco
 const ATTR_SHORT := {"might": "MGT", "finesse": "FIN", "wits": "WIT"}
 const NOTICE_FORCED_TIME := "This memory can only be replayed in fragments — it unfolds at its own pace."
 const NOTICE_FORCED_SPACE := "This act can't be told from inside; it can only be laid out in full view."
+
+# Store and locked chapters (06 §3.1/§7; P4 Phase 4)
+const LOCK_CHAPTER_TEXT := "The codex closes here — the pages beyond haven't been opened for you yet."
+const LOCK_CHAPTER_DEMO := "That's the end of the free demo: the Prologue and Act I. Unlock the full campaign once, and every choice you've made carries on from this page."
+const LOCK_CHAPTER_GET := "Unlock the full campaign · %s"
+const LOCK_CHAPTER_GET_NOPRICE := "Unlock the full campaign"
+const LOCK_BACK_HOME := "Back to Camp"
+const STORE_RESTORE := "Restore Purchases"
+const MSG_RESTORED := "Restored {n} purchase(s)."
+const MSG_PURCHASE_FAILED := "The purchase didn't go through: {error}"
+const MSG_STORE_UNAVAILABLE := "The store isn't available right now."
+const SHOP_LINE_CAMPAIGN := "%s — %s. One unlock, and your codex carries on from this page."

@@ -27,6 +27,15 @@ func _ready() -> void:
 	panel.anchor_right = 1.0
 	panel.anchor_top = 0.5
 	panel.anchor_bottom = 1.0
+	var bg := StyleBoxFlat.new() # 不透明底：弹层文字不与背后界面叠字
+	bg.bg_color = Color(0.09, 0.09, 0.12, 1.0)
+	bg.corner_radius_top_left = 12
+	bg.corner_radius_top_right = 12
+	bg.content_margin_left = 16
+	bg.content_margin_right = 16
+	bg.content_margin_top = 16
+	bg.content_margin_bottom = 16
+	panel.add_theme_stylebox_override("panel", bg)
 	add_child(panel)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 10)

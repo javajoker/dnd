@@ -597,6 +597,12 @@ static func _v9_entitlement(pack: Dictionary, registry: Dictionary) -> Array:
 		elif not registered.has(rv):
 			issues.append({"v": "V9", "level": LEVEL_FAIL,
 				"msg": "entitlement.requires 条目 '%s' 未在权利注册表登记（%s，06 文档 §2.3）" % [rv, ENTITLEMENT_REGISTRY_PATH]})
+	# 幕级门槛（tech/02 §2.2）：acts[].entitlement.requires 同样必须是已登记的权利变量
+	for act: Variant in pack.get("acts", []):
+		for r: Variant in ((act as Dictionary).get("entitlement", {}) as Dictionary).get("requires", []):
+			if not registered.has(str(r)):
+				issues.append({"v": "V9", "level": LEVEL_FAIL,
+					"msg": "幕 %s 的 entitlement.requires 条目 '%s' 未在权利注册表登记" % [str((act as Dictionary).get("id", "")), str(r)]})
 	if strategies.has("dlc") and requires.is_empty():
 		issues.append({"v": "V9", "level": LEVEL_FAIL,
 			"msg": "strategies 含 dlc 但 entitlement.requires 缺省（tech/02 §2.3 一致性硬规则）"})

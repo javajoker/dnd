@@ -12,5 +12,7 @@
   "cosmetics.dice_skins.2.desc": "A shop cosmetic — the bronze light Ashenport's salvagers haul up from Fog Wharf.",
   "cosmetics.dice_skins.2.shop.price_text": "$0.99",
   "cosmetics.dice_skins.3.name": "The Penbearer's Die",
-  "cosmetics.dice_skins.3.desc": "Granted for the hidden ending A New Page — the new Penbearer's first die, the ink still wet."
+  "cosmetics.dice_skins.3.desc": "Granted for the hidden ending A New Page — the new Penbearer's first die, the ink still wet.",
+  "ops.shop.campaign01_full.name": "Ashenport Fragments · Full Campaign",
+  "ops.shop.campaign01_full.price_text": "$4.99"
 }
