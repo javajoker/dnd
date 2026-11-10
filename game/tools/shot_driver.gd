@@ -71,7 +71,7 @@ func _run_shots_m2n() -> void:
 	entry.pick_mode(ShellRouter.MODE_SPACE if m._cli_mode == ShellRouter.MODE_SPACE else ShellRouter.MODE_TIME)
 	entry.start_requested.emit()
 	await m.get_tree().create_timer(0.5).timeout
-	if m._mode == ShellRouter.MODE_SPACE:
+	if m.campaign._mode == ShellRouter.MODE_SPACE:
 		await _shot("/tmp/m2n_landscape_story.png") # 横屏叙事态（N0-1，04 §③ 中央主视野）
 		print("[shots] 横屏叙事态完成")
 		m.get_tree().quit()
@@ -178,7 +178,7 @@ func _run_shots_growth() -> void:
 	var growth := Growth.new(m.board)
 	growth.grant_xp(350, prov) # tech/04 §8 规则1/2：汇入即写 global.growth.xp，跨档自动升级
 	growth.alloc("might", prov) # 规则3：属性点分配
-	m._encounter_id = "N1-7" # ⑦ 队伍卡数据源需要一场已登记遭遇（tech/02 §6）
+	m.campaign._encounter_id = "N1-7" # ⑦ 队伍卡数据源需要一场已登记遭遇（tech/02 §6）
 	m._show_character()
 	await m.get_tree().create_timer(0.4).timeout
 	await _shot("/tmp/growth_char.png")
@@ -234,7 +234,7 @@ func _run_shots_act2() -> void:
 	await m.get_tree().create_timer(1.6).timeout
 	# 2) 迷宫探索序列：N2G-2 第 1 拍检定 → 推进 → 第 2 拍伏击判定
 	m.graph._enter("N2G-2")
-	m._maze = null
+	m.campaign._maze = null
 	m._present_node()
 	await m.get_tree().create_timer(0.4).timeout
 	m._on_story_edge(0) # 第 1 拍（检定）
@@ -242,7 +242,7 @@ func _run_shots_act2() -> void:
 	await _shot("/tmp/act2_maze.png") # 第 2 拍：伏击判定呈现
 	# 3) 撕页行动：战斗 → 模拟胜利 → 战后抉择（撕/不撕双出边，tech/02 §6 hybrid）
 	m.graph._enter("N2U-2")
-	m._maze = null
+	m.campaign._maze = null
 	m._present_node()
 	await m.get_tree().create_timer(0.3).timeout
 	(m.current_screen as ScreenLoadout)._on_confirm()

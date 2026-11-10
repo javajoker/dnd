@@ -56,6 +56,7 @@ var shell: Control = null
 
 # ---- 子游戏（白皮书 §10.2；04 §6：入口挂 ② 战役入口区，进出场必经 ⑨ 结算）----
 var _campaign_id := ""                # 当前主战役包 id（包目录发现，不写死）
+var campaign: CampaignFlow           # 战役流程对象（campaign_flow.gd，代码评审 M2）
 var sub_flow: SubgameFlow             # 子游戏流程对象（subgame_flow.gd，代码评审 M2）
 var _subgames: Dictionary = {}        # pack_id -> pack（pack_type=subgame 数据驱动入列，不写死 arena）
 # ---- 支线（tech/02 §2.6 graft，M4）：pack_type=arc 注入主战役合并视图，宿主数据不动 ----
@@ -63,22 +64,9 @@ var _arcs: Dictionary = {}            # pack_id -> arc pack（已发现支线包
 var _pack_host: Dictionary = {}       # 宿主包（未注入支线；合并视图 = graph.pack）
 
 var _cli_mode: StringName = &""
-var _in_encounter := false
-var _encounter_snapshot: Dictionary = {} # 遭遇进入前快照（09 §7 ☰ 回主屏恢复点）
-var _encounter_tail := 0                 # 遭遇开始时的事件锚点（结算汇总区间）
-var _campaign_tail := 0                  # 战役开始锚点（切片结算汇总区间）
-var _encounter_result: StringName = &""
-var _encounter_id := ""                  # 当前战斗节点的遭遇 id（tech/02 §6）
-var _battle_title := ""
-var _battles_won := 0
-var _mode: StringName = &""
 var window_orientation: StringName = ShellRouter.MODE_TIME # 窗口形态（09 §8 战役级边界断言口；竖屏基准）
 # ---- 迷宫探索序列（tech/02 §6 maze；04 §④.3 房间类型序列化）----
-var _maze: MazeRunner = null      # 进行中的探索序列核（core 渐进执行，壳只呈现）
-var _maze_outcome := ""           # 上一拍结果摘要（拼进下一拍文本）
 var _history_origin: StringName = &"home"
-var _settle_lines: Array[String] = [] # 结算汇总缓存（卷轴往返 / 加点刷新复用）
-var _settle_celebrated := false # 本场胜利演出已播（04 §④.8：加点/卷轴往返重绑不重播）
 var _shot_driver: RefCounted = null # tools/shot_driver.gd（仅命令行截图旗标时加载）
 
 func _ready() -> void:
@@ -145,6 +133,7 @@ func _ready() -> void:
 	if not resumed.is_empty(): # 故事图进度在支线注入后恢复（合并视图含支线事件定义）
 		graph.deserialize((resumed.get("meta", {}) as Dictionary).get("graph", {}))
 		stream.emit(EventTypes.LOG, {"msg_key": "MSG_RESUMED"}, &"core")
+	campaign = CampaignFlow.new(self)
 	sub_flow = SubgameFlow.new(self)
 	stream.subscribe(_on_event)
 	_show_home()
@@ -164,7 +153,7 @@ func _notification(what: int) -> void:
 ## 切后台 / 关闭：遭遇外兜底落档（遭遇进行中不存档——进程被杀至多损失当前这一局，09 §7）。
 ## 返回是否已落档。
 func on_app_background() -> bool:
-	if board == null or graph == null or _in_encounter or sub_flow == null or sub_flow._sub_battling:
+	if board == null or graph == null or campaign == null or campaign._in_encounter or sub_flow == null or sub_flow._sub_battling:
 		return false
 	_save("background")
 	return true
@@ -337,7 +326,7 @@ func _show_home() -> void:
 	_set_window_orientation(ShellRouter.MODE_TIME) # 外层界面恒定竖屏（09 §8：一切离场路径恢复竖屏基准）
 	if audio != null:
 		audio.to_home() # BGM 收止（14 #5：主屏无常驻 BGM，潮声由 _swap 的 set_home_ambient 接管）
-	_in_encounter = false
+	campaign._in_encounter = false
 	sub_flow._sub_active = false # 回主屏即子游戏离场（04 §6：离场必经结算，未到结算即放弃本次连战）
 	sub_flow._sub_battling = false
 	sub_flow._sub = null
@@ -455,460 +444,44 @@ func _show_entry() -> void:
 	elif not played.is_empty():
 		entry.pick_mode(StringName(str(played[0]))) # 已选模式预选（09 §3 整场锁定；04 §② 已玩标记）
 
-func _on_mode_chosen(mode: StringName) -> void:
-	# 模式选择 = 一次分支，写入状态板（09 §3）；全局白名单键（07 §3 v1.1）
-	board.write("global.mode_choice.%s" % _campaign_id, String(mode),
-		{"event_id": stream.tail(), "node_id": graph.current_id, "pack_id": _campaign_id})
 
-func _on_campaign_start(entry: ScreenEntry) -> void:
-	_mode = entry.selected_mode
-	if _mode == &"":
-		return
-	if graph.is_at_ending():
-		_on_ngplus_start() # 已通关战役再开 = 多周目（战役书 §9：结局屏外同一继承语义）
-		return
-	if not graph.visit_log.is_empty():
-		_present_node() # 战役进行中：继续当前节点（主屏"继续"语义，04 §①）
-		return
-	_start_campaign()
 
-## 战役开局：播种金币（hub 商店）→ 序章带入补给 → 从入口节点真实走图（tech/02 §3）。
-func _start_campaign() -> void:
-	_campaign_tail = stream.tail()
-	graph.seed_gold()
-	graph.start()
-	# 开局带入（manifest.start.items，叙事既定；campaign01 = 补给药水 ×2，战役书 §4）
-	for it: Variant in graph.start_items():
-		board.give_item(str((it as Dictionary).get("item", "")), int((it as Dictionary).get("n", 1)),
-			{"event_id": stream.tail(), "node_id": graph.current_id, "pack_id": _campaign_id})
-	_present_node()
 
 # ---------------------------------------------------------------- 节点流程（故事图驱动；UI 只消费 StoryVM + 事件流）
 
-## 呈现当前节点：ending → 结局屏（tech/02 §9）；battle → 整备/遭遇；
-## explore（迷宫探索序列，tech/02 §6 maze）→ 逐拍呈现；出切片范围 → 切片结算；其余 → 双壳故事态。
-func _present_node() -> void:
-	var act := str(graph.current().get("act", ""))
-	if act != "" and not entitlements.enter_act(pack, act):
-		_show_act_lock(act) # 幕级门槛未点亮：章节锁定页（06 §3.1；tech/02 §2.2）
-		return
-	if graph.is_at_ending():
-		_present_ending()
-		return
-	if not SLICE_ACTS.has(str(graph.current().get("act", ""))):
-		_end_slice()
-		return
-	var ntype := str(graph.current().get("type", ""))
-	if ntype == "battle":
-		_enter_encounter()
-		return
-	if ntype == "explore" and _maze_pending():
-		_enter_maze()
-		return
-	_present_story_node()
 
-func _present_story_node() -> void:
-	var vm := StoryVM.build(graph, board, pack)
-	_ensure_story_shell()
-	_story_show(vm)
-	# 情境教程：首次检定（12 §4：双指点击快掷；可跳过不丢信息）
-	for e: Variant in vm["edges"]:
-		if bool((e as Dictionary).get("check", false)):
-			_context_hint("first_check", Texts.s(&"TUT_HINT_CHECK"))
-			break
 
-func _story_show(vm: Dictionary) -> void:
-	if shell is EncounterPortrait:
-		(shell as EncounterPortrait).show_story(vm)
-	elif shell is EncounterLandscape:
-		(shell as EncounterLandscape).show_story(vm)
 
-## 当前节点要求的壳形态（tech/02 §2.1：forced 按幕强制、forced_except 幕内节点级例外——
-## 战役书幕三：SL-3 强制竖屏，N3-7 空白广场起恢复玩家所选形态"此处起解锁横屏"；09 §3 强制是叙事手段）。
-func _story_mode() -> StringName:
-	var pres: Dictionary = (pack.get("manifest", {}) as Dictionary).get("presentation", {})
-	var act := str(graph.current().get("act", ""))
-	var forced: Dictionary = pres.get("forced", {})
-	if forced.has(act):
-		var exempt: Array = (pres.get("forced_except", {}) as Dictionary).get(act, [])
-		if not exempt.has(graph.current_id):
-			return ShellRouter.effective(StringName(str(forced[act])))
-	return ShellRouter.effective(_mode)
 
-func _shell_mode() -> StringName:
-	if shell is EncounterPortrait:
-		return ShellRouter.MODE_TIME
-	if shell is EncounterLandscape:
-		return ShellRouter.MODE_SPACE
-	return &""
 
-## 故事壳就位：实例化/复用同一壳（09 §8 一局一壳），绑定故事回调（唯一指令通道）。
-## 强制幕换壳（09 §3 内容驱动，非玩家切换——router 的玩家切换锁不变）：形态不一致即重建壳，
-## 并以叙事化提示呈现（09 §3：禁止系统腔；锁定用 NOTICE_FORCED，解锁用 Texts.s(&"STORY_MODE_UNLOCK")）。
-func _ensure_story_shell() -> void:
-	var want := _story_mode()
-	var notice := ""
-	_set_window_orientation(want) # 窗口随壳形态（09 §8：开始战役即切换；forced 幕内外双向经同一通道）
-	if shell != null and _shell_mode() != want:
-		shell.queue_free()
-		shell = null
-		router = ShellRouter.new() # 换壳重开一局壳锁定（09 §8：锁管玩家切换，不管内容驱动换壳）
-		notice = ShellRouter.forced_notice(want) if want != _mode \
-			else Texts.s(&"STORY_MODE_UNLOCK")
-	var created := false
-	if shell == null:
-		shell = (load(SHELL_SCENES[want]) as PackedScene).instantiate()
-		UITheme.attach(shell as Control)
-		add_child(shell)
-		shell.set("on_save_quit", Callable(self, "_on_save_quit"))
-		router.lock_encounter(want) # 形态整场锁定（09 §3/§8：战役开始即定壳）
-		created = true
-	var old := current_screen
-	current_screen = shell
-	if created and transition != null:
-		# 入口→遭遇（故事壳新建）：转场中场壳现身、旧屏回收（14 #8 淡入淡出）
-		shell.visible = false
-		var new_shell := shell
-		transition.fade_through(func() -> void:
-			if old != null and is_instance_valid(old):
-				old.queue_free()
-			if is_instance_valid(new_shell):
-				new_shell.visible = true)
-	else:
-		if old != null and old != shell:
-			old.queue_free()
-		shell.visible = true
-	shell.bind_story(stream, board, pack, {"edge": _on_story_edge, "hub": _on_hub_action})
-	if notice != "": # 换壳提示在新壳订阅事件流之后发出（事件流驱动 toast，壳只订阅）
-		stream.emit(EventTypes.LOG, {"msg": notice, "toast": true}, &"core", graph.current_id)
 
-## 玩家执行节点选项：check 边真实掷骰（11 §3，check.roll 事件驱动两级演出 09 §6）；
-## dialog 选项回复进日志；边效果/on_enter 写板由 StoryGraph 落（07 §1 溯源）。
-## 探索序列进行中时，选项按钮 = 推进当前节拍（MazeRunner，tech/02 §6 maze）。
-func _on_story_edge(idx: int) -> void:
-	if _maze != null:
-		_on_maze_advance()
-		return
-	var edges := graph.available_edges()
-	if idx < 0 or idx >= edges.size():
-		return
-	var edge: Dictionary = edges[idx]
-	if str(graph.current().get("type", "")) == "dialog":
-		stream.emit(EventTypes.LOG, {"msg_key": "MSG_STORY_ECHO", "args": {
-			"title": str(graph.current().get("title", "")),
-			"text": str(edge.get("label", Texts.s(&"STORY_CONTINUE")))}}, &"core", graph.current_id)
-	if str(edge.get("type", "")) == "check":
-		var res := graph.roll_check(edge)
-		await get_tree().create_timer(2.3 if bool(res.get("key", false)) else 0.8).timeout # 等演出落定
-	else:
-		graph.take_edge(edge)
-	_present_node()
 
-## Hub 动作（战役书 §4 N1-1）：商店购买 / 休整 / 传闻；写板全部在 core，本层只转发与刷新。
-func _on_hub_action(action: String, arg: String) -> void:
-	match action:
-		"buy":
-			if not graph.hub_buy(arg):
-				stream.emit(EventTypes.LOG, {"msg_key": "HUB_NO_GOLD", "toast": true}, &"core", graph.current_id)
-			var vm := StoryVM.build(graph, board, pack)
-			_story_show(vm)
-			shell.sync_hub_popup(vm)
-		"rest":
-			graph.hub_rest()
-			var vm2 := StoryVM.build(graph, board, pack)
-			_story_show(vm2)
-			shell.sync_hub_popup(vm2)
-		"rumor":
-			var rumors: Array = graph.hub_rumors()
-			var msg := StoryVM.rumor_text(rumors[0]) if not rumors.is_empty() else Texts.s(&"HUB_RUMOR_NONE")
-			stream.emit(EventTypes.LOG, {"msg": msg, "toast": true}, &"core", graph.current_id)
 
-## 切片终点（出 SL-0/SL-1 范围或结局节点）：结算快照落盘（07 §4.2 主快照点）+ ⑨结算屏。
-func _end_slice() -> void:
-	_in_encounter = false
-	# 通关旗标 → 成就点亮路径（06 §2.1：点亮手段多样；规则表在运营配置，06 §3.2）
-	if not bool(board.read("%s.cleared" % _campaign_id)):
-		board.write("%s.cleared" % _campaign_id, true,
-			{"event_id": stream.tail(), "node_id": graph.current_id, "pack_id": _campaign_id})
-	entitlements.check_achievements(ops_config)
-	# 成长在 xp 效果产出时已即时汇入 global.growth.*（tech/04 §8 规则1/2）；
-	# 结算界面 = 成长加点时机（11 §6；04 §⑨），此处只呈现与分配。
-	_save("settle")
-	_encounter_tail = _campaign_tail # 汇总区间 = 整个切片（逐项念给玩家听，04 §⑨）
-	_encounter_result = &"slice"
-	_show_settle()
 
 # ---------------------------------------------------------------- 结局与多周目（tech/02 §9；战役书 §9/§8）
 
-## 结局节点：写通关旗标（成就点亮路径 06 §2.1）→ story.ending 事件（tech/02 §9）→ 结局快照
-## （07 §4.2 主快照点）→ 结局屏（四分型文案 + 多周目钩子均取 endings.json，壳不再创作）。
-## 结局分型旗标（ending_e1~e4 / 解锁占位）由 ending 节点 on_enter 写板（nodes.json，V4 台账闭环）。
-func _present_ending() -> void:
-	_in_encounter = false
-	_set_window_orientation(ShellRouter.MODE_TIME) # 战役结束恢复原屏幕布局（09 §8：通关路径收束于竖屏基准）
-	var eid := graph.current_id
-	if not bool(board.read("%s.cleared" % _campaign_id)):
-		board.write("%s.cleared" % _campaign_id, true,
-			{"event_id": stream.tail(), "node_id": eid, "pack_id": _campaign_id})
-	entitlements.check_achievements(ops_config)
-	var edef := {}
-	for e: Variant in pack.get("endings", []):
-		if str((e as Dictionary).get("id", "")) == eid:
-			edef = e
-	stream.emit(EventTypes.STORY_ENDING, {"ending": eid,
-		"title": str(edef.get("title", graph.current().get("title", eid)))}, &"graph", eid)
-	_save("ending")
-	var screen: ScreenEnding = (load(SCREEN_SCENES[&"ending"]) as PackedScene).instantiate()
-	_swap(screen)
-	screen.bind({"ending_id": eid, "title": str(edef.get("title", eid)),
-		# 结局演出全文 = text_ref 外置 → content 摘要兜底（tech/02 §9/§1.1；壳不创作）
-		"content": StoryVM.ending_text(pack.get("texts", {}), edef, board, _campaign_id),
-		"hook": str(edef.get("ngplus_hook", "")),
-		"playthrough": int(board.read(_playthrough_key(), 0)) + 1, "saved": true})
-	screen.ngplus_requested.connect(_on_ngplus_start)
-	screen.go_home.connect(_show_home)
 
-## 开始二周目（战役书 §11 多周目继承清单·定稿；tech/02 §2.7 manifest.ngplus 数据驱动）：
-## 继承内容唯一依据 = 战役包 manifest.ngplus（carries 共通 + per_ending 按结局解锁），
-## 本函数不写死任何继承内容——改 manifest 即变；执行落 core（NgPlus.apply，bot NG+ 语义同口径）。
-func _on_ngplus_start() -> void:
-	var old_board := board
-	board = Board.new(stream)
-	entitlements = Entitlements.new(board, stream)
-	entitlements.apply_activities(ops_config)
-	entitlements.apply_market_grants(ops_config, _market())
-	cosmetics = Cosmetics.new(board, stream)
-	var ngplus_conf: Dictionary = ((_pack_host.get("manifest", {}) as Dictionary)
-		.get("ngplus", {})) # tech/02 §2.6：宿主原包 manifest 为唯一继承依据
-	NgPlus.apply(old_board, board, stream, cosmetics, ngplus_conf, str(_pack_host.get("pack_id", "")))
-	graph = StoryGraph.new(board, rng, _pack_host) # 从宿主原包重建（tech/02 §2.6：宿主数据不动）
-	_graft_discovered_arcs() # 支线随新周目重新注入（权利随新板再判定，06 §3.1）
-	if shell != null:
-		shell.queue_free()
-		shell = null
-	router = ShellRouter.new()
-	_battles_won = 0
-	stream.emit(EventTypes.LOG, {"msg_key": "NGPLUS_TOAST", "toast": true}, &"core")
-	_start_campaign()
 
 # ---------------------------------------------------------------- 迷宫探索序列（tech/02 §6 maze 块；04 §④.3）
 # 逐拍呈现：check/ambush 拍掷 d20+修正（与检定边同一公式，11 §2/§3），loot 拍写板拾取；
 # 节拍效果/进度全部由 MazeRunner 落 core（写板带溯源、进事件流），本层只转发与刷新。
 
-## 当前 explore 节点有待完成的探索序列（节拍进度簿记在状态板，中途离场续打不重效果）。
-func _maze_pending() -> bool:
-	var enc: Dictionary = (pack.get("encounters", {}) as Dictionary).get(
-		str(graph.current().get("encounter", graph.current_id)), {})
-	var beats: Array = (enc.get("maze", {}) as Dictionary).get("beats", [])
-	if beats.is_empty():
-		return false
-	var enc_id := str(enc.get("id", graph.current_id))
-	return int(board.read("%s.maze.%s.idx" % [pack["pack_id"], enc_id], 0)) < beats.size()
 
-func _enter_maze() -> void:
-	var enc_id := str(graph.current().get("encounter", graph.current_id))
-	var enc: Dictionary = (pack.get("encounters", {}) as Dictionary).get(enc_id, {})
-	_maze = MazeRunner.new(board, stream, rng, str(pack["pack_id"]))
-	_maze.begin(enc_id, (enc.get("maze", {}) as Dictionary).get("beats", []),
-		Callable(graph, "check_mod"), graph.current_id)
-	_maze_outcome = ""
-	_show_maze_beat()
 
-## 呈现当前节拍：复用双壳故事态（StoryVM 单源），选项按钮 = 推进本拍。
-func _show_maze_beat() -> void:
-	if _maze == null:
-		_present_node()
-		return
-	var beat := _maze.peek()
-	if beat.is_empty(): # 序列完成 → 回节点呈现出边（密道道具边按条件显形，tech/02 §4.3）
-		_maze = null
-		_maze_outcome = ""
-		_present_node()
-		return
-	var vm := StoryVM.build(graph, board, pack)
-	vm["type"] = "explore"
-	vm["title"] = Texts.s(&"MAZE_TITLE") % [str(graph.current().get("title", graph.current_id)),
-		_maze.beat_index() + 1, _maze.beat_count()]
-	vm["text"] = _maze_outcome + str(beat.get("text", ""))
-	var label := Texts.s(&"STORY_CONTINUE")
-	var btype := str(beat.get("type", ""))
-	if btype == "check" or btype == "ambush":
-		var skill := str(beat.get("skill", "perception"))
-		var diff := str(beat.get("difficulty", "medium"))
-		label = Texts.s(&"FMT_CHECK_LABEL") % [Texts.s(&"STORY_CHECK"),
-			str(Texts.t(&"SKILL_NAMES").get(skill, skill)), str(Texts.t(&"DIFF_NAMES").get(diff, diff)),
-			LightV1.dc_for(diff), graph.check_mod(skill)]
-		if btype == "ambush":
-			label = Texts.s(&"MAZE_AMBUSH_PREFIX") + label
-	elif btype == "loot":
-		label = Texts.s(&"MAZE_LOOT") % [_item_name(str(beat.get("item", ""))), int(beat.get("n", 1))]
-	vm["edges"] = [{"type": "choice", "label": label}]
-	_ensure_story_shell()
-	_story_show(vm)
 
-## 推进当前节拍：掷骰/写板在 core（check.roll、item.gain、效果 DSL 事件进事件流）；
-## 结果摘要拼入下一拍文本；等快掷落定再刷新（09 §6 普通检定 ≤0.5s 出结果）。
-func _on_maze_advance() -> void:
-	var res := _maze.resolve()
-	if bool(res.get("retry", false)):
-		# 解谜房：失败给提示原地重试（tech/02 §6 retry_on_fail/hint；campaign01 迷宫未声明，通用能力）
-		_maze_outcome = "%s %s\n\n" % [Texts.s(&"MAZE_BEAT_FAIL"), str(res.get("hint", ""))]
-	elif str(res.get("type", "")) == "loot":
-		_maze_outcome = "%s\n\n" % Texts.s(&"MAZE_LOOT") % [_item_name(str(res.get("item", ""))),
-			int(res.get("n", 1))]
-	else:
-		_maze_outcome = (Texts.s(&"MAZE_BEAT_OK") if bool(res.get("success", false)) \
-			else Texts.s(&"MAZE_BEAT_FAIL")) + "\n\n"
-	await get_tree().create_timer(0.8).timeout
-	_show_maze_beat()
 
 # ---------------------------------------------------------------- 整备（09 §9.1；tech/02 §2.4）
 
-func _enter_encounter() -> void:
-	var node := graph.current()
-	_encounter_id = str(node.get("encounter", graph.current_id))
-	_battle_title = str(node.get("title", _encounter_id))
-	_set_window_orientation(_story_mode()) # 整备同战役形态（09 §8）：壳未建时窗口先就位（如「继续」直达战斗节点）
-	var cfg := Loadout.resolve_config(pack, _encounter_id)
-	if not cfg.is_empty():
-		cfg = cfg.duplicate() # 2→3 级技能槽 +1（11 §6；槽位基值仍读配置，tech/02 §2.4）
-		cfg["skill_slots"] = int(cfg["skill_slots"]) \
-			+ LightV1.skill_slot_bonus(Growth.level(board))
-	if cfg.is_empty():
-		_begin_encounter({"skills": [], "items": ["heal_potion"], "attr_alloc": {}}) # 空选择 = BattleDef 缺省
-		return
-	var screen: ScreenLoadout = (load(SCREEN_SCENES[&"loadout"]) as PackedScene).instantiate()
-	screen.set_form(_story_mode()) # 整备横屏专版（04 §④.8：横屏三段横列 + 队伍状态条置顶）
-	_swap(screen)
-	screen.bind(cfg, _loadout_candidates())
-	screen.confirmed.connect(_on_loadout_confirmed.bind(cfg))
-	screen.back_requested.connect(_present_node) # 整备可退回节点（04 §5 有退路）
 
-## 整备备选 = 玩家模板已习得技能 ∩ skills.json（tech/04 §7）；道具 = 背包含 use 块条目（tech/04 §4）。
-func _loadout_candidates() -> Dictionary:
-	var skill_pool: Array = []
-	var skills: Dictionary = pack.get("skills", {})
-	for sid: Variant in _player_template().get("skills", []):
-		if skills.has(str(sid)):
-			skill_pool.append(BattleDef.runtime_skill(skills[str(sid)]))
-	var items: Array = []
-	for iid: String in (pack.get("items", {}) as Dictionary).keys():
-		var it: Dictionary = pack["items"][iid]
-		if it.has("use") and board.has_item(iid):
-			items.append({"id": iid, "name": str(it.get("name", iid)), "count": board.item_count(iid)})
-	return {"skills": skill_pool, "items": items,
-		"attr_points": Growth.attr_points(board), # 成长簿记归全局键（tech/04 §8）
-		"attrs": Growth.attrs_map(board), # 已分配值（单项 +3 封顶判定用，11 §6）
-		"attr_alloc": {"might": 0, "finesse": 0, "wits": 0},
-		"party": graph.party_status(), # 横屏整备队伍状态条置顶（04 §④.8；04 §3.1 状态栏带同口径）
-		"basic_attacks": _basic_attacks()} # 普攻恒定携带（tech/04 §2；预设套用不占槽，09 §9.3）
 
-## 队伍普攻清单（tech/04 §2 basic_attack 亦属已习得）：预设含普攻 = 视为已携带，不占整备槽位。
-func _basic_attacks() -> Array:
-	var out: Array = []
-	for cid: String in (pack.get("characters", {}) as Dictionary).keys():
-		var c: Dictionary = pack["characters"][cid]
-		if not ["player_template", "companion"].has(str(c.get("kind", ""))):
-			continue
-		var ba := str(c.get("basic_attack", ""))
-		if not ba.is_empty() and not out.has(ba):
-			out.append(ba)
-	return out
 
-## 玩家模板条目（tech/04 §2 kind=player_template；找不到 = 包数据缺陷，返回空字典由组装层报错）。
-func _player_template() -> Dictionary:
-	for cid: String in (pack.get("characters", {}) as Dictionary).keys():
-		var c: Dictionary = pack["characters"][cid]
-		if str(c.get("kind", "")) == "player_template":
-			return c
-	return {}
 
-func _on_loadout_confirmed(selection: Dictionary, cfg: Dictionary) -> void:
-	Loadout.confirm(stream, cfg, selection["skills"], selection["items"],
-		selection["attr_alloc"], graph.current_id, pack["pack_id"]) # loadout.confirm 事件（09 §9.1）
-	_apply_attr_alloc(selection.get("attr_alloc", {}), int(selection.get("attr_points_left", 0)))
-	_begin_encounter(selection)
 
-## 属性点分配经成长系统写板 global.growth.*（07 §1 溯源；tech/04 §8 规则3）；
-## 单项 ≤+3 封顶（11 §6）或点数不足 → 拒绝整体分配并返回 false。
-func _apply_attr_alloc(alloc: Dictionary, _points_left: int = 0) -> bool:
-	var growth := Growth.new(board)
-	for attr: String in alloc.keys():
-		var n := int(alloc[attr])
-		if n <= 0:
-			continue
-		if Growth.attrs_total(board, attr) + n > LightV1.ATTR_POINT_CAP:
-			return false # 单项 ≤+3 封顶（11 §6）
-		if n > Growth.attr_points(board):
-			return false # 未分配点数不足
-	var prov := {"event_id": stream.tail(), "node_id": graph.current_id, "pack_id": _campaign_id}
-	for attr: String in alloc.keys():
-		for i: int in int(alloc[attr]):
-			if not growth.alloc(attr, prov):
-				return false
-	return true
 
 # ---------------------------------------------------------------- 遭遇（09 §2/§7/§8；tech/02 §2.1）
 
-func _begin_encounter(selection: Dictionary) -> void:
-	_in_encounter = true
-	_encounter_snapshot = SaveSystem.make_snapshot(board, stream, rng, _bindings(), _meta()) # ☰ 恢复点
-	_encounter_tail = stream.tail()
-	_encounter_result = &""
-	var sm := EncounterSM.new(board, stream, rng, pack["pack_id"])
-	var agent := AutoAgent.new()
-	_ensure_story_shell() # 复用故事壳（09 §8：一局一壳；bind 内切战斗布局）
-	if current_screen != null and current_screen != shell:
-		current_screen.queue_free()
-	current_screen = shell
-	shell.visible = true
-	if shell is EncounterPortrait:
-		(shell as EncounterPortrait).bind(sm, agent)
-	else:
-		(shell as EncounterLandscape).bind(sm, agent)
-	shell.set("on_save_quit", Callable(self, "_on_save_quit"))
-	router.lock_encounter(_mode) # 遭遇开始即壳锁定（09 §8）
-	if transition != null:
-		transition.encounter_enter(shell) # 遭遇进场：淡入淡出 + 轻微上移滑入（14 #8）
-	var nid := graph.current_id
-	sm.enter(nid)
-	sm.transition(EncounterSM.S_EXPLORE)
-	stream.emit(EventTypes.LOG, {"msg": str(graph.current().get("summary", ""))}, &"core", nid)
-	await get_tree().create_timer(1.0).timeout
-	if sm.state == EncounterSM.S_EXPLORE:
-		var def := _battle_def(selection)
-		if def.is_empty():
-			return # fail-fast：包数据缺陷不进战斗（报错已由 _battle_def 输出）
-		sm.begin_combat(def)
 
-## 战斗定义 = pack 资源表组装（tech/04 §1~§4 / tech/02 §6；M2：TP2 硬编码留白落位）。
-## 引用缺失/公式失败 = 包数据缺陷：fail-fast 报错并返回空字典（不静默降级、不进战斗）。
-func _battle_def(selection: Dictionary) -> Dictionary:
-	var enc := _encounter_id if not _encounter_id.is_empty() else graph.current_id
-	var res := BattleDef.assemble(pack, enc, selection, board)
-	if not bool(res["ok"]):
-		push_error("[main] 战斗定义组装失败（%s/%s）：%s"
-			% [_campaign_id, enc, ";".join(res["errors"] as Array)])
-		return {}
-	return res["def"]
 
-## ☰「保存并回主屏」（09 §7）：遭遇进行中 = 恢复遭遇进入前快照（本局重打，不存档）；
-## 故事态（遭遇外）= 进度随图快照落档后回主屏（07 §4.2 遭遇外时机）。
-func _on_save_quit() -> void:
-	if _in_encounter:
-		if shell != null:
-			shell.queue_free()
-			shell = null
-		SaveSystem.apply(_encounter_snapshot, board, rng) # 恢复遭遇进入前的世界状态（战斗不写板，RNG 归位）
-		graph.deserialize(_encounter_snapshot["meta"].get("graph", {}))
-		stream.emit(EventTypes.LOG, {"msg_key": "MSG_REWIND_BATTLE"}, &"core")
-		_in_encounter = false
-		_save("quit_home") # 恢复后的世界状态落档（遭遇外时机，07 §4.2）
-		_show_home()
-		return
-	_save("quit_home") # 故事态：节点进度在 meta.graph 内随快照落档
-	stream.emit(EventTypes.LOG, {"msg_key": "MSG_REWIND_STORY"}, &"core")
-	_show_home()
 
 # ---------------------------------------------------------------- 结算（04 §⑨；07 §4.2 主快照点）
 
@@ -925,111 +498,14 @@ func _on_event(ev: Dictionary) -> void:
 	if ev["type"] == EventTypes.CHECK_ROLL and bool(ev["payload"].get("key", false)):
 		# 情境教程：首次关键判定（可跳过演出，04 §④.7 长按跳过）
 		_context_hint("key_roll", Texts.s(&"TUT_HINT_KEY"))
-	if ev["type"] == EventTypes.COMBAT_END and _in_encounter:
-		_encounter_result = ev["payload"]["result"]
+	if ev["type"] == EventTypes.COMBAT_END and campaign._in_encounter:
+		campaign._encounter_result = ev["payload"]["result"]
 		_show_settle_deferred()
 
-func _show_settle_deferred() -> void:
-	await get_tree().create_timer(1.2).timeout
-	_in_encounter = false
-	if _encounter_result == &"victory":
-		_battles_won += 1
-		var edges := graph.available_edges()
-		if edges.is_empty():
-			_end_slice()
-			return
-		# 胜利必经结算（04 §⑨：单局的句点，元循环的落笔处）——先念板+快照，再由玩家择出口。
-		# 唯一出边先推进再落快照（07 §4.2：快照落在战后节点，「继续」不重打已胜之仗）；
-		# 多条出边（hybrid 战后抉择 N2U-2 撕/不撕、通缉战 N2L-1b 强制择链）留在战斗节点，
-		# 由结算「下一遭遇」呈现故事态抉择（tech/02 §6 hybrid）。
-		if edges.size() == 1:
-			graph.take_edge(edges[0])
-		_save("settle")
-		_show_settle()
-	elif _encounter_result == &"objective_failed":
-		# 护送目标失败：罚时等代价已按 escort.failure_effects 写板（core，tech/02 §6），
-		# 仍走节点唯一出边——罚时替代全灭（N2S-1 注记就近处理，08 §2 失败即分支）
-		var edges := graph.available_edges()
-		if edges.is_empty():
-			_end_slice()
-			return
-		graph.take_edge(edges[0])
-		_present_node()
-	else:
-		_save("settle") # 失败即分支：结算仍是元循环落笔（09 §7 失败不读档）
-		_show_settle()
 
-## 汇总区间 = 锚点之后的事件（04 §⑨：逐项念给玩家听）。
-func _show_settle() -> void:
-	var lines: Array[String] = []
-	var xp := 0
-	var attr_gained := 0
-	for ev: Dictionary in stream.since(_encounter_tail):
-		var p: Dictionary = ev["payload"]
-		match StringName(ev["type"]):
-			EventTypes.XP_GAIN:
-				xp += int(p.get("amount", 0))
-			EventTypes.LEVEL_UP:
-				attr_gained += int(p.get("attr_points", 0)) # 升级即发放（tech/04 §8 规则2）
-			EventTypes.ITEM_GAIN:
-				lines.append(Texts.s(&"SETTLE_LINE_ITEM") % [_item_name(str(p.get("item_id", ""))),
-					int(p.get("count", 1))])
-			EventTypes.FLAG_WRITE:
-				var fkey := str(p.get("key", ""))
-				# 内部簿记键（成长/模式选择/金币/HP）不念给玩家（04 §⑨ 呈现语义：旗标变化摘要）
-				if StoryVM.is_bookkeeping_key(fkey):
-					continue
-				lines.append(Texts.s(&"SETTLE_LINE_FLAG") % StoryVM.flag_display(fkey, pack))
-			EventTypes.REP_CHANGE:
-				lines.append(Texts.s(&"SETTLE_LINE_REP") % [str(p.get("key", "")).trim_prefix("global.rep."),
-					int(p.get("delta", 0))])
-			EventTypes.LOADOUT_CONFIRM:
-				lines.append(Texts.s(&"SETTLE_LINE_LOADOUT") % [str(p.get("skills", [])), str(p.get("items", []))])
-	if xp > 0:
-		lines.insert(0, Texts.s(&"SETTLE_LINE_XP") % xp)
-	var level := Growth.level(board)
-	if level > 1:
-		lines.append(Texts.s(&"SETTLE_LINE_LEVEL") % level)
-	if attr_gained > 0:
-		lines.append(Texts.s(&"SETTLE_LINE_ATTR") % attr_gained)
-	lines.append(Texts.s(&"SETTLE_LINE_CLOCK") % board.get_doom_clock())
-	_settle_lines = lines
-	_settle_celebrated = false # 新一场结算：胜利演出恢复首播（04 §④.8）
-	_bind_settle()
 
-func _bind_settle() -> void:
-	_set_window_orientation(_story_mode()) # 结算在所选形态下呈现（09 §8）；从⑧卷轴返回时恢复战役形态
-	var screen: ScreenSettle = (load(SCREEN_SCENES[&"settle"]) as PackedScene).instantiate()
-	screen.set_form(_story_mode()) # 结算横屏专版（04 §④.8：左念板列表 + 右加点与出口）
-	_swap(screen)
-	screen.bind({"title": Texts.s(&"STORY_SLICE_END") if _encounter_result == &"slice" else _battle_title,
-		"result": String(_encounter_result), "lines": _settle_lines,
-		"saved": true, "attr_points": Growth.attr_points(board),
-		"attrs": Growth.attrs_map(board),
-		"has_next": _encounter_result == &"victory", # 下一遭遇出口（04 §⑨：胜利结算三出口）
-		"celebrate": not _settle_celebrated}) # 胜利演出每场首播（04 §④.8；加点刷新重绑不重播）
-	_settle_celebrated = true
-	screen.allocate.connect(_on_settle_allocate)
-	screen.go_home.connect(_show_home)
-	screen.go_next.connect(_on_settle_next)
-	screen.go_history.connect(func() -> void:
-		_history_origin = &"settle"
-		_show_history())
 
-## 胜利结算「下一遭遇」（04 §⑨）：唯一出边已在进结算前推进，此处呈现战后节点；
-## 多条出边（hybrid 战后抉择）呈现战斗节点的故事态选项——不得 _present_node（type=battle 会重进遭遇，tech/02 §6）。
-func _on_settle_next() -> void:
-	var edges := graph.available_edges()
-	if edges.size() > 1 and str(graph.current().get("type", "")) == "battle":
-		_present_story_node()
-		return
-	_present_node()
 
-func _on_settle_allocate(attr: String) -> void:
-	var prov := {"event_id": stream.tail(), "node_id": graph.current_id, "pack_id": _campaign_id}
-	if not Growth.new(board).alloc(attr, prov):
-		return # 点数不足或单项 +3 封顶（11 §6）：拒绝并保持界面
-	_bind_settle() # 刷新可用点数与已分配值
 
 # ---------------------------------------------------------------- ⑤⑥⑦⑧ 功能界面（04 §⑤⑥⑦⑧ 最小版）
 
@@ -1200,23 +676,44 @@ func _refresh_after_unlock() -> void:
 	elif current_screen is ScreenEntry:
 		_show_entry()
 
-## 章节锁定页（06 §3.1：可见但锁定 + 叙事化 + 购买弹层；回营地不丢进度——节点已落档可继续）。
-func _show_act_lock(act_id: String) -> void:
-	_set_window_orientation(ShellRouter.MODE_TIME)
-	var key := str(Entitlements.act_requires(pack, act_id)[0]).trim_prefix("entitlement.")
-	var item := Entitlements.price_of(ops_config, key)
-	var act_title := ""
-	for a: Variant in pack.get("acts", []):
-		if str((a as Dictionary).get("id", "")) == act_id:
-			act_title = str((a as Dictionary).get("title", act_id))
-	var screen := ScreenLocked.new()
-	_swap(screen)
-	screen.bind(act_title, key, str(item.get("name", key)), str(item.get("price_text", "")), store.is_available())
-	screen.purchase_requested.connect(_buy)
-	screen.restore_requested.connect(_restore_purchases)
-	screen.back_requested.connect(func() -> void:
-		_save("locked_chapter")
-		_show_home())
+
+# ---------------------------------------------------------------- 战役流程（委托 CampaignFlow，代码评审 M2）
+
+func _on_mode_chosen(mode: StringName) -> void:
+	campaign._on_mode_chosen(mode)
+
+func _on_campaign_start(entry: ScreenEntry) -> void:
+	campaign._on_campaign_start(entry)
+
+func _present_node() -> void:
+	campaign._present_node()
+
+func _battle_def(selection: Dictionary) -> Dictionary:
+	return campaign._battle_def(selection)
+
+func _show_settle_deferred() -> void:
+	campaign._show_settle_deferred()
+
+func _bind_settle() -> void:
+	campaign._bind_settle()
+
+func _story_show(vm: Dictionary) -> void:
+	campaign._story_show(vm)
+
+func _story_mode() -> StringName:
+	return campaign._story_mode()
+
+func _on_story_edge(idx: int) -> void:
+	campaign._on_story_edge(idx)
+
+func _on_hub_action(action: String, arg: String) -> void:
+	campaign._on_hub_action(action, arg)
+
+func _loadout_candidates() -> Dictionary:
+	return campaign._loadout_candidates()
+
+func _on_save_quit() -> void:
+	campaign._on_save_quit()
 
 # ---------------------------------------------------------------- 子游戏流程（委托 SubgameFlow，代码评审 M2）
 
@@ -1245,13 +742,13 @@ func _meta() -> Dictionary:
 		"ngplus": int(board.read(_playthrough_key(), 0)), # 周目数随快照落档（07 §4.1 meta）
 		"created_at": Time.get_datetime_string_from_system(false, true),
 		"progress": "当前节点 %s · 已访 %d 节点 · 胜场 %d" % [graph.current_id,
-			graph.visit_log.size(), _battles_won],
+			graph.visit_log.size(), campaign._battles_won],
 		"graph": graph.serialize(),
 		"node_id": graph.current_id}
 
 ## 写档（遭遇外时机专用：结算完成 / 主屏手动 / 主屏闲置 / ☰ 回主屏恢复后）。
 func _save(reason: String) -> void:
-	if _in_encounter:
+	if campaign._in_encounter:
 		push_error("[main] 遭遇进行中不存档（07 §4.2）——调用方时机错误")
 		return
 	var snap := SaveSystem.make_snapshot(board, stream, rng, _bindings(), _meta())

@@ -152,7 +152,7 @@ The framework has built rule depth and the business model in as extension axes (
 **Phase 1 · Decouple and localise the engine**
 
 - [x] Remove campaign01 hard-coding from core / main (M1): the campaign is discovered from the packs folder; manifest `start` / `lock_text` / `entry`; bookkeeping keys judged by key shape; static guard test
-- [~] Split main.gd (M2): sub-game flow → `subgame_flow.gd`, screenshot drivers → `tools/shot_driver.gd` (1861 → 1156 lines); a CampaignFlow object is left for later — many tests drive main's campaign internals directly and need changing first
+- [x] Split main.gd (M2): campaign flow → `campaign_flow.gd`, sub-game flow → `subgame_flow.gd`, screenshot drivers → `tools/shot_driver.gd`; main.gd keeps only the app layer (service wiring, navigation, saves, store, lifecycle), 1861 → 783 lines
 - [x] Event msg_key + args (core emits no prose); the full event stream is saved (E-3 decided), so no v2→v3 migration is needed (the new key is backward compatible)
 - [x] Locale tables (`Texts` + texts_zh/texts_en) + `ui.locale` setting + a language button on the help page; convention-keyed pack text overlay (tech/02 §1.1) + packlint V15 (it already caught 2 packs missing their texts file)
 - [x] English-length layout → done in Phase 2

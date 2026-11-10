@@ -62,7 +62,7 @@ The logic core is genuinely well built: clean RefCounted layering, seeded RNG, p
 - Consequence: "a new campaign = a new content pack, no framework change" isn't true yet; campaign02 would require editing core and main. Sub-games and side arcs *are* data-driven (`_discover_subgames`, `graft`), which shows the pattern works.
 - Fix: move gold key / starting gold / settlement-exempt keys into manifest fields; derive the campaign pack from a catalog instead of a constant.
 
-### M2 · `main.gd` is an 1,861-line god object (partly fixed: shot drivers → `tools/`, sub-game flow → `subgame_flow.gd`; now 1,156 lines; a campaign-flow split remains)
+### M2 · `main.gd` is an 1,861-line god object ✅ fixed: campaign flow → `campaign_flow.gd`, sub-game flow → `subgame_flow.gd`, shot drivers → `tools/`; main.gd is now 783 lines of app layer
 It holds campaign flow, sub-game flow (a second copy of maze/battle/settle/save-quit logic, `_sub_*`), save timing, entitlements, cosmetics, and ~450 lines of screenshot/demo drivers (`_run_shots_*`, 16 CLI flags) that call private core methods (`graph._enter("N1-3")`) and write fake events into the stream. The demo code ships in the production main scene.
 - Fix: split into `CampaignFlow`, `SubgameFlow` (sharing one encounter/settle flow), `AppServices`; move shot drivers to `tools/`.
 
@@ -88,6 +88,7 @@ No `EffectEngine`, no `effect.attach`/`effect.expire` events, no base→add→mu
 ## 4. Minor findings
 
 - **Status-bar overlap in portrait battles** (found in P4 Phase 1, present before it) ✅ fixed in Phase 2: the battle camera scrolled unclipped content under the status band; the main view now clips.
+- **Transition callback after free** (pre-existing, seen in the Act III and mode-boundary screenshot flows): `shell/ui/transition.gd` `_flush_mid` calls a lambda whose captured screen was already freed during rapid screen swaps ("Lambda capture at index 0 was freed"). Harmless today; fix by checking the capture or binding instance ids.
 - **Package size**: BGM shipped as uncompressed 16-bit WAV (2 × 2.6 MB for 30 s loops); use Ogg Vorbis (~10× smaller).
 - **No export presets**: `export_presets.cfg` is gitignored and absent; no Android/iOS build has been produced or tested (doc 14 phase 3 is honestly unchecked).
 - **Doc index was stale** (fixed): `docs/README.md` listed riddle-maze as "not started" though it is live; `game/packs/README.md` listed only campaign01 and arena.

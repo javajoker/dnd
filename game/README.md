@@ -16,6 +16,8 @@
 
 | Directory | Responsibility | Iron rule |
 |---|---|---|
+| `main.gd` | App layer: service wiring, navigation between screens, saves, store, lifecycle and back button | Thin: delegates flows, no campaign logic |
+| `campaign_flow.gd` / `subgame_flow.gd` | Campaign flow (nodes, encounters, settlement, endings, locked chapters) / sub-game flow | Use services through `m` (main) |
 | `core/` | Logic core: Board / event stream / story graph / encounter state machine / rule pack / saves | RefCounted only, zero engine dependencies |
 | `shell/` | Rendering shells: nine screens + portrait temporal / landscape spatial forms | Consume the event stream only; read the Board only |
 | `packs/` | Content-pack runtime copies (tech/02 §1 layout); packaged as PCK for release | Data-driven, no logic |

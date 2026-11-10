@@ -4110,7 +4110,7 @@ func test_act2_hybrid_flow() -> void:
 	check(m.current_screen is ScreenLoadout, "撕页行动 → 整备界面（09 §9.1）")
 	(m.current_screen as ScreenLoadout)._on_confirm()
 	await create_timer(1.4).timeout
-	check(m._in_encounter, "撕页行动战斗开始（税吏卫队）")
+	check(m.campaign._in_encounter, "撕页行动战斗开始（税吏卫队）")
 	m.stream.emit(EventTypes.COMBAT_END, {"result": &"victory", "rounds": 2}, &"core", "N2U-2")
 	await create_timer(1.6).timeout
 	check(m.current_screen is ScreenSettle, "hybrid 胜利 → ⑨ 结算屏（04 §⑨：胜利必经结算）")
@@ -4118,7 +4118,7 @@ func test_act2_hybrid_flow() -> void:
 	await process_frame
 	var sh := m.shell as EncounterPortrait
 	var opts := " ".join(sh.story_option_texts())
-	check(m.graph.current_id == "N2U-2" and not m._in_encounter
+	check(m.graph.current_id == "N2U-2" and not m.campaign._in_encounter
 		and opts.contains("撕掉税吏的命运页") and opts.contains("不撕"),
 		"hybrid 胜利 → 战后抉择双出边呈现（不重进遭遇，tech/02 §6 hybrid）")
 	m._on_story_edge(1) # 不撕
@@ -4699,7 +4699,7 @@ func test_mode_boundary() -> void:
 		"整备界面在横屏布局（09 §8：整备随战役形态）")
 	(m.current_screen as ScreenLoadout)._on_confirm()
 	await create_timer(1.4).timeout
-	check(m._in_encounter and m.shell is EncounterLandscape
+	check(m.campaign._in_encounter and m.shell is EncounterLandscape
 		and m.window_orientation == ShellRouter.MODE_SPACE, "战斗态横屏壳 + 横屏窗口（09 §8）")
 	# ---- ☰ 中途退出 → 恢复竖屏 ----
 	m._on_save_quit()
@@ -4792,7 +4792,7 @@ func test_mode_boundary() -> void:
 		"竖屏战役：整备竖屏")
 	(m2.current_screen as ScreenLoadout)._on_confirm()
 	await create_timer(1.4).timeout
-	check(m2._in_encounter and m2.shell is EncounterPortrait
+	check(m2.campaign._in_encounter and m2.shell is EncounterPortrait
 		and m2.window_orientation == ShellRouter.MODE_TIME, "竖屏战役：战斗竖屏（全程零切换）")
 	m2.stream.emit(EventTypes.COMBAT_END, {"result": &"defeat", "rounds": 2}, &"core", m2.graph.current_id)
 	await create_timer(1.6).timeout
@@ -5201,10 +5201,10 @@ func test_main_flow() -> void:
 	check(m.stream.query_by_type(EventTypes.LOADOUT_CONFIRM).size() == 1,
 		"整备确认写 loadout.confirm 事件（09 §9.1）")
 	await create_timer(1.4).timeout
-	check(m._in_encounter and m.shell is EncounterPortrait, "整备 → 竖屏遭遇（同一壳切战斗布局，09 §8）")
+	check(m.campaign._in_encounter and m.shell is EncounterPortrait, "整备 → 竖屏遭遇（同一壳切战斗布局，09 §8）")
 	await create_timer(0.6).timeout
 	check(not FileAccess.file_exists(save_path), "遭遇进行中不存档（07 §4.2 铁律）")
-	var clock_before: int = (m._encounter_snapshot["board"]["data"] as Dictionary).get("global.doom_clock", 0)
+	var clock_before: int = (m.campaign._encounter_snapshot["board"]["data"] as Dictionary).get("global.doom_clock", 0)
 	m.board.write("global.doom_clock", 9, {"event_id": m.stream.tail(), "node_id": "N1-7", "pack_id": "campaign01"})
 	m._on_save_quit()
 	await process_frame
@@ -5220,7 +5220,7 @@ func test_main_flow() -> void:
 	lo2._toggle_skill("inkshield")
 	lo2._on_confirm()
 	await create_timer(1.4).timeout
-	check(m._in_encounter, "主屏「继续」→ 再进遭遇（04 §① 继续进行中的战役）")
+	check(m.campaign._in_encounter, "主屏「继续」→ 再进遭遇（04 §① 继续进行中的战役）")
 	# 模拟 EncounterSM 胜利经验（真实战斗由 TP2 通道已验；与 encounter_sm 同一 Growth 通道，
 	# tech/04 §8 规则1/2：汇入即写板 + 自动升级）；序章 50 + 300 = 350 跨 300 档
 	Growth.new(m.board).grant_xp(300,
@@ -5273,7 +5273,7 @@ func test_main_flow() -> void:
 	lo3._toggle_skill("inkshield")
 	lo3._on_confirm()
 	await create_timer(1.4).timeout
-	check(m._in_encounter, "护送战开始（修复仪式，tech/02 §6 escort）")
+	check(m.campaign._in_encounter, "护送战开始（修复仪式，tech/02 §6 escort）")
 	check((m._battle_def({})["party"] as Array).any(func(u: Variant) -> bool:
 		return str((u as Dictionary)["kind"]) == "escort_npc" and str((u as Dictionary)["id"]) == "scribe"),
 		"护送对象缮写士以 escort_npc 入队（tech/02 §6 escort 块）")
@@ -6363,10 +6363,10 @@ func test_mobile_platform() -> void:
 	# 切后台：遭遇外落档；遭遇中不落档
 	SaveSystem.delete()
 	check(m.on_app_background() and SaveSystem.has_save(), "切后台：遭遇外兜底落档")
-	m._in_encounter = true
+	m.campaign._in_encounter = true
 	SaveSystem.delete()
 	check(not m.on_app_background() and not SaveSystem.has_save(), "切后台：遭遇进行中不存档（09 §7）")
-	m._in_encounter = false
+	m.campaign._in_encounter = false
 	m._show_home()
 	await process_frame
 	(m.current_screen as ScreenHome)._toggle_help()
@@ -6392,7 +6392,7 @@ func test_mobile_platform() -> void:
 	var entry := m2.current_screen as ScreenEntry
 	check(not entry.mode_space_button.is_visible_in_tree() and entry.selected_mode == ShellRouter.MODE_TIME,
 		"入口：不呈现横屏卡，自动选定竖屏")
-	m2._mode = ShellRouter.MODE_SPACE
+	m2.campaign._mode = ShellRouter.MODE_SPACE
 	check(m2._story_mode() == ShellRouter.MODE_TIME, "故事态形态解析：横屏未开放落竖屏")
 	m2.queue_free()
 	await process_frame
