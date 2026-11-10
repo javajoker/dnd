@@ -123,6 +123,12 @@ func _render() -> void:
 			str(attr_names["wits"]), int(a.get("wits", 0)), Texts.s(&"HERO_HIT_DIE") % str(d.get("hit_die", "d8")),
 			Texts.s(&"LIST_SEP").join(skills)]
 		b.pressed.connect(func() -> void: select_class(cid))
+		var tex := ArtLoader.texture_for(str(d.get("art_ref", ""))) # 职业头像（tech/05；缺图 = 纯文字按钮）
+		if tex != null:
+			b.icon = tex
+			b.expand_icon = false
+			b.add_theme_constant_override("icon_max_width", 56)
+			b.custom_minimum_size = Vector2(0, 72)
 		class_box.add_child(b)
 		if cid == class_id:
 			story = str(d.get("story", ""))

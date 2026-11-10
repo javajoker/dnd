@@ -12,7 +12,7 @@ const FLAGS := {
 	"--mode-shots": "_run_shots_mode", "--ls-shots": "_run_shots_ls", "--text-shots": "_run_shots_text",
 	"--font-shot": "_run_shot_font", "--trans-shots": "_run_shots_trans", "--lock-shot": "_run_shot_lock",
 	"--loadout-shots": "_run_shots_loadout", "--dice-shots": "_run_shots_dice",
-	"--map-shots": "_run_shots_map", "--split-shots": "_run_shots_split",
+	"--map-shots": "_run_shots_map", "--split-shots": "_run_shots_split", "--hero-shots": "_run_shots_hero",
 }
 const SHOT_SEED := 20260009 # 固定种子：截图路径确定（主线两次检定均为成功路）
 
@@ -595,6 +595,23 @@ func _run_shots_dice() -> void:
 # ---------------------------------------------------------------- 地图截图（16 证据 /tmp，不提交）
 
 ## `-- --map-shots`（加 --landscape 取横屏）：区域地图 → 选点出发一段 → 灯塔场所 → 事件卡。
+## 建角屏（11 §1.1）：`-- --locale=en --hero-shots` → /tmp/hero_pick.png（职业头像 + 出身故事）。
+func _run_shots_hero() -> void:
+	await m.get_tree().create_timer(0.8).timeout
+	m._on_home_navigate(&"entry")
+	await m.get_tree().create_timer(0.3).timeout
+	var entry := m.current_screen as ScreenEntry
+	entry.pick_mode(ShellRouter.MODE_TIME)
+	entry.start_requested.emit()
+	await m.get_tree().create_timer(0.5).timeout
+	if m.current_screen is ScreenHero:
+		var hero := m.current_screen as ScreenHero
+		hero.select_class("scavenger")
+		hero.select_background("uninked_runaway")
+		await m.get_tree().create_timer(0.3).timeout
+	await _shot("/tmp/hero_pick.png")
+	m.get_tree().quit()
+
 func _run_shots_map() -> void:
 	var land := OS.get_cmdline_user_args().has("--landscape")
 	var tag := "land" if land else "port"

@@ -238,8 +238,13 @@ Goal: turn the framework into a reusable D&D-style engine — new narrative game
 - [x] Rebalance every battle back into its band with the win-rate tool
 
 ### 6.4 Art and audio
-- [ ] Procedural assets: class portraits, new BGM (map / ending), new SFX (coin, door, card, link, throw)
-- [ ] Prompt pack for external AI tools (portraits, units, item icons, home art, map backgrounds, BGM, SFX) — `docs/en/tech/08-asset-prompts.md`
+- [x] Procedural assets: class portraits, unit art for every enemy (campaign01 + starter kit), starter-kit home illustration, new BGM (explore / map / ending), new SFX (coin, door, card, link, throw); map BGM state and SFX wired to events
+- [x] Prompt pack for external AI tools (portraits, units, item icons, home art, map backgrounds, act scenes, store art, BGM, SFX) — `docs/en/tech/08-asset-prompts.md`
+
+### 6.5 Owner actions (outside the code)
+- [ ] Generate final art and music with the prompt pack (tech/08) and replace the placeholders file by file
+- [ ] Store accounts, signing, devices, billing adapters (tech/06; `docs/en/store/`)
+- [ ] Human playtest of the three classes and four backgrounds (feel, not just win rates); localisation review of the new English text
 
 ## Known gap
 

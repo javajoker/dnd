@@ -18,18 +18,22 @@
       "sheet": "#121a13f7",
       "text": "#e6eadf"
     },
-    "home_art": ""
+    "home_art": "res://kit/_game/home_art.png"
   },
   "audio": {
     "bgm": {
       "camp": "bgm_camp",
-      "explore": "bgm_camp",
+      "explore": "bgm_explore",
+      "map": "bgm_map",
       "battle": "bgm_battle",
-      "ending": "bgm_camp"
+      "ending": "bgm_ending"
     },
     "loop": [
       "bgm_camp",
-      "bgm_battle"
+      "bgm_battle",
+      "bgm_explore",
+      "bgm_map",
+      "bgm_ending"
     ],
     "ambient": {
       "home": ""
@@ -41,7 +45,12 @@
       "crit": "crit",
       "heal": "heal",
       "page": "page",
-      "ui_click": "ui_click"
+      "ui_click": "ui_click",
+      "coin": "coin",
+      "door": "door",
+      "card": "card",
+      "link": "link",
+      "throw": "throw"
     }
   },
   "store": {}

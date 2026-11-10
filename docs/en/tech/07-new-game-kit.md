@@ -41,9 +41,10 @@
   "locales": ["en", "zh-CN"],
   "theme": { "palette": "ink_gold", "font": { "en": "fonts/serif.ttf", "zh-CN": "fonts/NotoSansSC-Regular.otf" },
              "dice_skin": "default" },
-  "audio": { "bgm": { "home": "bgm_camp", "camp": "bgm_camp", "explore": "bgm_camp", "map": "bgm_camp",
-                      "battle": "bgm_battle", "ending": "bgm_camp" },
-             "sfx": { "dice_roll": "dice_roll", "dice_land": "dice_land", "hit": "hit", "crit": "crit", "heal": "heal" },
+  "audio": { "bgm": { "camp": "bgm_camp", "explore": "bgm_explore", "map": "bgm_map",
+                      "battle": "bgm_battle", "ending": "bgm_ending" },
+             "sfx": { "dice_roll": "dice_roll", "dice_land": "dice_land", "hit": "hit", "crit": "crit", "heal": "heal",
+                      "coin": "coin", "door": "door", "card": "card", "link": "link", "throw": "throw" },
              "ambient": { "home": "amb_tide" } },
   "store": { "full_unlock": "entitlement.campaign01_full" }
 }
@@ -79,7 +80,10 @@ The framework's UI tables (`texts_en.gd` / `texts_zh.gd`) keep **neutral** wordi
 | Template pack | **Done** — `kit/starter` (packlint 0 FAIL, simulation 100% coverage) |
 | Home-screen illustration | **Done** — `theme.home_art` (image path; hotspots keep working); without it the procedural Ashenport scene is drawn |
 | Theme palette tokens | **Done** — `theme.palette` (`bg`, `panel`, `sheet`, `accent`, `accent_soft`, `text`, `muted`, `success`, `danger`, `ink`; hex) feeds the UI theme and the shared sheets; colours not yet tokenised remain in screen code |
-| Battle win-rate tool for any pack | **Done** — `tools/winrate.gd -- <games> <seed> <pack dir>`, expected level per act from manifest `balance.act_level` |
+| Battle win-rate tool for any pack | **Done** — `tools/winrate.gd -- <games> <seed> <pack dir> [class]`, expected level per act from manifest `balance.act_level`; with a class id, every battle is rerun with that build (±7 points of the default hero) |
+| Full audio set | **Done** — five BGM states (camp / explore / **map** / battle / ending; `map.travel` and `site.enter` switch to map) and SFX for coin, door, card, link, throw on top of the first set; all procedural (`gen_audio.py`), replaceable by file (tech/08) |
+| Starter-kit art | **Done** — home illustration (`theme.home_art`) and unit art for the kit's enemies |
+| Generated art / music | Prompt pack for external AI tools: tech/08 |
 
 ## 6. Guardrails
 

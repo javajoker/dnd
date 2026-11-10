@@ -80,6 +80,25 @@ game/assets/art/
 
 Unified style: silhouette + ink gradient + gold-ink outline (matching the Home painting, 04 §4 ink / gold-ink palette); portraits add an accent-color outline over the silhouette to tell them apart.
 
+### 7.1 Second batch (P6.4)
+
+`python3 game/tools/gen_art.py --new` (same style, same rules) adds:
+
+| art_ref | Entry | Recognition cues |
+|---|---|---|
+| `portraits/class_harbor_guard` | Harbor Guard (class) | Broad armoured shoulders, round buckler, visor slit; steel-blue accent |
+| `portraits/class_scavenger` | Scavenger (class) | Slanted hood, face scarf, hook knife; moss accent |
+| `portraits/class_ink_adept` | Ink Adept (class) | Robe, raised quill, ring of ink glyphs; violet accent |
+| `units/ink_swarm` | Ink Swarm | Three huddled ink blobs, many eyes |
+| `units/uninked_guard` | Black Feather Guard | Head-wrap, quarterstaff, blank emblem |
+| `units/tax_guard` | Tax Collector's Guard | Tall hat, halberd, ledger; crimson accent |
+| `units/dock_ambusher` | Fog Wharf Ambusher | Crouched, two knives |
+| `units/mercenary` | Three-Faction Mercenary | Cloak, greatsword across the back |
+| `units/tide_avatar` | The Inktide Avatar | Cresting ink wave, droplet crown, several eyes |
+| `units/bandit` / `units/wolf` / `units/scout` | Starter-kit enemies | Axe bandit / side-view wolf / bow scout |
+
+Every `art_ref` in campaign01, arena and the starter kit now resolves (the test layer checks it). The hero screen shows the class portrait on each class button. `gen_art.py --home` draws the starter kit's home illustration (`kit/_game/home_art.png`, 720×1280, landmarks inside the home hotspots). Prompts for replacing all of these with generated art: tech/08.
+
 ## 8. Shell integration
 
 - Portrait (`shell/portrait/`): unit cards show the art_ref image as `Button.icon` (expanded, centered, text over it with a shadow); party chips = portrait TextureRect + text (HBox);

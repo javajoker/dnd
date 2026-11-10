@@ -47,6 +47,7 @@
   {
     "id": "ink_swarm",
     "name": "墨魈群",
+    "art_ref": "units/ink_swarm",
     "hp": 10,
     "ac": 10,
     "attrs": {
@@ -61,6 +62,7 @@
   {
     "id": "uninked_guard",
     "name": "黑羽卫",
+    "art_ref": "units/uninked_guard",
     "hp": 12,
     "ac": 12,
     "attrs": {
@@ -75,6 +77,7 @@
   {
     "id": "tax_guard",
     "name": "税吏卫队",
+    "art_ref": "units/tax_guard",
     "hp": 14,
     "ac": 11,
     "attrs": {
@@ -89,6 +92,7 @@
   {
     "id": "dock_ambusher",
     "name": "雾码头伏击者",
+    "art_ref": "units/dock_ambusher",
     "hp": 9,
     "ac": 11,
     "attrs": {
@@ -103,6 +107,7 @@
   {
     "id": "mercenary",
     "name": "三方佣兵",
+    "art_ref": "units/mercenary",
     "hp": 12,
     "ac": 12,
     "attrs": {
@@ -167,6 +172,7 @@
   {
     "id": "tide_avatar",
     "name": "墨潮化身",
+    "art_ref": "units/tide_avatar",
     "hp": 15,
     "ac": 13,
     "attrs": {

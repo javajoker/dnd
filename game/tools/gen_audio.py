@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # 首批音频资产程序化生成（docs/framework/14 清单 #6：零外部版权，Python 合成，可复跑）。
-# 用法：python3 game/tools/gen_audio.py  →  写入 game/assets/audio/*.wav（44100Hz 16-bit 单声道）
+# 用法：python3 game/tools/gen_audio.py [--new]（--new = 只生成 P6.4 第二批）→  写入 game/assets/audio/*.wav（44100Hz 16-bit 单声道）
 # 循环资产（tide_loop/bgm_camp/bgm_battle）采用频率整数周期量化 + 首尾交叉淡化，循环无接缝。
 import math
 import os
@@ -236,6 +236,282 @@ def bgm_battle():
     return loop_seam(out)
 
 
+# ---------------------------------------------------------------- P6.4 新增（tech/05 §7 第二批；独立种子，不扰动首批逐字节一致）
+
+rng2 = random.Random(20261110)
+
+NOTE = {"C": -9, "D": -7, "E": -5, "F": -4, "G": -2, "A": 0, "B": 2}
+
+
+def hz(name):
+    """音名 → 频率（A4=440；"D3" / "F#4" / "Bb2"）。"""
+    letter, rest = name[0], name[1:]
+    semi = NOTE[letter]
+    while rest and rest[0] in "#b":
+        semi += 1 if rest[0] == "#" else -1
+        rest = rest[1:]
+    octave = int(rest)
+    return 440.0 * 2 ** ((semi + (octave - 4) * 12) / 12.0)
+
+
+def add_wrapped(buf, start, samples):
+    """把一段音符写入循环缓冲：越过末尾的尾音绕回开头 → 天然无缝循环。"""
+    n = len(buf)
+    for i, v in enumerate(samples):
+        buf[(start + i) % n] += v
+
+
+def pluck(freq, dur, amp=1.0, bright=1.0, decay=3.0):
+    """拨弦：谐波叠加 + 高次更快衰减（类竖琴/诗琴）。"""
+    n = int(dur * SR)
+    out = []
+    w = 2 * math.pi * freq / SR
+    for i in range(n):
+        t = i / SR
+        att = min(1.0, t / 0.004)
+        s = 0.0
+        for k in (1, 2, 3, 4):
+            s += math.sin(w * k * i) * math.exp(-t * decay * (1 + (k - 1) * 0.9 * bright)) / k
+        out.append(s * att * amp)
+    return out
+
+
+def bell(freq, dur, amp=1.0):
+    """铃音：非谐泛音（2.76 / 5.40）+ 长衰减。"""
+    n = int(dur * SR)
+    out = []
+    for i in range(n):
+        t = i / SR
+        att = min(1.0, t / 0.002)
+        s = (math.sin(2 * math.pi * freq * t) * math.exp(-t * 2.2)
+             + 0.45 * math.sin(2 * math.pi * freq * 2.76 * t) * math.exp(-t * 4.5)
+             + 0.22 * math.sin(2 * math.pi * freq * 5.40 * t) * math.exp(-t * 8.0))
+        out.append(s * att * amp)
+    return out
+
+
+def drum(dur=0.35, f0=95.0, amp=1.0):
+    """手鼓：下滑基频 + 短噪声皮面。"""
+    n = int(dur * SR)
+    out = []
+    ph = 0.0
+    for i in range(n):
+        t = i / SR
+        f = f0 * (1.0 + 0.6 * math.exp(-t * 30.0))
+        ph += 2 * math.pi * f / SR
+        body = math.sin(ph) * math.exp(-t * 11.0)
+        skin = rng2.uniform(-1.0, 1.0) * math.exp(-t * 90.0)
+        out.append((body + skin * 0.25) * amp)
+    return out
+
+
+def pad(buf, dur, chords, amp=0.16, beats_per_chord=None):
+    """和弦垫：每段一和弦，正弦+弱二次谐波，段间余弦交叉（在循环内闭合）。"""
+    n = len(buf)
+    seg = n // len(chords)
+    fade = int(1.2 * SR)
+    for ci, chord in enumerate(chords):
+        start = ci * seg
+        length = seg + fade
+        freqs = [q(hz(nm), dur) for nm in chord]
+        for i in range(length):
+            idx = (start + i) % n
+            t = idx / SR
+            if i < fade:
+                env = 0.5 - 0.5 * math.cos(math.pi * i / fade)
+            elif i > seg:
+                env = 0.5 + 0.5 * math.cos(math.pi * (i - seg) / fade)
+            else:
+                env = 1.0
+            s = 0.0
+            for f in freqs:
+                s += math.sin(2 * math.pi * f * t) + 0.12 * math.sin(4 * math.pi * f * t)
+            buf[idx] += s * env * amp / len(freqs)
+
+
+def bgm_explore():
+    """探索：D 多利亚，拨弦琶音 + 稀疏旋律，84 BPM，8 小节 ≈ 22.9s 循环（Dm–C–G/B–Dm）。"""
+    bpm = 84.0
+    beat = 60.0 / bpm
+    bars = 8
+    dur = bars * 4 * beat
+    n = int(dur * SR)
+    buf = [0.0] * n
+    chords = [["D3", "A3", "F4"], ["C3", "G3", "E4"], ["B2", "G3", "D4"], ["D3", "A3", "F4"]]
+    pad(buf, dur, chords + chords, amp=0.35)
+    arps = [["D4", "A4", "F4", "A4"], ["C4", "G4", "E4", "G4"],
+            ["B3", "G4", "D4", "G4"], ["D4", "A4", "F4", "A4"]]
+    for bar in range(bars):
+        pat = arps[bar % 4]
+        for e in range(8):  # 八分音符
+            nm = pat[e % 4]
+            t0 = (bar * 4 + e * 0.5) * beat
+            add_wrapped(buf, int(t0 * SR), pluck(hz(nm), 1.6, amp=0.32 if e % 2 == 0 else 0.22))
+    melody = [(1, 0, "A4", 1.5), (1, 2, "C5", 1.0), (2, 0, "B4", 2.0), (3, 0, "A4", 1.0),
+              (3, 1, "G4", 1.0), (3, 2, "F4", 2.0), (5, 0, "D5", 1.5), (5, 2, "C5", 1.0),
+              (6, 0, "B4", 1.0), (6, 2, "G4", 1.0), (7, 0, "A4", 3.0)]
+    for bar, b, nm, ln in melody:
+        t0 = (bar * 4 + b) * beat
+        add_wrapped(buf, int(t0 * SR), pluck(hz(nm), ln * beat + 1.2, amp=0.5, bright=0.6, decay=1.6))
+    return buf
+
+
+def bgm_map():
+    """地图行旅：A 小调五声，手鼓步行律动 + 五声旋律，96 BPM，8 小节 = 20s 循环。"""
+    bpm = 96.0
+    beat = 60.0 / bpm
+    bars = 8
+    dur = bars * 4 * beat
+    n = int(dur * SR)
+    buf = [0.0] * n
+    chords = [["A2", "E3", "C4"], ["G2", "D3", "B3"], ["F2", "C3", "A3"], ["E2", "B2", "G#3"]]
+    pad(buf, dur, chords + chords, amp=0.28)
+    for b in range(bars * 4):  # 步行律动：每拍一鼓，第 1/3 拍重
+        t0 = b * beat
+        add_wrapped(buf, int(t0 * SR), drum(amp=0.55 if b % 2 == 0 else 0.3))
+        if b % 4 == 3:
+            add_wrapped(buf, int((t0 + beat * 0.5) * SR), drum(f0=140.0, amp=0.22))
+    bass = ["A2", "G2", "F2", "E2"]
+    for bar in range(bars):
+        for b in (0, 2):
+            add_wrapped(buf, int((bar * 4 + b) * beat * SR), pluck(hz(bass[bar % 4]), 1.4, amp=0.45, decay=2.4))
+    melody = [(0, 0, "E4", 1), (0, 1, "G4", 1), (0, 2, "A4", 2), (1, 0, "G4", 1), (1, 1, "E4", 1),
+              (1, 2, "D4", 2), (2, 0, "C4", 1), (2, 1, "D4", 1), (2, 2, "E4", 1), (2, 3, "G4", 1),
+              (3, 0, "E4", 4), (4, 0, "A4", 1), (4, 1, "C5", 1), (4, 2, "D5", 2), (5, 0, "C5", 1),
+              (5, 1, "A4", 1), (5, 2, "G4", 2), (6, 0, "E4", 1), (6, 1, "G4", 1), (6, 2, "A4", 2),
+              (7, 0, "A4", 3)]
+    for bar, b, nm, ln in melody:
+        t0 = (bar * 4 + b) * beat
+        add_wrapped(buf, int(t0 * SR), pluck(hz(nm), ln * beat + 0.9, amp=0.42, bright=0.8, decay=2.0))
+    return buf
+
+
+def bgm_ending():
+    """结局：F 大调温暖终章，慢琶音 + 铃音点缀，66 BPM，8 小节 ≈ 29.1s 循环（F–C/E–Dm–Bb）。"""
+    bpm = 66.0
+    beat = 60.0 / bpm
+    bars = 8
+    dur = bars * 4 * beat
+    n = int(dur * SR)
+    buf = [0.0] * n
+    chords = [["F3", "C4", "A4"], ["E3", "C4", "G4"], ["D3", "A3", "F4"], ["Bb2", "F3", "D4"]]
+    pad(buf, dur, chords + chords, amp=0.4)
+    arps = [["F3", "C4", "A4", "C5"], ["E3", "C4", "G4", "C5"],
+            ["D3", "A3", "F4", "A4"], ["Bb2", "F3", "D4", "F4"]]
+    for bar in range(bars):
+        pat = arps[bar % 4]
+        for e in range(4):
+            add_wrapped(buf, int((bar * 4 + e) * beat * SR), pluck(hz(pat[e]), 2.6, amp=0.3, decay=1.4))
+    for bar, nm in ((0, "C6"), (2, "A5"), (4, "F5"), (6, "D6"), (7, "C6")):
+        add_wrapped(buf, int((bar * 4 + 2) * beat * SR), bell(hz(nm), 3.0, amp=0.18))
+    return buf
+
+
+def coin():
+    """金币：两声明亮金属叮（非谐泛音），第二声略高。"""
+    dur = 0.5
+    n = int(dur * SR)
+    out = [0.0] * n
+    for t0, f in ((0.0, 1975.5), (0.07, 2637.0)):
+        b = bell(f, dur - t0, amp=0.6)
+        s = int(t0 * SR)
+        for i, v in enumerate(b):
+            if s + i < n:
+                out[s + i] += v
+    return out
+
+
+def door():
+    """木门：低沉吱呀（慢扫频锯齿近似 + 低通）+ 落定闷响。"""
+    dur = 0.9
+    n = int(dur * SR)
+    out = []
+    ph = 0.0
+    for i in range(n):
+        t = i / SR
+        f = 70.0 + 55.0 * math.sin(math.pi * min(1.0, t / 0.65)) + 8.0 * math.sin(2 * math.pi * 11 * t)
+        ph += 2 * math.pi * f / SR
+        saw = sum(math.sin(ph * k) / k for k in (1, 2, 3, 4, 5))
+        env = min(1.0, t / 0.05) * (1.0 if t < 0.6 else max(0.0, 1.0 - (t - 0.6) / 0.15))
+        creak = saw * env * 0.35
+        tt = t - 0.68
+        thud = math.sin(2 * math.pi * 85 * tt) * math.exp(-tt * 22.0) if tt >= 0 else 0.0
+        out.append(creak + thud * 0.9)
+    return lowpass(out, 0.25)
+
+
+def card():
+    """翻牌：短促纸面刷声 + 收尾轻弹。"""
+    dur = 0.22
+    n = int(dur * SR)
+    y = 0.0
+    out = []
+    for i in range(n):
+        t = i / SR
+        y += 0.5 * (rng2.uniform(-1.0, 1.0) - y)
+        swish = y * math.sin(math.pi * min(1.0, t / 0.12)) if t < 0.12 else 0.0
+        tt = t - 0.13
+        flick = math.sin(2 * math.pi * 900 * tt) * math.exp(-tt * 80.0) if tt >= 0 else 0.0
+        out.append(swish * 1.2 + flick * 0.5)
+    return out
+
+
+def link():
+    """联络：两音上滑的空灵和声 + 颤动泛光。"""
+    dur = 0.8
+    n = int(dur * SR)
+    out = []
+    p1 = p2 = 0.0
+    for i in range(n):
+        t = i / SR
+        glide = min(1.0, t / 0.25)
+        f1 = 660.0 * (1.0 + 0.5 * glide)
+        f2 = 990.0 * (1.0 + 0.335 * glide)
+        p1 += 2 * math.pi * f1 / SR
+        p2 += 2 * math.pi * f2 / SR
+        env = min(1.0, t / 0.04) * math.exp(-t * 3.2)
+        shimmer = 0.75 + 0.25 * math.sin(2 * math.pi * 14 * t)
+        out.append((math.sin(p1) + 0.6 * math.sin(p2)) * env * shimmer)
+    return out
+
+
+def throw():
+    """投掷：带通噪声呼啸，起伏一次（掠过）。"""
+    dur = 0.4
+    n = int(dur * SR)
+    lo = hi = 0.0
+    out = []
+    for i in range(n):
+        t = i / SR
+        x = rng2.uniform(-1.0, 1.0)
+        c = 0.05 + 0.25 * math.sin(math.pi * t / dur)
+        hi += c * (x - hi)
+        lo += 0.02 * (hi - lo)
+        env = math.sin(math.pi * t / dur) ** 2
+        out.append((hi - lo) * env * 2.4)
+    return out
+
+
+def fade_out(samples, sec=0.04):
+    """SFX 尾部线性淡出：截断处不留咔哒。"""
+    f = min(len(samples), int(sec * SR))
+    n = len(samples)
+    for i in range(f):
+        samples[n - f + i] *= 1.0 - (i + 1) / f
+    return samples
+
+
+def main_p64():
+    write_wav("bgm_explore.wav", bgm_explore())
+    write_wav("bgm_map.wav", bgm_map())
+    write_wav("bgm_ending.wav", bgm_ending())
+    write_wav("coin.wav", fade_out(coin()))
+    write_wav("door.wav", fade_out(door()))
+    write_wav("card.wav", fade_out(card()))
+    write_wav("link.wav", fade_out(link()))
+    write_wav("throw.wav", fade_out(throw()))
+
+
 def main():
     write_wav("tide_loop.wav", tide_loop())
     write_wav("dice_roll.wav", dice_roll())
@@ -247,7 +523,12 @@ def main():
     write_wav("ui_click.wav", ui_click())
     write_wav("bgm_camp.wav", bgm_camp())
     write_wav("bgm_battle.wav", bgm_battle())
+    main_p64()
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    if "--new" in sys.argv:
+        main_p64()
+    else:
+        main()

@@ -1799,7 +1799,7 @@ func test_audio() -> void:
 	check(int(am.stats["bgm_switches"]) == 1, "同态 node.enter 不重复切换")
 	stream.emit(EventTypes.NODE_ENTER, {"node_id": "N1-3", "type": "scene"}, &"graph", "N1-3")
 	check(am.bgm_state == AudioManager.BGM_EXPLORE, "node.enter(scene) → 探索")
-	check(am.current_bgm_asset == &"bgm_camp", "探索暂共用营地垫（首批两首 BGM，14 #6 留白）")
+	check(am.current_bgm_asset == &"bgm_explore", "探索 = bgm_explore（P6.4 第二批 BGM）")
 	stream.emit(EventTypes.NODE_ENTER, {"node_id": "N1-7", "type": "battle"}, &"graph", "N1-7")
 	check(am.bgm_state == AudioManager.BGM_EXPLORE, "战斗节点不切 BGM（整备期间不打断，等 combat.start）")
 	stream.emit(EventTypes.COMBAT_START, {"order": [], "units": {}}, &"core", "N1-7")
@@ -1808,8 +1808,13 @@ func test_audio() -> void:
 	stream.emit(EventTypes.STATE_ENTERED, {"state": "settle", "prev": "combat"}, &"core", "N1-7")
 	check(am.bgm_state == AudioManager.BGM_EXPLORE, "结算 state.entered → 探索（09 §1）")
 	stream.emit(EventTypes.STORY_ENDING, {"ending": "E1", "title": "墨守"}, &"graph", "E1")
-	check(am.bgm_state == AudioManager.BGM_ENDING, "story.ending → 结局（tech/02 §9）")
+	check(am.bgm_state == AudioManager.BGM_ENDING and am.current_bgm_asset == &"bgm_ending",
+		"story.ending → 结局（tech/02 §9；bgm_ending）")
 	check(int(am.stats["bgm_switches"]) == 5, "BGM 切换计数 = 实际状态变迁次数")
+	stream.emit(EventTypes.MAP_TRAVEL, {"map": "fog_coast", "from": "plaza", "to": "row"}, &"core", "N1-1m")
+	check(am.bgm_state == AudioManager.BGM_MAP and am.current_bgm_asset == &"bgm_map", "map.travel → 地图（bgm_map，doc 16）")
+	stream.emit(EventTypes.SITE_ENTER, {"site": "lighthouse", "area": "gate", "first": true}, &"core", "N1-1m")
+	check(int(am.stats["bgm_switches"]) == 6, "site.enter 同属地图态（不重复切换）")
 	am.to_home()
 	check(am.bgm_state == AudioManager.BGM_NONE and am.current_bgm_asset == &"",
 		"回主屏 BGM 收止（主屏无常驻 BGM）")
@@ -1830,6 +1835,20 @@ func test_audio() -> void:
 	check(am.sfx_count(&"hit") == 1, "未命中无命中声（无资产留白）")
 	stream.emit(EventTypes.ITEM_USE, {"unit": "pc", "target": "pc", "healed": 5}, &"core", "N1-7")
 	check(am.sfx_count(&"heal") == 1, "item.use 治疗 → heal")
+	check(am.sfx_count(&"door") == 1, "site.enter 初入区域 → door（doc 16 §3）")
+	stream.emit(EventTypes.SITE_ENTER, {"site": "lighthouse", "area": "gate", "first": false}, &"core", "N1-1m")
+	check(am.sfx_count(&"door") == 1, "重入已到过的区域无开门声")
+	stream.emit(EventTypes.ITEM_USE, {"unit": "pc", "target": "imp1", "thrown": true, "healed": 0}, &"core", "N1-7")
+	check(am.sfx_count(&"throw") == 1 and am.sfx_count(&"heal") == 1, "投掷道具 → throw（11 §8.2）")
+	stream.emit(EventTypes.LOG, {"msg_key": "MSG_SKILL_HEAL", "healed": 4}, &"core", "N1-7")
+	check(am.sfx_count(&"heal") == 2, "治疗技能 → heal（11 §8）")
+	stream.emit(EventTypes.LOG, {"msg_key": "MSG_CARD_CHOICE"}, &"core", "N1-1m")
+	check(am.sfx_count(&"card") == 1, "事件卡选择 → card（doc 16 §4）")
+	stream.emit(EventTypes.FLAG_WRITE, {"key": "campaign01.gold", "old": null, "value": 30}, &"board")
+	stream.emit(EventTypes.FLAG_WRITE, {"key": "campaign01.gold", "old": 30, "value": 12}, &"board")
+	check(am.sfx_count(&"coin") == 1, "金币入账 → coin；扣款无声（11 §7.3）")
+	stream.emit(EventTypes.PARTY_LINK, {"kind": "help", "from": "g1", "to": "g2"}, &"graph")
+	check(am.sfx_count(&"link") == 1, "分队联络 → link（doc 15 §5）")
 	am.play_sfx(&"page")
 	am.play_ui(&"ui_click")
 	check(am.sfx_count(&"page") == 1 and am.sfx_count(&"ui_click") == 1, "翻页 / UI 点击通道（壳侧直调）")
@@ -1936,6 +1955,8 @@ func test_audio() -> void:
 		&"tide_loop": [8.0, 10.5], &"dice_roll": [0.4, 0.7], &"dice_land": [0.1, 0.3],
 		&"hit": [0.15, 0.35], &"crit": [0.25, 0.5], &"heal": [0.4, 0.8], &"page": [0.15, 0.4],
 		&"ui_click": [0.05, 0.15], &"bgm_camp": [29.0, 31.0], &"bgm_battle": [29.0, 31.0],
+		&"bgm_explore": [20.0, 32.0], &"bgm_map": [18.0, 32.0], &"bgm_ending": [24.0, 40.0],
+		&"coin": [0.3, 0.7], &"door": [0.6, 1.2], &"card": [0.15, 0.4], &"link": [0.5, 1.0], &"throw": [0.25, 0.6],
 	}
 	for asset_name: StringName in expects:
 		var path := "res://assets/audio/%s.wav" % String(asset_name)
@@ -7644,7 +7665,34 @@ func test_art_pipeline() -> void:
 		"portraits/portrait_player_blank_128.png": "portraits/player_blank",
 		"portraits/portrait_companion_kelan_128.png": "portraits/companion_kelan",
 		"portraits/portrait_companion_laofei_128.png": "portraits/companion_laofei",
+		# P6.4 第二批：职业头像 + 未配图敌人 + 起步包单位
+		"portraits/portrait_class_harbor_guard_128.png": "portraits/class_harbor_guard",
+		"portraits/portrait_class_scavenger_128.png": "portraits/class_scavenger",
+		"portraits/portrait_class_ink_adept_128.png": "portraits/class_ink_adept",
+		"units/unit_ink_swarm_128.png": "units/ink_swarm",
+		"units/unit_uninked_guard_128.png": "units/uninked_guard",
+		"units/unit_tax_guard_128.png": "units/tax_guard",
+		"units/unit_dock_ambusher_128.png": "units/dock_ambusher",
+		"units/unit_mercenary_128.png": "units/mercenary",
+		"units/unit_tide_avatar_128.png": "units/tide_avatar",
+		"units/unit_bandit_128.png": "units/bandit",
+		"units/unit_wolf_128.png": "units/wolf",
+		"units/unit_scout_128.png": "units/scout",
 	}
+	# 每个 art_ref 都有图（campaign01 / arena / 起步包：职业、角色、敌人全覆盖）
+	for pdir: String in ["res://packs/campaign01", "res://packs/arena", "res://kit/starter"]:
+		var pk: Dictionary = PackLoader.load_pack(pdir)["pack"]
+		var refs: Array[String] = []
+		for tbl: String in ["characters", "enemies", "classes"]:
+			for e: Variant in (pk.get(tbl, {}) as Dictionary).values():
+				if (e as Dictionary).has("art_ref"):
+					refs.append(str(e["art_ref"]))
+		var missing: Array[String] = []
+		for ref: String in refs:
+			if not FileAccess.file_exists(ArtLoader.path_for(ref)):
+				missing.append(ref)
+		check(missing.is_empty() and not refs.is_empty(), "%s：art_ref 全部有图（%d 个）%s" % [pdir.get_file(), refs.size(), str(missing)])
+	check(ResourceLoader.exists("res://kit/_game/home_art.png"), "起步包主屏插画（theme.home_art，tech/07 §5）")
 	var re := RegEx.new()
 	re.compile("^(unit|portrait|scene|icon)_[a-z0-9]+(_[a-z0-9]+)*_[0-9]+\\.png$")
 	for rel: String in expect:
@@ -7710,7 +7758,12 @@ func test_art_pipeline() -> void:
 	var n4: Dictionary = BattleDef.assemble(pack, "N4-1", {}, Board.new(EventStream.new()))
 	check(bool(n4["ok"]), "N4-1 战斗定义组装 ok")
 	var avatar: Dictionary = (n4["def"] as Dictionary)["enemies"][0]
-	check(not avatar.has("art_ref"), "未声明条目无 art_ref 键（墨潮化身不在首批，兜底语义数据层可见）")
+	check(str(avatar.get("art_ref", "")) == "units/tide_avatar", "墨潮化身 art_ref 透传（P6.4 第二批）")
+	var bare := pack.duplicate(true)
+	((bare["enemies"] as Dictionary)["tide_avatar"] as Dictionary).erase("art_ref")
+	var n4b: Dictionary = BattleDef.assemble(bare, "N4-1", {}, Board.new(EventStream.new()))
+	check(not ((n4b["def"] as Dictionary)["enemies"][0] as Dictionary).has("art_ref"),
+		"未声明条目无 art_ref 键（兜底语义数据层可见）")
 	var summon_ref := ""
 	for sk: Variant in avatar.get("skills", []):
 		if (sk as Dictionary).has("summon"):

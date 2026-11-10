@@ -3,7 +3,7 @@
 # - 纯呈现消费：唯一逻辑输入是事件流事件（on_event），不改 core、不写 Board、不回注事件流
 #   （godot-dev §2，与 JuiceLayer 同模式）；壳侧直调（play_sfx/play_ui/to_home）同样只播不发；
 # - 总线四路：Master（引擎内置）+ BGM/SFX/Ambient（AudioServer 自定义，均挂 Master）；
-# - BGM 四态状态机：营地/探索/战斗/结局，事件流驱动——node.enter(hub→营地；battle 节点不切，
+# - BGM 五态状态机：营地/探索/地图/战斗/结局，事件流驱动（map.travel / site.enter → 地图）——node.enter(hub→营地；battle 节点不切，
 #   整备期间不打断；其余→探索) / combat.start→战斗 / state.entered(settle)→探索（09 §1）/
 #   story.ending→结局（tech/02 §9）；切换交叉淡入淡出 CROSSFADE_SEC 秒（A/B 双播放器）；
 #   首批仅两首 BGM（14 #6），探索/结局暂共用营地垫（留白：补资产后只改 BGM_ASSETS 表）；
@@ -26,16 +26,19 @@ const BGM_CAMP := &"camp"
 const BGM_EXPLORE := &"explore"
 const BGM_BATTLE := &"battle"
 const BGM_ENDING := &"ending"
+const BGM_MAP := &"map"       # 区域地图 / 场所（doc 16）：map.travel / site.enter 驱动
 
-## 状态 → BGM 资产名（首批两首：探索/结局共用营地垫；补资产只改本表）。
+## 状态 → BGM 资产名（框架缺省；游戏清单 audio.bgm 优先，tech/07 §3）。
 const BGM_ASSETS := {
 	BGM_CAMP: &"bgm_camp",
-	BGM_EXPLORE: &"bgm_camp",
+	BGM_EXPLORE: &"bgm_explore",
+	BGM_MAP: &"bgm_map",
 	BGM_BATTLE: &"bgm_battle",
-	BGM_ENDING: &"bgm_camp",
+	BGM_ENDING: &"bgm_ending",
 }
 ## 循环播放的资产（BGM/环境声，LOOP_FORWARD 全曲循环）。
-const LOOP_ASSETS: Array[StringName] = [&"bgm_camp", &"bgm_battle", &"tide_loop"]
+const LOOP_ASSETS: Array[StringName] = [&"bgm_camp", &"bgm_battle", &"bgm_explore", &"bgm_map",
+	&"bgm_ending", &"tide_loop"]
 
 const CROSSFADE_SEC := 1.0    # BGM 交叉淡入淡出时长
 const DICE_LAND_DELAY := 0.45 # 骰子滚动 → 落定延迟（与快掷 ≤0.5s 落定节奏一致，09 §6）
@@ -124,8 +127,32 @@ func on_event(ev: Dictionary) -> void:
 			elif bool(p.get("hit", false)):
 				play_sfx(&"hit")
 		EventTypes.ITEM_USE:
-			if int(p.get("healed", 0)) > 0:
+			if bool(p.get("thrown", false)):
+				play_sfx(&"throw") # 投掷道具（11 §8.2）：呼啸后接命中声
+			elif int(p.get("healed", 0)) > 0:
 				play_sfx(&"heal")
+		EventTypes.LOG:
+			match str(p.get("msg_key", "")):
+				"MSG_SKILL_HEAL":
+					play_sfx(&"heal") # 治疗技能（11 §8）
+				"MSG_CARD_CHOICE":
+					play_sfx(&"card") # 事件卡（doc 16 §4）
+		EventTypes.FLAG_WRITE:
+			# 金币入账：<ns>.gold 计数增加（11 §7.3）；扣款无声
+			if str(p.get("key", "")).ends_with(".gold") and _num(p.get("value")) > _num(p.get("old")):
+				play_sfx(&"coin")
+		EventTypes.MAP_TRAVEL:
+			_set_bgm(BGM_MAP)
+		EventTypes.SITE_ENTER:
+			_set_bgm(BGM_MAP)
+			if bool(p.get("first", false)):
+				play_sfx(&"door") # 初入场所区域（doc 16 §3）
+		EventTypes.PARTY_LINK:
+			play_sfx(&"link") # 分队联络（doc 15 §5）
+
+## 旗标新旧值转数字（未写过 = null → 0）。
+static func _num(v: Variant) -> float:
+	return float(v) if v is int or v is float else 0.0
 
 # ---------------------------------------------------------------- BGM 状态机
 

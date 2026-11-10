@@ -2,6 +2,7 @@
   {
     "id": "bandit",
     "name": "Bandit",
+    "art_ref": "units/bandit",
     "hp": 7,
     "ac": 11,
     "attack_mod": 2,
@@ -15,6 +16,7 @@
   {
     "id": "wolf",
     "name": "Grey Wolf",
+    "art_ref": "units/wolf",
     "hp": 8,
     "ac": 11,
     "attack_mod": 3,
@@ -28,6 +30,7 @@
   {
     "id": "scout",
     "name": "Bandit Scout",
+    "art_ref": "units/scout",
     "hp": 4,
     "ac": 10,
     "attack_mod": 1,

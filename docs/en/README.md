@@ -45,6 +45,7 @@
 | [05 Art Pipeline](tech/05-art-pipeline.md) | Asset directories, naming, resolution tiers, placeholder fallback, `art_ref` |
 | [06 English Mobile Plan](tech/06-english-mobile-plan.md) | Decision record and phased plan for the English mobile release |
 | [07 New-Game Kit](tech/07-new-game-kit.md) | What a new game supplies (story, art, music, theme, game manifest) and what the engine provides; the ten-step recipe |
+| [08 Asset Prompt Pack](tech/08-asset-prompts.md) | Copy-ready prompts and delivery specs for generating portraits, units, icons, scenes, maps, store art, music and sound with external AI tools |
 | [store/](store/store-listing.md) | Store listing draft, [privacy policy](store/privacy-policy.md), [billing adapter contract](store/billing-adapter.md) |
 | [Code review 2026-11-10](tech/code-review-2026-11-10.md) | Review of `game/` and verification of the TASKS / 13 / 14 checklists |
 
