@@ -217,4 +217,5 @@ func view() -> Dictionary:
 				"danger": int(d2.get("danger", 0)), "terrain": str(d2.get("terrain", "road"))})
 	return {"id": map_id, "name": str(map.get("name", map_id)), "locations": locs, "routes": routes,
 		"here": here, "journey": journey(), "watch": int(board.read("%s.watch" % pack_id, 0)),
-		"watches_per_segment": tables.watches_per_segment}
+		"watches_per_segment": tables.watches_per_segment,
+		"background": (map.get("background", {}) as Dictionary).duplicate()} # 背景图纯呈现透传（16 §6）

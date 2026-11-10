@@ -518,6 +518,8 @@ func _refresh_sheet() -> void:
 			b.clip_text = true
 			b.text = Texts.s(&"LOADOUT_SLOT_FMT") % [str(slot_names.get(slot, slot)),
 				str(_gear_entry(iid).get("name", iid)) if iid != "" else Texts.s(&"LOADOUT_SLOT_EMPTY")]
+			if iid != "":
+				ArtLoader.decorate_item_button(b, iid, _gear_entry(iid))
 			var cid := _sel
 			b.pressed.connect(func() -> void:
 				if iid != "":
@@ -581,6 +583,7 @@ func _refresh_pouch() -> void:
 		var b := Button.new()
 		b.text = "● %s ×%d ✕" % [str(d.get("name", iid)), int(d.get("count", 1))]
 		b.custom_minimum_size = Vector2(0, 40)
+		ArtLoader.decorate_item_button(b, iid, d)
 		b.pressed.connect(func() -> void: _toggle_item(iid))
 		row.add_child(b)
 	item_box.add_child(row)
@@ -637,6 +640,10 @@ func _lib_card(en: Dictionary) -> Button:
 	if str(en.get("desc", "")) != "":
 		b.text += "\n   " + str(en["desc"])
 	var kind := _lib_tab
+	if kind == LIB_ITEMS:
+		ArtLoader.decorate_item_button(b, id, _item_entry(id), 32)
+	elif kind == LIB_GEAR:
+		ArtLoader.decorate_item_button(b, id, _gear_entry(id), 32)
 	b.pressed.connect(func() -> void: tap_library(kind, id))
 	b.set_drag_forwarding(func(_p: Vector2) -> Variant:
 		var pv := Label.new()

@@ -70,9 +70,9 @@ Delivery: transparent PNG (RGBA), square; generate at 1024 px, deliver **128 px*
 | `unit_wolf_128.png` *(starter kit)* | lean grey wolf in side view, ears up, long tail, one glowing eye |
 | `unit_scout_128.png` *(starter kit)* | light-armoured scout with a short bow, cloak, alert pose |
 
-### 3.3 Item icons (`icons/`, 128 px) — *reserved slot*
+### 3.3 Item icons (`icons/`, 128 px)
 
-Icons are not drawn by the UI yet (tech/05 §1 "reserved"); generate them now only if you also want them for the store page or the Compendium later. File `icon_<item_id>_128.png`, prompt pattern: *"single object icon, centered, three-quarter view, dark background, gold-ink rim light: …"*
+Shown in the inventory, loadout, camp shop and battle quickbar (tech/05 §7.2). File `icon_<item_id>_128.png`, transparent background; keep the object bold — it is shown as small as 28 px. Prompt pattern: *"single object icon, centered, three-quarter view, dark background, gold-ink rim light: …"*
 
 | Item id | Object |
 |---|---|
@@ -96,6 +96,9 @@ Icons are not drawn by the UI yet (tech/05 §1 "reserved"); generate them now on
 | `novice_quill` | simple goose quill with an ink-stained tip |
 | `torn_ribbon` | torn red ribbon with a blank white seal |
 | `appraisal_loupe` | brass jeweller's loupe on a chain |
+| `potion` *(starter kit)* | red healing potion in a round flask |
+| `longsword` *(starter kit)* | plain steel longsword with a leather grip |
+| `riddle_page` *(Riddle Maze)* | parchment page with a spiral puzzle glyph |
 
 ## 4. Scenes and maps
 
@@ -123,12 +126,16 @@ The starter kit's procedural crossroads (`game/kit/_game/home_art.png`) uses the
 
 ### 4.2 Region and site maps (doc 16)
 
-| File | Size | Prompt |
-|---|---|---|
-| `scenes/scene_map_fog_coast_1920.png` | 1920×1080 | top-down hand-drawn fantasy region map on aged paper, a foggy coastline, a small free city plaza, a fishers' row of huts along the shore, a sunken chapel with a bell half in the water, an old lighthouse on a cliff, a salt marsh with reeds, dotted travel paths, fog banks drawn as ink wash, no labels, no text |
-| `scenes/scene_site_lighthouse_1080.png` | 1080×1920 | cut-away cross-section of an old lighthouse, four levels: entry hall at the bottom, keeper's room with a bed and desk, a hidden storeroom behind a wall, the lamp room at the top with a great lens, ink-wash style, no text |
+Each image covers the map's `background.frame` grid rectangle (doc 16 §6), so **landmarks must sit where the locations are**. Positions below are fractions of the image (x from the left, y from the top); keep a clear patch at each so the location button doesn't hide the drawing entirely. Leave out routes — the game draws them.
 
-> Wiring note: region/site maps are drawn procedurally today (`screen_map.gd`). Using a background image needs a small shell change (a `background` field on the map in `maps.json`) — ask for it when the image exists.
+| File | Size | Landmarks (x, y) | Prompt |
+|---|---|---|---|
+| `scenes/scene_map_fog_coast_1080.png` | 1080×810 (frame 8×6) | plaza 0.12, 0.83 · Fishers' Row 0.25, 0.50 · Sunken Bell Chapel 0.50, 0.83 · Old Lighthouse 0.62, 0.17 · Salt Marsh 0.88, 0.50 | top-down hand-drawn fantasy region map on aged paper, sea in the upper left with the coastline running diagonally, a small town square lower left, a row of fishers' huts on the shore middle left, a chapel with a bell tower half sunk in a pond lower middle, an old striped lighthouse on a headland at the top, a reedy salt marsh on the right under thick fog, scattered pines, ink-wash fog banks, no labels, no text, no roads |
+| `scenes/scene_site_lighthouse_1080.png` | 1080×720 (frame 6×4) | Entry Hall 0.17, 0.75 · Keeper's Room 0.50, 0.50 · Hidden Storeroom 0.67, 0.75 · Lamp Room 0.83, 0.25 | interior of an old stone lighthouse seen as one wide cut-away wall, an arched doorway lower left, a keeper's bed and desk in the middle by a moonlit window slit, stacked crates in a hidden recess lower right, the great lamp and lens glowing warm upper right, dark ink-wash stonework, no text |
+| `scenes/scene_map_wilds_1080.png` *(starter kit)* | 1080×1080 (frame 5×5) | inn 0.20, 0.60 · grove 0.60, 0.20 · ruin 0.80, 0.80 | hand-drawn wilderness map on pale green paper, a river crossing diagonally, a lone inn on the left, a dense pine grove at the top, broken columns of a ruin lower right, no text |
+| `scenes/scene_site_ruin_1080.png` *(starter kit)* | 1080×540 (frame 4×2) | gate 0.25, 0.50 · hall 0.75, 0.50 | stone floor of a ruined temple seen from above at an angle, a broken gate arch on the left, a row of cracked columns on the right, rubble, no text |
+
+To use a different size or frame, change `background.frame` in `maps.json` and keep the image at the same aspect ratio.
 
 ### 4.3 Act scenes (story backgrounds, reserved)
 
@@ -202,5 +209,5 @@ Common prompt suffix: *"instrumental, no vocals, seamless loop, game background 
 ```
 
   The art test checks every `art_ref` resolves, sizes and transparency; the audio test checks sample rate and **length windows** — if a new track is longer than the window in `test_audio` (`expects` in `game/tests/run.gd`), widen that window in the same change.
-- [ ] Look at it in context: `godot --path game -- --locale=en --hero-shots` (class portraits), `--home-shot` (home art), `--map-shots` (maps), `--m3-shots` (battle units); images land in `/tmp`.
+- [ ] Look at it in context: `godot --path game -- --locale=en --hero-shots` (class portraits), `--icon-shots` (item icons), `--home-shot` (home art), `--map-shots` (maps; add `--landscape` for the space form), `--m3-shots` (battle units); images land in `/tmp`.
 - [ ] Add the asset to the log (§1) and keep the placeholder generator unchanged (it stays the fallback for new games).

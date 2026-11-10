@@ -115,6 +115,7 @@ func bind(gold: int, stock: Array, party: Array = [], p_mode: StringName = &"") 
 			b.text += Texts.s(&"PAREN_FMT") % Texts.s(&"HUB_NO_GOLD").trim_suffix("。").trim_suffix(".")
 		b.custom_minimum_size = Vector2(0, 40)
 		var iid := str(it.get("id", ""))
+		ArtLoader.decorate_item_button(b, iid, it)
 		b.pressed.connect(func() -> void: buy_requested.emit(iid))
 		stock_box.add_child(b)
 

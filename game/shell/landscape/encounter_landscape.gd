@@ -934,6 +934,8 @@ func _refresh_wheel() -> void:
 		b.text = Texts.action_label(a)
 		b.disabled = bool(a["disabled"])
 		b.set_meta("action", a) # 芯片拖动 = 指定目标使用（12 §3.6）
+		if StringName(a.get("type", "")) == EncounterSM.CMD_ITEM:
+			ArtLoader.decorate_item_button(b, str(a.get("item", "")))
 		var action := a
 		b.pressed.connect(func() -> void: press_action(action))
 		wheel_box.add_child(b)

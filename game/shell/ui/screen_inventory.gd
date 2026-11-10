@@ -131,6 +131,7 @@ func _render_bag() -> void:
 			Texts.s(&"TAG_FMT") % "/".join(roles.map(func(r: Variant) -> String:
 				return str(Texts.t(&"INV_ROLE_NAMES").get(str(r), str(r))))) if not roles.is_empty() else ""]
 		var iid := item_id
+		ArtLoader.decorate_item_button(b, item_id, def, 32) # 道具图标（tech/05 §7.2）
 		b.pressed.connect(func() -> void: show_item_detail(iid))
 		bag_box.add_child(b)
 
@@ -156,7 +157,7 @@ func show_item_detail(item_id: String) -> void:
 		lines.append(Texts.s(&"INV_PRICE") % int(def["price"]))
 	if lines.is_empty():
 		lines.append(str(def.get("name", item_id)))
-	info_popup.show_info(str(def.get("name", item_id)), lines)
+	info_popup.show_info(str(def.get("name", item_id)), lines, ArtLoader.item_icon(item_id, def))
 
 ## 图鉴页：四系列进度 + 集齐奖励预告（10 §4 白名单）+ 已解锁 Lore 条目（lore.json × global.lore）。
 func _render_codex() -> void:

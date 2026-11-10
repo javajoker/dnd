@@ -927,6 +927,8 @@ func _refresh_quickbar() -> void:
 	for a: Dictionary in shown:
 		var chip := _add_chip(Texts.action_label(a), bool(a["disabled"]), func() -> void: press_action(a))
 		chip.set_meta("action", a) # 芯片拖动 = 指定目标使用（12 §3.6）
+		if StringName(a.get("type", "")) == EncounterSM.CMD_ITEM:
+			ArtLoader.decorate_item_button(chip, str(a.get("item", "")))
 	if not (groups["pack"] as Array).is_empty():
 		var pb := _add_chip(Texts.s(&"CHIP_PACK_OPEN") if pack_open
 			else Texts.s(&"CHIP_PACK_FMT") % (groups["pack"] as Array).size(), false, func() -> void:

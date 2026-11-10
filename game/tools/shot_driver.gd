@@ -13,6 +13,7 @@ const FLAGS := {
 	"--font-shot": "_run_shot_font", "--trans-shots": "_run_shots_trans", "--lock-shot": "_run_shot_lock",
 	"--loadout-shots": "_run_shots_loadout", "--dice-shots": "_run_shots_dice",
 	"--map-shots": "_run_shots_map", "--split-shots": "_run_shots_split", "--hero-shots": "_run_shots_hero",
+	"--icon-shots": "_run_shots_icons",
 }
 const SHOT_SEED := 20260009 # 固定种子：截图路径确定（主线两次检定均为成功路）
 
@@ -610,6 +611,22 @@ func _run_shots_hero() -> void:
 		hero.select_background("uninked_runaway")
 		await m.get_tree().create_timer(0.3).timeout
 	await _shot("/tmp/hero_pick.png")
+	m.get_tree().quit()
+
+## 道具图标（tech/05 §7.2）：`-- --locale=en --icon-shots` → /tmp/icons_bag.png（背包列表）+ /tmp/icons_detail.png（详情大图标）。
+func _run_shots_icons() -> void:
+	await m.get_tree().create_timer(0.8).timeout
+	var prov := {"event_id": m.stream.tail(), "node_id": "", "pack_id": m._campaign_id}
+	for iid: String in ["heal_potion", "ink_flask", "tide_bomb", "ink_salve", "dock_buckler", "boathook_axe",
+			"scribe_ring", "fatedie", "codex_fragment", "torn_ribbon"]:
+		m.board.give_item(iid, 1, prov)
+	m._on_home_navigate(&"inventory")
+	await m.get_tree().create_timer(0.4).timeout
+	await _shot("/tmp/icons_bag.png")
+	if m.current_screen is ScreenInventory:
+		(m.current_screen as ScreenInventory).show_item_detail("tide_bomb")
+		await m.get_tree().create_timer(0.3).timeout
+		await _shot("/tmp/icons_detail.png")
 	m.get_tree().quit()
 
 func _run_shots_map() -> void:

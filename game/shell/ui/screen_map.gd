@@ -20,6 +20,7 @@ signal exit_pressed(to: String)
 
 const DANGER_COLORS := [Color(0.78, 0.70, 0.46), Color(0.92, 0.62, 0.25), Color(0.90, 0.32, 0.26), Color(0.75, 0.20, 0.45)]
 const TOKEN_GRAB := 46.0
+const BG_ALPHA := 0.9 # 背景插画略压暗，路线与地点按钮保持可读
 
 var form: StringName = ShellRouter.MODE_TIME
 var audio_settings_path := UiSettings.PATH
@@ -48,6 +49,7 @@ var _vm: Dictionary = {}
 var _loc_buttons: Dictionary = {} # id → Button（画布内落位）
 var _drag_token := false
 var _built := false
+var _bg_tex: Texture2D = null # 当前地图 / 场所背景图（16 §6；无 = 程序化纯底）
 
 func set_form(mode: StringName) -> void:
 	form = mode
@@ -435,6 +437,7 @@ func _draw_canvas() -> void:
 	var pts := _all_points()
 	if pts.is_empty():
 		return
+	_draw_background(pts)
 	if _mode == "site":
 		_draw_site(pts)
 		return
@@ -449,6 +452,8 @@ func _draw_canvas() -> void:
 		var pa := _grid_to_px(a["pos"], pts)
 		var pb := _grid_to_px(b["pos"], pts)
 		var col: Color = DANGER_COLORS[clampi(int(rd.get("danger", 0)), 0, DANGER_COLORS.size() - 1)]
+		if _bg_tex != null: # 插画底上路线加深色衬线，浅色道路不被纸色吞掉
+			canvas.draw_line(pa, pb, Color(0.08, 0.06, 0.05, 0.55), 6.0, true)
 		if bool(a.get("visited", false)) and bool(b.get("visited", false)):
 			canvas.draw_line(pa, pb, col, 3.0, true)
 		else:
@@ -462,6 +467,33 @@ func _draw_canvas() -> void:
 			var p := _grid_to_px(fa["pos"], pts).lerp(_grid_to_px(tb["pos"], pts), clampf(t, 0.0, 1.0))
 			canvas.draw_circle(p, 9.0, Color(1.0, 0.85, 0.4))
 			canvas.draw_circle(p, 5.0, Color(0.1, 0.08, 0.05))
+
+## 背景图（16 §6）：铺在 frame 网格矩形上，与地点同一坐标变换——插画里的地标落在地点按钮之下。
+func _draw_background(pts: Array) -> void:
+	var r := background_rect(pts)
+	if r.size == Vector2.ZERO:
+		return
+	canvas.draw_texture_rect(_bg_tex, r, false, Color(1, 1, 1, BG_ALPHA))
+
+## 背景图像素矩形（无图 = 零矩形）；frame 缺省 = 全部点包围盒外扩 1 格。
+func background_rect(pts: Array = []) -> Rect2:
+	var bg: Dictionary = _vm.get("background", {})
+	_bg_tex = ArtLoader.map_background(bg) if not bg.is_empty() else null
+	if _bg_tex == null:
+		return Rect2()
+	if pts.is_empty():
+		pts = _all_points()
+	var f: Array = bg.get("frame", [])
+	if f.size() != 4:
+		var lo := Vector2(INF, INF)
+		var hi := Vector2(-INF, -INF)
+		for q: Variant in pts:
+			lo = lo.min(Vector2(float(q[0]), float(q[1])))
+			hi = hi.max(Vector2(float(q[0]), float(q[1])))
+		f = [lo.x - 1.0, lo.y - 1.0, hi.x + 1.0, hi.y + 1.0]
+	var p0 := _grid_to_px([f[0], f[1]], pts)
+	var p1 := _grid_to_px([f[2], f[3]], pts)
+	return Rect2(p0, p1 - p0)
 
 func _draw_site(pts: Array) -> void:
 	var areas := {}
@@ -480,7 +512,8 @@ func _draw_site(pts: Array) -> void:
 		var c := _grid_to_px(d["pos"], pts)
 		var rect := Rect2(c - Vector2(52, 26), Vector2(104, 52))
 		var entered := bool(d.get("entered", false))
-		canvas.draw_rect(rect, Color(0.16, 0.15, 0.22) if entered else Color(0.08, 0.08, 0.10), true)
+		var fill_a := 0.82 if _bg_tex != null else 1.0 # 有背景图：区域框半透，透出插画
+		canvas.draw_rect(rect, Color(0.16, 0.15, 0.22, fill_a) if entered else Color(0.08, 0.08, 0.10, fill_a), true)
 		var border := Color(1.0, 0.82, 0.38) if bool(d.get("current", false)) else Color(0.55, 0.5, 0.4)
 		if entered or bool(d.get("current", false)):
 			canvas.draw_rect(rect, border, false, 2.0)

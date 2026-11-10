@@ -13,8 +13,8 @@
 game/assets/art/
 ├── units/       # battle unit art (battlefield tokens for both sides)
 ├── portraits/   # character portraits (party chips / roster / dialogue)
-├── scenes/      # scene / Home-painting layered illustrations (reserved; phase-1 painting is still procedural _draw)
-└── icons/       # item / skill / Compendium icons (reserved)
+├── scenes/      # map / site backgrounds (doc 16 §6 `background`); Home illustrations via the game manifest
+└── icons/       # item icons (§7.2)
 ```
 
 - Assets are version-controlled (same as fonts/audio); at runtime the shell's `ArtLoader` (`shell/ui/art_loader.gd`) reads PNGs directly via `Image.load_from_file` — the same channel as `AudioStreamWAV.load_from_file`: no import pipeline, testable headless, silent fallback on missing files;
@@ -40,8 +40,8 @@ game/assets/art/
 |---|---|---|---|
 | units | 64 | 128 | Battlefield tokens; portrait unit cards / landscape grid cells |
 | portraits | 128 | 256 | Party chips show 1x scaled; the roster uses 2x |
-| scenes | 1080 screen-width baseline | 2160 | Reserved (frozen when layered illustrations land) |
-| icons | 64 | 128 | Reserved |
+| scenes | 1080 width | 2160 | Map / site backgrounds; height follows the map's `frame` aspect |
+| icons | 64 | 128 | Item icons; delivered at 128 (`ArtLoader.ICON_TIER`), shown at 28–32 px in lists and 72 px in the detail sheet |
 
 - Phase 1 delivers only the **tier currently used** (units 128, portraits 128); adding a tier = a same-named file with another tier suffix; shells fetch with `ArtLoader.texture_for(ref, tier)`;
 - Missing tier fallback: fall back to the largest existing tier; if none = no-art fallback (§5).
@@ -98,6 +98,11 @@ Unified style: silhouette + ink gradient + gold-ink outline (matching the Home p
 | `units/bandit` / `units/wolf` / `units/scout` | Starter-kit enemies | Axe bandit / side-view wolf / bow scout |
 
 Every `art_ref` in campaign01, arena and the starter kit now resolves (the test layer checks it). The hero screen shows the class portrait on each class button. `gen_art.py --home` draws the starter kit's home illustration (`kit/_game/home_art.png`, 720×1280, landmarks inside the home hotspots). Prompts for replacing all of these with generated art: tech/08.
+
+### 7.2 Item icons and map backgrounds (P6.4)
+
+- **Icons**: `gen_art.py --icons` draws one 128 px icon per item in every pack (campaign01, arena, riddle_maze, starter kit — 23 files, `icons/icon_<item_id>_128.png`): parts filled with material colours (glass, ink, wood, steel, paper, gold, leather) and the gold-ink rim. Lookup: the item's `art_ref` if present, otherwise `icons/<item id>`. Shown on the inventory list and detail sheet, the loadout library / pouch / equipment slots, the camp shop, and item chips in the battle quickbar (both forms). Missing icon = the button stays text-only.
+- **Map backgrounds**: `gen_art.py --scenes` draws the Fog Coast region map (paper, coastline, landmarks at each location, fog in the east), the Old Lighthouse site (stone interior, lamp glow), and the starter kit's wilds and ruin. Wired through `maps.json` `background` (doc 16 §6).
 
 ## 8. Shell integration
 

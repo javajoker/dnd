@@ -398,6 +398,7 @@ Party conditions (doc 15 §2.2, implemented): `in_group` (character id), `group_
 | roles | array of the four identity tags: `stat` (numeric) / `check_mod` (check modifier) / `branch_key` (branch key) / `codex` (Compendium); multiple allowed (whitepaper §8) |
 | source | where it's placed (node / shop / boss loot / NG+ carry-over) |
 | unlocks | edges or endings it opens (required for branch keys; used by the validator and the item-detail hint) |
+| art_ref | optional icon reference `icons/<id>` (tech/05 §7.2); when omitted the icon is looked up by convention as `icons/<item id>`; no file = text-only buttons |
 
 ## 8. flags.json
 

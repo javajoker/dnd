@@ -185,14 +185,15 @@ All bookkeeping keys, written with provenance; the History Scroll shows the roll
 
 ## 6. Content format (tech/02 additions)
 
-- `maps.json`: region maps `{id, name, art_ref?, locations[], routes[], start}` and sites `{id, name, form_hint?, areas[], start, wandering_table?}`;
+- `maps.json`: region maps `{id, name, background?, locations[], routes[], start}` and sites `{id, name, background?, form_hint?, areas[], start, wandering_table?}`;
+- **`background`** (implemented, P6.4): `{ "art_ref": "scenes/<id>", "frame": [x0, y0, x1, y1], "tier"?: 1080 }` — an illustration laid under the map. `frame` is the **grid rectangle the image covers**, so the image is drawn with the same transform as the locations / areas and its landmarks sit under them; author the image at the frame's aspect ratio (Fog Coast `[0,0,8,6]` → 1080×810). `frame` defaults to the bounding box of all points plus one grid unit. With a background, routes get a dark under-stroke and site area boxes turn semi-transparent; without the file the procedural plain map is drawn (silent fallback). File: `game/assets/art/scenes/scene_<id>_<tier>.png`;
 - `tables.json`: `{ "tables": [ … §4.1 … ], "cards": [ … §4.2 … ] }` — event tables and event cards live together (cards are not L3 quests, so they stay out of `events.json`);
 - New node type `map` (enters a region map) and `site` (enters a site map); new effects `reveal`, `watch`, `table`;
 - Manifest `travel`: `{ "watches_per_segment": 4, "default_die": "d6" }`.
 
 ## 7. Validation (packlint)
 
-- **V19 map connectivity**: every location reachable from `start` (allowing reveals); every route endpoint exists; no orphan site areas;
+- **V19 map connectivity**: every location reachable from `start` (allowing reveals); every route endpoint exists; no orphan site areas; `background.art_ref` is `scenes/<id>` and `frame` is `[x0, y0, x1, y1]` with x1>x0, y1>y0 (FAIL); a point outside the frame or a missing image file is a WARN;
 - **V20 table coverage**: ranges cover each face of the die exactly once; nested tables exist; no cycles without a `once` exit;
 - **V21 outcome references**: encounters / events / nodes / items referenced by tables, features and doors are registered;
 - Existing V8 (unit caps per form) applies to encounters triggered from maps.

@@ -1159,6 +1159,10 @@ static func _v19_maps(pack: Dictionary) -> Array:
 		for lid: String in locs.keys():
 			if not reach.has(lid):
 				issues.append({"v": "V19", "level": LEVEL_FAIL, "msg": "地图 %s 地点 %s 从 start 不可达" % [mid, lid]})
+	for mid2: String in maps.keys():
+		_v19_background(issues, "地图 %s" % mid2, maps[mid2], "locations")
+	for sid2: String in sites.keys():
+		_v19_background(issues, "场所 %s" % sid2, sites[sid2], "areas")
 	for sid: String in sites.keys():
 		var st: Dictionary = sites[sid]
 		var areas := {}
@@ -1194,6 +1198,30 @@ static func _v19_maps(pack: Dictionary) -> Array:
 	if issues.is_empty():
 		issues.append({"v": "V19", "level": LEVEL_PASS, "msg": "地图 %d 张 / 场所 %d 处：连通、落点与引用齐备" % [maps.size(), sites.size()]})
 	return issues
+
+## 背景图声明（16 §6）：art_ref 须为 scenes/<id>；frame = [x0, y0, x1, y1] 且框住全部点；缺图 = WARN（运行时静默兜底）。
+static func _v19_background(issues: Array, label: String, def: Dictionary, key: String) -> void:
+	if not def.has("background"):
+		return
+	var bg: Variant = def["background"]
+	if not bg is Dictionary:
+		issues.append({"v": "V19", "level": LEVEL_FAIL, "msg": "%s background 须为对象" % label})
+		return
+	var ref := str((bg as Dictionary).get("art_ref", ""))
+	if not ref.begins_with("scenes/") or ArtLoader.path_for(ref) == "":
+		issues.append({"v": "V19", "level": LEVEL_FAIL, "msg": "%s background.art_ref '%s' 须为 scenes/<id>" % [label, ref]})
+		return
+	var f: Array = (bg as Dictionary).get("frame", [])
+	if not f.is_empty():
+		if f.size() != 4 or float(f[2]) <= float(f[0]) or float(f[3]) <= float(f[1]):
+			issues.append({"v": "V19", "level": LEVEL_FAIL, "msg": "%s background.frame 须为 [x0, y0, x1, y1]（x1>x0, y1>y0）" % label})
+			return
+		for p: Variant in def.get(key, []):
+			var pos: Array = (p as Dictionary).get("pos", [0, 0])
+			if float(pos[0]) < float(f[0]) or float(pos[0]) > float(f[2]) or float(pos[1]) < float(f[1]) or float(pos[1]) > float(f[3]):
+				issues.append({"v": "V19", "level": LEVEL_WARN, "msg": "%s 的 %s 落在 background.frame 之外" % [label, str((p as Dictionary).get("id", "?"))]})
+	if not FileAccess.file_exists(ArtLoader.path_for(ref, int((bg as Dictionary).get("tier", 1080)))):
+		issues.append({"v": "V19", "level": LEVEL_WARN, "msg": "%s 背景图缺文件（%s，运行时退回程序化底）" % [label, ref]})
 
 # ---------------------------------------------------------------- V20 事件表覆盖（16 §4.1）
 

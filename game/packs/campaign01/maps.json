@@ -4,6 +4,15 @@
       "id": "fog_coast",
       "name": "雾岸",
       "start": "plaza",
+      "background": {
+        "art_ref": "scenes/map_fog_coast",
+        "frame": [
+          0,
+          0,
+          8,
+          6
+        ]
+      },
       "tables": {
         "road": "coast_road",
         "wild": "fog_wild",
@@ -112,6 +121,15 @@
       "id": "lighthouse",
       "name": "旧灯塔",
       "start": "hall",
+      "background": {
+        "art_ref": "scenes/site_lighthouse",
+        "frame": [
+          0,
+          0,
+          6,
+          4
+        ]
+      },
       "wandering_table": "lighthouse_noise",
       "areas": [
         {

@@ -3680,6 +3680,8 @@ func test_maps_core() -> void:
 	var b2 := Board.new(s2)
 	var rm := RegionMap.new(b2, s2, Rng.new(8), pack, "fog_coast")
 	check(rm.pos() == "plaza" and not rm.seen().has("marsh") and rm.seen().size() == 4, "起点广场；盐沼隐藏（迷雾）")
+	check(str((rm.view().get("background", {}) as Dictionary).get("art_ref", "")) == "scenes/map_fog_coast",
+		"区域视图透传 background（纯呈现数据，16 §6）")
 	check(rm.routes_from("plaza").size() == 2 and rm.route_between("plaza", "lighthouse").is_empty(), "可见路线：广场 → 渔人巷 / 礼拜堂")
 	check(RegionMap.effective_legs(2, "fast") == 1 and RegionMap.effective_legs(2, "careful") == 3
 		and RegionMap.effective_legs(1, "fast") == 1, "步调段数：急行每 2 段省 1、谨慎每 2 段多 1")
@@ -4919,6 +4921,13 @@ func test_map_flow() -> void:
 	var sc := m.current_screen as ScreenMap
 	check(sc.location_button("plaza") != null and sc.location_button("row") != null and sc.location_button("marsh") == null,
 		"地图：已知地点有按钮，隐藏的盐沼不显示")
+	sc.canvas.size = Vector2(390, 420) # 无头无布局：给画布一个手机竖屏尺寸
+	sc._layout_canvas()
+	var bgr := sc.background_rect()
+	check(bgr.size.x > 0.0 and bgr.size.y > 0.0, "区域地图背景图（16 §6：background.art_ref + frame）")
+	var plaza_c := sc.location_button("plaza").position + sc.location_button("plaza").size * 0.5
+	check(bgr.has_point(plaza_c) and absf(bgr.size.x / bgr.size.y - 8.0 / 6.0) < 0.02,
+		"背景图按 frame 网格矩形铺放：地点落在图内，宽高比 = frame 比例")
 	sc.location_tapped.emit("row")
 	await process_frame
 	check(sc.travel_button.text == TextsZh.MAP_TRAVEL and not sc.travel_button.disabled, "选中渔人巷：出发按钮可用")
@@ -4943,6 +4952,8 @@ func test_map_flow() -> void:
 	await process_frame
 	await process_frame
 	check(m.campaign.maps.site != null and str(m.campaign.maps.site.current()) == "hall", "进入旧灯塔场所：门厅")
+	sc.canvas.size = Vector2(390, 420)
+	check(sc.background_rect().size.x > 0.0, "场所背景图（旧灯塔剖面）")
 	check(sc.actions_box.get_node_or_null("Exit__map") != null and sc.actions_box.get_node_or_null("Exit_keeper") != null,
 		"场所操作：回地图出口 + 卡死的门")
 	sc.exit_pressed.emit("@map")
@@ -7678,6 +7689,10 @@ func test_art_pipeline() -> void:
 		"units/unit_bandit_128.png": "units/bandit",
 		"units/unit_wolf_128.png": "units/wolf",
 		"units/unit_scout_128.png": "units/scout",
+		"icons/icon_heal_potion_128.png": "icons/heal_potion",
+		"icons/icon_tide_bomb_128.png": "icons/tide_bomb",
+		"icons/icon_fatedie_128.png": "icons/fatedie",
+		"icons/icon_longsword_128.png": "icons/longsword",
 	}
 	# 每个 art_ref 都有图（campaign01 / arena / 起步包：职业、角色、敌人全覆盖）
 	for pdir: String in ["res://packs/campaign01", "res://packs/arena", "res://kit/starter"]:
@@ -7693,6 +7708,51 @@ func test_art_pipeline() -> void:
 				missing.append(ref)
 		check(missing.is_empty() and not refs.is_empty(), "%s：art_ref 全部有图（%d 个）%s" % [pdir.get_file(), refs.size(), str(missing)])
 	check(ResourceLoader.exists("res://kit/_game/home_art.png"), "起步包主屏插画（theme.home_art，tech/07 §5）")
+	# 道具图标（tech/05 §7.2）：各包每件道具都有图标（约定 icons/<id>）
+	for ipdir: String in ["res://packs/campaign01", "res://packs/arena", "res://packs/riddle_maze", "res://kit/starter"]:
+		var ipk: Dictionary = PackLoader.load_pack(ipdir)["pack"]
+		var no_icon: Array[String] = []
+		for iid: String in (ipk.get("items", {}) as Dictionary).keys():
+			if ArtLoader.item_icon(iid, ipk["items"][iid]) == null:
+				no_icon.append(iid)
+		check(no_icon.is_empty() and not (ipk.get("items", {}) as Dictionary).is_empty(),
+			"%s：每件道具都有图标（%d 件）%s" % [ipdir.get_file(), (ipk.get("items", {}) as Dictionary).size(), str(no_icon)])
+	check(ArtLoader.item_icon("no_such_item") == null and ArtLoader.item_icon("heal_potion", {"art_ref": "units/ink_imp"}) == null,
+		"缺图标 / art_ref 非 icons/ 类别 → null（静默兜底）")
+	check(ArtLoader.item_icon("x", {"art_ref": "icons/heal_potion"}) != null, "items.json art_ref 覆盖约定路径")
+	var ib := Button.new()
+	ArtLoader.decorate_item_button(ib, "tide_bomb")
+	var ib2 := Button.new()
+	ArtLoader.decorate_item_button(ib2, "no_such_item")
+	check(ib.icon != null and ib2.icon == null, "道具按钮挂图标；缺图保持纯文字")
+	ib.free()
+	ib2.free()
+	# 地图 / 场所背景图（16 §6）：声明的图都存在；packlint V19 校验形状
+	for bpdir: String in ["res://packs/campaign01", "res://kit/starter"]:
+		var bpk: Dictionary = PackLoader.load_pack(bpdir)["pack"]
+		var bgs := 0
+		for tbl: String in ["maps", "sites"]:
+			for e: Variant in (bpk.get(tbl, {}) as Dictionary).values():
+				var bg: Dictionary = (e as Dictionary).get("background", {})
+				if not bg.is_empty():
+					bgs += 1
+					check(ArtLoader.map_background(bg) != null, "%s %s 背景图可加载：%s" % [bpdir.get_file(), tbl, str(bg.get("art_ref", ""))])
+		check(bgs == 2, "%s：区域地图 + 场所各一张背景图" % bpdir.get_file())
+	var lpk: Dictionary = PackLoader.load_pack("res://packs/campaign01")["pack"]
+	var lmap: Dictionary = lpk["maps"]["fog_coast"]
+	lmap["background"] = {"art_ref": "units/ink_imp"}
+	var v19a := PacklintCore._v19_maps(lpk).filter(func(i: Dictionary) -> bool: return i["level"] == PacklintCore.LEVEL_FAIL)
+	lmap["background"] = {"art_ref": "scenes/map_fog_coast", "frame": [4, 0, 2, 6]}
+	var v19b := PacklintCore._v19_maps(lpk).filter(func(i: Dictionary) -> bool: return i["level"] == PacklintCore.LEVEL_FAIL)
+	lmap["background"] = {"art_ref": "scenes/map_fog_coast", "frame": [0, 0, 3, 3]}
+	var v19c := PacklintCore._v19_maps(lpk).filter(func(i: Dictionary) -> bool: return i["level"] == PacklintCore.LEVEL_WARN)
+	lmap["background"] = {"art_ref": "scenes/no_such_map", "frame": [0, 0, 8, 6]}
+	var v19d := PacklintCore._v19_maps(lpk)
+	check(v19a.size() == 1 and v19b.size() == 1, "V19：background 非 scenes/ 类别、frame 倒置 → FAIL")
+	check(v19c.size() >= 2, "V19：地点落在 frame 外 → WARN")
+	check(v19d.any(func(i: Dictionary) -> bool: return i["level"] == PacklintCore.LEVEL_WARN and str(i["msg"]).contains("缺文件"))
+		and not v19d.any(func(i: Dictionary) -> bool: return i["level"] == PacklintCore.LEVEL_FAIL),
+		"V19：背景图缺文件只 WARN（运行时退回程序化底）")
 	var re := RegEx.new()
 	re.compile("^(unit|portrait|scene|icon)_[a-z0-9]+(_[a-z0-9]+)*_[0-9]+\\.png$")
 	for rel: String in expect:

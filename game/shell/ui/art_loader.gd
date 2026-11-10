@@ -47,6 +47,28 @@ static func texture_for(art_ref: String, tier: int = 128) -> Texture2D:
 	_cache[key] = tex
 	return tex
 
+## 道具图标（tech/05 §7.2）：items.json 的 art_ref 优先，否则按约定 icons/<item_id>；缺图 = null。
+const ICON_TIER := 128
+static func item_icon(item_id: String, def: Dictionary = {}) -> Texture2D:
+	var ref := str(def.get("art_ref", "icons/%s" % item_id))
+	return texture_for(ref, ICON_TIER) if ref.begins_with("icons/") else null
+
+## 按钮挂道具图标（左侧小图，文字不变；缺图 = 原样）。
+static func decorate_item_button(b: Button, item_id: String, def: Dictionary = {}, px: int = 28) -> void:
+	var tex := item_icon(item_id, def)
+	if tex == null:
+		return
+	b.icon = tex
+	b.expand_icon = false
+	b.add_theme_constant_override("icon_max_width", px)
+
+## 地图 / 场所背景（16 §6）：{art_ref: "scenes/<id>", frame: [x0, y0, x1, y1], tier?}；缺图 / 非法 = null。
+static func map_background(bg: Dictionary) -> Texture2D:
+	var ref := str(bg.get("art_ref", ""))
+	if not ref.begins_with("scenes/"):
+		return null
+	return texture_for(ref, int(bg.get("tier", 1080)))
+
 ## 是否存在可用图（探针：无头断言用）。
 static func has_art(art_ref: String, tier: int = 128) -> bool:
 	return texture_for(art_ref, tier) != null

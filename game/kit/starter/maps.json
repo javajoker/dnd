@@ -4,6 +4,15 @@
       "id": "wilds",
       "name": "The Wilds",
       "start": "inn",
+      "background": {
+        "art_ref": "scenes/map_wilds",
+        "frame": [
+          0,
+          0,
+          5,
+          5
+        ]
+      },
       "tables": {
         "road": "wild_road",
         "wild": "wild_road"
@@ -67,6 +76,15 @@
       "id": "ruin",
       "name": "Old Ruin",
       "start": "gate",
+      "background": {
+        "art_ref": "scenes/site_ruin",
+        "frame": [
+          0,
+          1,
+          4,
+          3
+        ]
+      },
       "areas": [
         {
           "id": "gate",

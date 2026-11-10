@@ -195,4 +195,5 @@ func view() -> Dictionary:
 	var ad := area_def(here)
 	return {"id": site_id, "name": str(site.get("name", site_id)), "areas": areas, "links": links,
 		"current": here, "area_name": str(ad.get("name", here)), "area_text": str(ad.get("text", "")),
-		"exits": exits(), "features": features()}
+		"exits": exits(), "features": features(),
+		"background": (site.get("background", {}) as Dictionary).duplicate()} # 背景图纯呈现透传（16 §6）
