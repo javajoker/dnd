@@ -155,9 +155,9 @@
 
 **阶段 4 · 商店与付费**
 
-- [ ] 幕级权利门槛 `entitlement.campaign01_full`（tech/02 §2.2）+ `entitlement.arena`
-- [ ] Google Play Billing / StoreKit 2、恢复购买、退款回收
-- [ ] 商店素材、隐私政策、年龄分级、内测轨道
+- [x] 幕级权利门槛 `entitlement.campaign01_full`（幕二至终章，tech/02 §2.2，V9 校验）+ `entitlement.arena`；运营配置 `market_grants`：国内（cn）完整战役随本体、海外（global）试玩 + 解锁；退款后本局可跑完（06 §5）
+- [~] 商店抽象 `shell/store`（购买 / 恢复购买 / 撤销三通道）+ 章节锁定页 + 恢复购买入口——已用模拟商店全流程测试；**Google Play Billing / StoreKit 适配器待接入官方插件与商店测试账号**（契约见 `../en/store/billing-adapter.md`）。发布版无适配器时商店不可用，绝不免费放行
+- [~] 商店素材文案、隐私政策、年龄分级答卷已起草（`../en/store/`）；截图需按商店尺寸出图；内测轨道需开发者账号
 
 ## P3 持续运营（对应 M4）
 

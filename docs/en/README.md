@@ -41,6 +41,7 @@
 | [04 Resources and Effects System](tech/04-resources-and-effects-system.md) | Schemas for characters / skills / items / effects, the modifier pipeline (base→add→mul→override→clamp), growth system |
 | [05 Art Pipeline](tech/05-art-pipeline.md) | Asset directories, naming, resolution tiers, placeholder fallback, `art_ref` |
 | [06 English Mobile Plan](tech/06-english-mobile-plan.md) | Decision record and phased plan for the English mobile release |
+| [store/](store/store-listing.md) | Store listing draft, [privacy policy](store/privacy-policy.md), [billing adapter contract](store/billing-adapter.md) |
 | [Code review 2026-11-10](tech/code-review-2026-11-10.md) | Review of `game/` and verification of the TASKS / 13 / 14 checklists |
 
 ## story/ — world and main-line content

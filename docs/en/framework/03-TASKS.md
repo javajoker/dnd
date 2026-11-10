@@ -171,9 +171,9 @@ The framework has built rule depth and the business model in as extension axes (
 
 **Phase 4 · Store and monetization**
 
-- [ ] Act-level entitlement gate `entitlement.campaign01_full` (tech/02 §2.2) + `entitlement.arena`
-- [ ] Google Play Billing / StoreKit 2, restore purchases, refund handling
-- [ ] Store assets, privacy policy, age rating, internal testing track
+- [x] Act-level entitlement gate `entitlement.campaign01_full` (Act II to the Finale, tech/02 §2.2, checked by V9) + `entitlement.arena`; ops config `market_grants`: in the cn market the full campaign comes with the base game, in global it's the demo + unlock; after a refund the current run can finish (06 §5)
+- [~] Store abstraction `shell/store` (purchase / restore / revoke) + locked-chapter screen + Restore Purchases entry — full flow tested with the mock store; **Google Play Billing / StoreKit adapters await the official plugins and store test accounts** (contract in `../store/billing-adapter.md`). A release build without an adapter has an unavailable store and never unlocks for free
+- [~] Store listing copy, privacy policy and age-rating answers drafted (`../store/`); screenshots need rendering at store sizes; internal testing tracks need developer accounts
 
 ## Known gap
 

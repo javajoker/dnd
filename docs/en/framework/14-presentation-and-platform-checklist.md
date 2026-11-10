@@ -29,7 +29,7 @@
 
 | # | Item | Content | Acceptance | Status |
 |---|---|---|---|---|
-| 9 | Payment SDK | Real IAP (purchase / refund / receipt validation) replacing the mock | Full sandbox flow | [ ] |
+| 9 | Payment SDK | Real IAP (purchase / refund / receipt validation) replacing the mock | Full sandbox flow | [~] store abstraction and mock store in place; platform adapters await the plugins (`../store/billing-adapter.md`) |
 | 10 | Compliance | Identity verification, minor protection, privacy policy; licence (ISBN) assessment for mainland China | Compliance checklist passes review | [ ] |
 | 11 | Accounts and cloud saves | Account system + cloud save sync (snapshots are already structured) | Continue on multiple devices | [ ] |
 | 12 | Crash monitoring | Crash reporting, performance monitoring | Queryable in a backend | [ ] |
