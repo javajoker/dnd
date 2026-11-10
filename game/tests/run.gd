@@ -113,6 +113,7 @@ func _async_shell_tests() -> void:
 	await test_main_flow()
 	await test_resume_on_launch()
 	await test_english_smoke()
+	await test_mobile_platform()
 	await test_character_nav()
 	await test_gap_features()
 	await test_art_pipeline()
@@ -3935,7 +3936,8 @@ func test_ops_config() -> void:
 
 func test_font() -> void:
 	print("[font] 内置中文字体与默认主题（04 §7 字体阅读层级落地）")
-	for path: String in [UITheme.FONT_REGULAR, UITheme.FONT_BOLD]:
+	check(not FileAccess.file_exists("res://assets/fonts/NotoSansSC-Bold.otf"), "不再打包独立 Bold 字体（加粗变体派生，包体 -8 MB）")
+	for path: String in [UITheme.FONT_REGULAR]:
 		check(FileAccess.file_exists(path), "字体文件入版本管理：%s" % path)
 		var ff := FontFile.new()
 		check(ff.load_dynamic_font(path) == OK, "字体可加载：%s" % path)
@@ -6235,6 +6237,89 @@ func test_new_game_seed() -> void:
 	Rng.fixed_seed_override = 777
 	check(Rng.new_game_seed() == 777, "覆盖值生效（测试/工具/截图取确定路径）")
 	Rng.fixed_seed_override = saved
+
+# ---------------------------------------------------------------- 移动平台层（tech/01 §10.1；P4 阶段 3）
+
+func test_mobile_platform() -> void:
+	print("[mobile_platform]")
+	# 安全区：模拟刘海 44 / Home 指示条 34
+	SafeArea.override_insets = {"top": 44.0, "right": 0.0, "bottom": 34.0, "left": 0.0}
+	var m := _new_main()
+	root.add_child(m)
+	await process_frame
+	await process_frame
+	var vp_h := root.get_visible_rect().size.y
+	var home := m.current_screen as ScreenHome
+	check(is_equal_approx(home.position.y, 44.0) and is_equal_approx(home.size.y, vp_h - 78.0),
+		"界面根落在安全区内（上 44 / 下 34 内缩）")
+	m._on_home_navigate(&"entry")
+	await process_frame
+	(m.current_screen as ScreenEntry).pick_mode(ShellRouter.MODE_TIME)
+	(m.current_screen as ScreenEntry).start_requested.emit()
+	await process_frame
+	await process_frame
+	var sh := m.shell as Control
+	check(sh != null and is_equal_approx(sh.offset_top, 44.0) and is_equal_approx(sh.offset_bottom, -34.0),
+		"双壳根节点按安全区内缩（锚定全屏 + 偏移）")
+	# 返回键：故事态 = 打开 ☰
+	check(m.on_back_requested() == "menu", "返回键：故事/遭遇态打开 ☰ 菜单")
+	# 切后台：遭遇外落档；遭遇中不落档
+	SaveSystem.delete()
+	check(m.on_app_background() and SaveSystem.has_save(), "切后台：遭遇外兜底落档")
+	m._in_encounter = true
+	SaveSystem.delete()
+	check(not m.on_app_background() and not SaveSystem.has_save(), "切后台：遭遇进行中不存档（09 §7）")
+	m._in_encounter = false
+	m._show_home()
+	await process_frame
+	(m.current_screen as ScreenHome)._toggle_help()
+	check(m.on_back_requested() == "close_help" and not (m.current_screen as ScreenHome).is_help_open(),
+		"返回键：主屏先关闭帮助页")
+	m._on_home_navigate(&"quests")
+	await process_frame
+	check(m.on_back_requested() == "back", "返回键：功能界面走自身返回出口")
+	await process_frame
+	check(m.current_screen is ScreenHome, "返回键：回到主屏")
+	m.queue_free()
+	await process_frame
+	SafeArea.override_insets = {}
+	# 横屏开关（竖屏优先 v1）：关闭时 choice/forced space/子游戏一律落竖屏，入口不呈现横屏卡
+	ProjectSettings.set_setting("game/features/landscape", false)
+	check(ShellRouter.effective(ShellRouter.MODE_SPACE) == ShellRouter.MODE_TIME, "横屏未开放：space 生效为 time")
+	var m2 := _new_main()
+	root.add_child(m2)
+	await process_frame
+	await process_frame
+	m2._on_home_navigate(&"entry")
+	await process_frame
+	var entry := m2.current_screen as ScreenEntry
+	check(not entry.mode_space_button.is_visible_in_tree() and entry.selected_mode == ShellRouter.MODE_TIME,
+		"入口：不呈现横屏卡，自动选定竖屏")
+	m2._mode = ShellRouter.MODE_SPACE
+	check(m2._story_mode() == ShellRouter.MODE_TIME, "故事态形态解析：横屏未开放落竖屏")
+	m2.queue_free()
+	await process_frame
+	ProjectSettings.set_setting("game/features/landscape", true)
+	SaveSystem.delete()
+	# 包体：音频走导入资源（QOA 压缩 + 导入声明循环）
+	var am := AudioManager.new()
+	var bgm := am._stream_for(&"bgm_battle")
+	check(bgm is AudioStreamWAV and (bgm as AudioStreamWAV).loop_mode == AudioStreamWAV.LOOP_FORWARD,
+		"BGM 经导入资源加载且循环（.import edit/loop_mode）")
+	am.free()
+	# 导出预设：包数据 JSON 显式包含，开发工具/测试排除
+	var cfg := ConfigFile.new()
+	check(cfg.load("res://export_presets.cfg") == OK, "导出预设入库")
+	var ok_filters := true
+	for sec: String in cfg.get_sections():
+		if sec.ends_with(".options"):
+			continue
+		ok_filters = ok_filters and str(cfg.get_value(sec, "include_filter", "")).contains("*.json") \
+			and str(cfg.get_value(sec, "exclude_filter", "")).contains("tools/*") \
+			and str(cfg.get_value(sec, "exclude_filter", "")).contains("tests/*")
+	check(ok_filters, "每个导出预设包含 *.json、排除 tools/ 与 tests/")
+	check(str(ProjectSettings.get_setting("display/window/handheld/orientation", 0)) == "1",
+		"手持设备方向 = 竖屏（v1 竖屏优先）")
 
 # ---------------------------------------------------------------- 英文冒烟（P4 阶段 2：英文界面 + 英文内容包走主流程）
 

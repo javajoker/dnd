@@ -28,7 +28,7 @@ var _replay_idx := 0
 
 func _ready() -> void:
 	_build()
-	size = get_viewport().get_visible_rect().size # 根 Control 父级为纯 Node：显式落视口尺寸（锚定无参照）
+	SafeArea.fit(self) # 根 Control 父级为纯 Node：显式落位到视口安全区（刘海/Home 指示条避让，tech/01 §10.1）
 
 func _build() -> void:
 	var v := VBoxContainer.new()

@@ -46,7 +46,7 @@ var tutorial: TutorialOverlay # 启动卡（12 §4 第一层：首次启动 3 �
 func _ready() -> void:
 	_build()
 	set_bar_collapsed(UiSettings.load_home_bar_collapsed(settings_path), false) # 启动读回偏好（12 §5；不写盘）
-	size = get_viewport().get_visible_rect().size # 根 Control 父级为纯 Node：显式落视口尺寸（锚定无参照）
+	SafeArea.fit(self) # 根 Control 父级为纯 Node：显式落位到视口安全区（刘海/Home 指示条避让，tech/01 §10.1）
 	idle_timer = Timer.new()
 	idle_timer.wait_time = IDLE_SAVE_SEC
 	idle_timer.one_shot = true
@@ -228,6 +228,13 @@ func _build_help() -> void:
 			var i := locales.find(Texts.locale)
 			language_requested.emit(str(locales[(i + 1) % locales.size()])))
 		v.add_child(language_button)
+
+func is_help_open() -> bool:
+	return _help_overlay != null and _help_overlay.visible
+
+func close_help() -> void:
+	if _help_overlay != null:
+		_help_overlay.visible = false
 
 func _toggle_help() -> void:
 	_help_overlay.visible = not _help_overlay.visible

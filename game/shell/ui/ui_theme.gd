@@ -6,9 +6,10 @@
 class_name UITheme
 extends RefCounted
 
-## 内置字体（SC 子集 OTF：Regular + Bold 两常用字重，控制包体）。
+## 内置字体：只打包 Regular 一个字重（中英双语共用；其拉丁字形即英文界面字体）。
+## 粗体由 Regular 加粗变体派生（FontVariation.variation_embolden），省去 8 MB 的 Bold 文件（tech/01 §10.1 包体）。
 const FONT_REGULAR := "res://assets/fonts/NotoSansSC-Regular.otf"
-const FONT_BOLD := "res://assets/fonts/NotoSansSC-Bold.otf"
+const BOLD_EMBOLDEN := 0.6
 
 ## 字号档（04 §7：正文/标题/大字）。正文档 = Godot 默认 16，保持既有界面观感不变。
 const SIZE_BODY := 16 # 正文
@@ -16,7 +17,7 @@ const SIZE_TITLE := 24 # 标题
 const SIZE_BIG := 32 # 大字（掷骰结果、结算数字等强调位）
 
 static var regular: FontFile # 正文字重（默认主题用）
-static var bold: FontFile # 粗体字重（标题强调位取用）
+static var bold: Font # 粗体（Regular 加粗变体；标题强调位取用）
 static var theme_res: Theme # apply() 构建的主题实例（attach 挂接用）
 
 ## 主题挂接点（铁律：主题必须挂在 Control 链上）。Window.theme 不会穿过
@@ -34,8 +35,10 @@ static func apply(root: Window = null) -> bool:
 	var ff := _load(FONT_REGULAR)
 	if ff != null:
 		regular = ff
-		var bb := _load(FONT_BOLD)
-		bold = bb if bb != null else ff
+		var fv := FontVariation.new()
+		fv.base_font = ff
+		fv.variation_embolden = BOLD_EMBOLDEN
+		bold = fv
 		var theme := Theme.new()
 		theme.default_font = regular
 		theme.default_font_size = SIZE_BODY
@@ -57,6 +60,8 @@ static func apply(root: Window = null) -> bool:
 	return false
 
 static func _load(path: String) -> FontFile:
+	if path.begins_with("res://") and ResourceLoader.exists(path):
+		return load(path) as FontFile # 导入资源：发布包只带导入后的字体数据，不带原始 .otf
 	if not FileAccess.file_exists(path):
 		return null
 	var ff := FontFile.new()

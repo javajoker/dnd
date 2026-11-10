@@ -212,8 +212,11 @@ func _stream_for(sfx_name: StringName) -> AudioStream:
 		return _cache[sfx_name]
 	var s: AudioStream = null
 	var path := "%s/%s.wav" % [asset_dir, String(sfx_name)]
-	if FileAccess.file_exists(path):
-		s = AudioStreamWAV.load_from_file(path)
+	if ResourceLoader.exists(path):
+		# 导入资源（QOA 压缩，循环点由 .import 的 edit/loop_mode 声明）：发布包只带压缩数据，不带原始 WAV
+		s = load(path) as AudioStream
+	elif FileAccess.file_exists(path):
+		s = AudioStreamWAV.load_from_file(path) # 未导入兜底（开发期 / 无导入缓存）
 		if s is AudioStreamWAV and LOOP_ASSETS.has(sfx_name):
 			var w := s as AudioStreamWAV
 			w.loop_mode = AudioStreamWAV.LOOP_FORWARD

@@ -21,6 +21,7 @@ func _init(main: Node) -> void:
 	m = main
 
 func _on_subgame_start(pack_id: String, mode: StringName) -> void:
+	mode = ShellRouter.effective(mode) # 横屏未开放时竖屏参战（tech/01 §10.1）
 	if not m._subgames.has(pack_id) or _sub_active:
 		return
 	if not m.entitlements.can_access((m._subgames[pack_id] as Dictionary)["manifest"]):

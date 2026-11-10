@@ -96,6 +96,8 @@ func _ready() -> void:
 			Rng.fixed_seed_override = int(a.trim_prefix("--seed="))
 		elif a.begins_with("--locale="):
 			Texts.forced_locale = a.trim_prefix("--locale=")
+		elif a.begins_with("--safe-area="): # `-- --safe-area=上,右,下,左`：桌面模拟刘海/Home 指示条
+			SafeArea.override_insets = SafeArea.parse_arg(a)
 	# 界面语言（tech/01 E-5）：玩家偏好 → 系统语言；内容包按同一语言加载文本
 	Texts.set_locale(Texts.detect_locale(UiSettings.load_locale()))
 	PackLoader.locale = Texts.locale
@@ -140,6 +142,43 @@ func _ready() -> void:
 	if shots != null:
 		_shot_driver = shots.new(self)
 		_shot_driver.run(args)
+
+# ---------------------------------------------------------------- 应用生命周期与返回键（tech/01 §10.1；09 §7）
+
+func _notification(what: int) -> void:
+	match what:
+		NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_WM_CLOSE_REQUEST:
+			on_app_background()
+		NOTIFICATION_WM_GO_BACK_REQUEST:
+			on_back_requested()
+
+## 切后台 / 关闭：遭遇外兜底落档（遭遇进行中不存档——进程被杀至多损失当前这一局，09 §7）。
+## 返回是否已落档。
+func on_app_background() -> bool:
+	if board == null or graph == null or _in_encounter or sub_flow == null or sub_flow._sub_battling:
+		return false
+	_save("background")
+	return true
+
+## Android 返回键 / 系统返回手势：遭遇与故事态 = 打开 ☰ 菜单；功能界面 = 走该界面的返回出口；
+## 主屏 = 先关帮助页，否则落档并退出。返回执行的动作名（测试与日志用）。
+func on_back_requested() -> String:
+	if shell != null and is_instance_valid(shell) and current_screen == shell and shell.has_method("_open_menu"):
+		shell.call("_open_menu")
+		return "menu"
+	if current_screen is ScreenHome:
+		var home := current_screen as ScreenHome
+		if home.is_help_open():
+			home.close_help()
+			return "close_help"
+		on_app_background()
+		get_tree().quit()
+		return "quit"
+	if current_screen != null and current_screen.has_signal("back_requested"):
+		current_screen.emit_signal("back_requested")
+		return "back"
+	_show_home()
+	return "home"
 
 ## 主战役包发现（白皮书 §10.1：框架不写死内容包）：pack_type=campaign 的包中，manifest.entry=true 者优先，
 ## 否则取目录名序第一个。
@@ -276,6 +315,11 @@ func _portrait_size() -> Vector2i:
 func _set_window_orientation(mode: StringName) -> void:
 	window_orientation = mode
 	if DisplayServer.get_name() == "headless":
+		return
+	if OS.has_feature("mobile"):
+		# 真机：切设备屏幕方向（tech/01 §10.1）；桌面窗口缩放只是开发便利
+		DisplayServer.screen_set_orientation(DisplayServer.SCREEN_SENSOR_LANDSCAPE
+			if mode == ShellRouter.MODE_SPACE else DisplayServer.SCREEN_PORTRAIT)
 		return
 	get_window().size = LANDSCAPE_SIZE if mode == ShellRouter.MODE_SPACE else _portrait_size()
 	get_window().move_to_center()
@@ -474,8 +518,8 @@ func _story_mode() -> StringName:
 	if forced.has(act):
 		var exempt: Array = (pres.get("forced_except", {}) as Dictionary).get(act, [])
 		if not exempt.has(graph.current_id):
-			return StringName(str(forced[act]))
-	return _mode
+			return ShellRouter.effective(StringName(str(forced[act])))
+	return ShellRouter.effective(_mode)
 
 func _shell_mode() -> StringName:
 	if shell is EncounterPortrait:

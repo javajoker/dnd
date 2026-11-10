@@ -16,7 +16,7 @@ mono_crash.*
 ~*.dll
 
 # General build & export outputs (optional but recommended)
-export_presets.cfg
+# export_presets.cfg is committed (no secrets inside; signing via env vars)
 build/
 dist/
 

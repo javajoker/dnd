@@ -119,7 +119,7 @@ func _ready() -> void:
 # ---------------------------------------------------------------- UI 构建
 
 func _build_ui() -> void:
-	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	SafeArea.apply_offsets(self) # 全屏锚定 + 安全区内缩（tech/01 §10.1）
 	# ① 状态栏带（04 §3.1：只放"看"的信息 + 低频操作）
 	status_band = PanelContainer.new()
 	status_band.name = "StatusBand"

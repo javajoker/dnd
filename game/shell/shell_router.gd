@@ -19,6 +19,15 @@ static func forced_notice(mode: StringName) -> String:
 var _locked := false
 var locked_mode: StringName = &""
 
+## 横屏空间形态是否可用（tech/01 §10.1：英文版 v1 竖屏优先，横屏 v1.1 开放）。
+## 工程设置 game/features/landscape（桌面缺省开；.mobile 覆盖为关），测试可直接改设置。
+static func landscape_enabled() -> bool:
+	return bool(ProjectSettings.get_setting("game/features/landscape", true))
+
+## 生效形态：横屏未开放时一律落竖屏（choice / forced space / 子游戏参战同一口径）。
+static func effective(mode: StringName) -> StringName:
+	return MODE_TIME if mode == MODE_SPACE and not landscape_enabled() else mode
+
 ## 解析壳形态。presentation = manifest.presentation；cli_args = OS.get_cmdline_user_args()；
 ## story_line_id = 当前遭遇所属幕（forced 按幕强制）。返回 {mode, forced, notice}。
 static func resolve(presentation: Dictionary, cli_args: PackedStringArray, story_line_id: String) -> Dictionary:

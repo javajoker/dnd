@@ -27,7 +27,7 @@ var selected_mode: StringName = &""
 
 func _ready() -> void:
 	_build()
-	size = get_viewport().get_visible_rect().size # 根 Control 父级为纯 Node：显式落视口尺寸（锚定无参照）
+	SafeArea.fit(self) # 根 Control 父级为纯 Node：显式落位到视口安全区（刘海/Home 指示条避让，tech/01 §10.1）
 
 func _build() -> void:
 	var v := VBoxContainer.new()
@@ -147,7 +147,7 @@ func bind_subgames(cards: Array) -> void:
 			bt.custom_minimum_size = Vector2(150, 40)
 			bt.pressed.connect(func() -> void: subgame_start.emit(pid, ShellRouter.MODE_TIME))
 			row.add_child(bt)
-		if mode != "time":
+		if mode != "time" and ShellRouter.landscape_enabled():
 			var bs := Button.new()
 			bs.text = Texts.s(&"SUBGAME_ENTER_SPACE")
 			bs.custom_minimum_size = Vector2(150, 40)
@@ -197,7 +197,13 @@ func bind(pack: Dictionary, played_modes: Array, collect_pct: float) -> void:
 	# 模式分支区（09 §3）：choice 呈现双卡；强制模式叙事化包装（禁系统腔）
 	var pres: Dictionary = manifest.get("presentation", {})
 	var recommend: Dictionary = pres.get("recommend", {})
-	if str(pres.get("mode", "time")) == "choice":
+	if str(pres.get("mode", "time")) == "choice" and not ShellRouter.landscape_enabled():
+		# 竖屏优先版本（tech/01 §10.1）：只有一种讲述方式，不呈现模式选择
+		mode_hint.text = ""
+		mode_time_button.get_parent().visible = false
+		mode_space_button.get_parent().visible = false
+		pick_mode(ShellRouter.MODE_TIME)
+	elif str(pres.get("mode", "time")) == "choice":
 		mode_hint.text = Texts.s(&"ENTRY_MODE_PICK")
 		mode_time_button.visible = true
 		mode_space_button.visible = true
@@ -208,7 +214,7 @@ func bind(pack: Dictionary, played_modes: Array, collect_pct: float) -> void:
 		mode_hint.text = ShellRouter.forced_notice(forced) # 叙事化包装（09 §3）
 		mode_time_button.visible = false
 		mode_space_button.visible = false
-		pick_mode(forced)
+		pick_mode(ShellRouter.effective(forced))
 	if played_modes.is_empty():
 		played_label.text = ""
 	else:

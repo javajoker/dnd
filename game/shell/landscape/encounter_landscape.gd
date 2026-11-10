@@ -120,7 +120,7 @@ func _ready() -> void:
 # ---------------------------------------------------------------- UI 构建（五区，09 §4）
 
 func _build_ui() -> void:
-	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	SafeArea.apply_offsets(self) # 全屏锚定 + 安全区内缩（tech/01 §10.1）
 	# 上缘 8%：队伍状态条 + 先攻顺序条（战斗时展开）+ ☰（右端）
 	top_band = PanelContainer.new()
 	top_band.name = "TopBand"
