@@ -15,7 +15,8 @@ A mobile game built around the tabletop role-playing (D&D-style) experience:
 
 - **One engine holds every story**: framework and content are fully separated; a new plot, campaign or sub-game = a new content pack, with no change to the framework itself;
 - **Ship, build and iterate at the same time**: after launch we keep releasing new story branches and content packs; the framework stays backward compatible with content;
-- **One phone, two ways to play**: the same encounter core powers both "Landscape · Spatial campaigns" and "Portrait · Temporal campaigns"; the campaign mode is chosen by the player on entry or mandated by the main line, with zero data difference.
+- **One phone, two ways to play**: the same encounter core powers both "Landscape · Spatial campaigns" and "Portrait · Temporal campaigns"; the campaign mode is chosen by the player on entry or mandated by the main line, with zero data difference;
+- **One engine, many games**: the framework is a reusable tabletop-RPG engine — a new narrative game is made by changing story, art, music and theme data (§14; tech/07).
 
 ## 2. Design pillars
 
@@ -124,7 +125,9 @@ The presentation mode is not decided by rotating the phone; it is a **declared p
 | Encounter structure | Spatial encounters: tactical grid map, free movement | Temporal encounters: room sequence, unlocked one by one |
 | Layout | Spatial zoning: central main view + left/right columns + top/bottom edges | Temporal zoning: main view / console, heights "breathe" with context |
 | Combat presentation | Tactical grid, positioning, projectile lines | Vertical battlefield / smart camera / feed-style battle reports |
-| Dice | Dice tray on the right; key checks get a full-screen presentation | Dice tray with tiered presentation (quick roll for normal / full screen for key) |
+| Dice | Dice tray on the right; key checks get a full-screen presentation | Always-visible dice strip; quick / tray / key tiers for every die type (doc 17) |
+| Maps (doc 16) | Region map with routes; sites as a fogged top-down area map | Region map as a vertical scroll; sites as a room sequence |
+| Split party (doc 15) | Side-by-side panes + group rail | Group strip + swipe to switch; two-group stacked split view |
 | Information strategy | Shown side by side simultaneously | The same pixels switch purpose moment to moment |
 
 ### 7.3 The one-core-two-shells iron rule
@@ -258,3 +261,18 @@ Mixable and adjustable per version, with no framework changes. Details in `06-mo
 | Content Pack | A unit of story / campaign / sub-game shipped as data |
 | Doom Clock | A progress variable that drives endgame pressure |
 | Campaign mode | The presentation form declared by a campaign book: Landscape · Spatial / Portrait · Temporal / dual-mode, chosen on entry or mandated |
+
+## 14. Framework capabilities beyond the first campaign
+
+The first campaign proved the core loop. These framework features turn it into a general tabletop-RPG engine; each is specified on its own and none is story-specific:
+
+| Capability | Spec | What it adds |
+|---|---|---|
+| Party split and perspective | doc 15 | Groups with their own sub-plots, focus switching and split view, limited remote interaction and teleportation, feature unlocks per playthrough, multiplayer-ready authority model |
+| Maps and event tables | doc 16 | Region point-crawl travel, site maps in both forms, choose → roll → outcome tables, event cards, Doom Clock tied to travel |
+| Polyhedral dice | doc 17 | d4–d100 shown as dice (strip / tray / key), fair by construction |
+| New-game kit | tech/07 | Game manifest, template pack and the recipe for building another game by swapping story, art, music and theme |
+
+**Side campaigns follow the same form rule as main campaigns** (doc 09 §2): space-based side campaigns are landscape; time-based, multi-room side scenarios are portrait.
+
+**Progression across playthroughs**: a pack may open framework features gradually — e.g. the first run is a single linear party, the second allows splitting, the third adds links and companion leads (doc 15 §7). Unlocks are narrative position and freedom, never power (doc 06 no-go zones).

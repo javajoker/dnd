@@ -29,6 +29,9 @@ Nine kinds of screens make up the complete game loop:
      Entry        Center       Compendium                Scroll
         │
         ▼ (dual-mode campaigns branch here: Landscape Spatial / Portrait Temporal; single-mode campaigns go straight in)
+   ⑩ Region map ⇄ ⑪ Site map ⇄ story nodes (hub / scenes / checks / dialogue)   (doc 16)
+        │                 (split party: one thread per group, doc 15)
+        ▼
    ③④ Encounter (rendered in the campaign's declared form)
         │
         ▼
@@ -277,9 +280,17 @@ During a landscape campaign, Loadout and Settlement aren't squeezed into a cente
 | ⑥ Inventory/Compendium | ①, ⑨ | ①, ⑦ | ✅ |
 | ⑦ Character | ①, rest state | ①, ⑥ | ✅ |
 | ⑧ History Scroll | ①, sheets from any screen, ⑨ | Source screen | ✅ |
-| ⑨ Settlement | ③/④ | ①, ③/④, ⑧ | ✅ |
+| ⑨ Settlement | ③/④ | ①, ③/④, ⑧, camp sheet | ✅ |
+| ⑩ Region map | Story `map` node, ⑨ next, camp | Location node, ⑪, camp sheet, ① via ☰ | ✅ (spec, doc 16) |
+| ⑪ Site map | Story `site` node, ⑩ | Area features, encounter ③/④, ⑩, ① via ☰ | ✅ (spec, doc 16) |
 
 Rule: any new screen (including sub-game screens) must pass the "entrance / exit" two-column check of this table before entering the framework — part of the content-pack go-live checklist (see `03-TASKS.md` P2).
+
+### ⑩/⑪ Maps and ⑫ split view (summary)
+
+- **⑩ Region map** and **⑪ Site map** layouts for both forms are specified in doc 16 §2.3 and §3 (portrait: vertical map + destination card + pace + Travel/Camp in the thumb arc; landscape: pan/zoom map + location card column; site maps are a room sequence in portrait and a fogged area map in landscape).
+- **Split party**: the group strip, "Meanwhile" ticker, focus switching and split view (portrait stacked 45/55 for two groups; landscape side-by-side 60/40 + group rail) are specified in doc 15 §4.
+- The **dice strip** shows the right die shape for every roll, with a tray for multi-dice rolls (doc 17 §3).
 
 ## 6. Relationship with sub-games
 

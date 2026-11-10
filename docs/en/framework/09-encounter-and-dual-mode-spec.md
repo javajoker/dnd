@@ -30,6 +30,7 @@ Convention: state changes are emitted as `state.entered` events; rendering shell
   - Narrative is fragments / remembrance / a restricted perspective → should be `time` (world §8 narrative hook);
   - Either works → `choice`, handing the mode choice back to the player as a branch;
 - After declaration, validator V8 re-checks unit counts in portrait encounters.
+- **Side campaigns and sub-games use the same rule**: a space-based side campaign (large maps, many units, tactical positioning) declares `space` and plays in **landscape**; a time-based, multi-room side scenario (room sequences, fragments, a ticking clock) declares `time` and plays in **portrait**. Maps and split parties follow the declared form (docs 15 §6, 16 §3).
 
 ## 3. Campaign-entry mode branch rules
 

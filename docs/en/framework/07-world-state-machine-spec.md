@@ -35,6 +35,18 @@ Constraints:
 - **`global.lore`**: the set of unlocked Compendium entries (Set<lore_id>), written by the `lore` effect (doc 10 §3); `global.tutorial.*`: tutorial trigger records (doc 12 §4);
 - **`global.growth.*`**: party growth bookkeeping (`xp` cumulative experience / `level` / `attr_points` unallocated attribute points / `attrs.<attr>` allocated attributes), with XP written by the `xp` effect; the threshold table is defined by the bound rule pack (doc 11 §6, tech/04 §8).
 
+### 2.x Framework bookkeeping added by docs 15–16
+
+| Key | Owner | Content |
+|---|---|---|
+| `<ns>.party.groups` / `.focus` / `.stash.<group>` / `.links` | Party split (doc 15 §3) | Groups, focus, per-group stash (sums to `global.inv`), link charges |
+| `<ns>.map.<map>.pos` / `.seen` / `.visited` | Region maps (doc 16 §5) | Party position (per group when split), revealed and visited locations |
+| `<ns>.site.<site>.area` / `.cleared` / `.opened` / `.searched` | Site maps | Current area and area state |
+| `<ns>.table.<table>.used` | Event tables | Consumed `once` rows |
+| `<ns>.watch` | Travel | Watches toward the next Doom Clock segment |
+
+All are bookkeeping keys (never read out on the settle screen), written with provenance and included in snapshots.
+
 ## 3. Namespace rules
 
 | Prefix | Owner | Write permission | Read permission |

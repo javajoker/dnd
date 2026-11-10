@@ -151,6 +151,21 @@ Note: the Godot gesture layer implements all of 12 §1's recognition parameters 
 
 ---
 
+## 13. Framework expansion (P5 — specified, not yet built)
+
+| Feature | Key points | Spec | Prototype | Godot |
+|---|---|---|---|---|
+| Party split / rejoin | Split edge, threads per group, rejoin barrier, divide the pack, shared clock with drift cap | doc 15 §2–§3 | ⬜ | ⬜ |
+| Perspective switching | Group strip, swipe/tap focus, "Meanwhile" ticker, split view (portrait 2 groups; landscape panes + rail) | doc 15 §4 | ⬜ | ⬜ |
+| Links | Message, help from afar, remote trigger, item/member teleport with charges and anchors | doc 15 §5 | ⬜ | ⬜ |
+| Progression per playthrough | Linear first run → split → links / companion leads | doc 15 §7 | ⬜ | ⬜ |
+| Region map | Point-crawl travel, pace, navigation, event rolls, watches → Doom Clock, fog/reveal | doc 16 §2 | ⬜ | ⬜ |
+| Site map | Areas, features, doors (locked/stuck/secret), wandering table; room sequence (portrait) / fogged map (landscape) | doc 16 §3 | ⬜ | ⬜ (maze beats exist) |
+| Event tables and cards | d4–d100 tables with modifiers, nested and `once` rows; choice-and-roll event cards | doc 16 §4 | ⬜ | ⬜ |
+| Polyhedral dice | d4–d100 in 3D; strip glyphs; tray for multi-dice; key presentation for every shape | doc 17 | ⬜ | ◐ (d20 only) |
+| New-game kit | Game manifest (theme/audio/packs), template pack, recipe | tech/07 | — | ⬜ |
+| Multiplayer readiness | Seats, host authority, command channel, server-side dice, auto-play on disconnect | doc 15 §8 | — | ◐ (command channel exists) |
+
 ## Gap summary
 
 | # | Gap | Level | Resolution |

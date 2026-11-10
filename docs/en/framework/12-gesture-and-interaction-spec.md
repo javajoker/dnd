@@ -60,6 +60,10 @@ Iron rule: **every gesture has a button alternative** — gestures are an effici
 | Swipe | Sibling tabs such as Inventory ↔ Compendium |
 | Swipe up (log strip / drawer) | Expand to half screen; swipe down to collapse |
 | Tap the Doom Clock | Time-edge preview sheet |
+| Tap a map pin / drag the party token along a route | Choose a destination and route (doc 16 §2.3) |
+| Long-press a location, route or door | Info card (danger, known table, last visit) |
+| Tap a group tab / swipe the main view (split party) | Switch focus between groups (doc 15 §4.4) |
+| Drag an item onto another group's tab | Send it through a link, when allowed (doc 15 §5.2) |
 | Drag (loadout library entry → party card / equipment slot / quick pouch) | Deliver a skill / gear / item there (09 §9.1 v2); tapping the entry gives it to the current character (equivalent path) |
 
 ## 3. Gesture conflict resolution

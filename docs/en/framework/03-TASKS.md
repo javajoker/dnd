@@ -175,6 +175,44 @@ The framework has built rule depth and the business model in as extension axes (
 - [~] Store abstraction `shell/store` (purchase / restore / revoke) + locked-chapter screen + Restore Purchases entry — full flow tested with the mock store; **Google Play Billing / StoreKit adapters await the official plugins and store test accounts** (contract in `../store/billing-adapter.md`). A release build without an adapter has an unavailable store and never unlocks for free
 - [~] Store listing copy, privacy policy and age-rating answers drafted (`../store/`); screenshots need rendering at store sizes; internal testing tracks need developer accounts
 
+## P5 Framework expansion: a general tabletop-RPG engine (specified 2026-11-10)
+
+Goal: turn the framework into a reusable D&D-style engine — new narrative games are made by changing story, art, music and theme data (whitepaper §14). Specs: docs 15–17, tech/07.
+
+### 5.0 Documentation and layouts
+- [x] Party split, perspective and remote play spec — `15-party-split-and-perspective-spec.md` (incl. portrait/landscape layouts, gestures, progression, multiplayer constraints)
+- [x] Maps, travel and event tables spec — `16-map-and-exploration-spec.md` (region/site layouts for both forms)
+- [x] Polyhedral dice spec — `17-polyhedral-dice-spec.md`
+- [x] New-game kit — `../tech/07-new-game-kit.md`
+- [x] Whitepaper §14, docs 04/07/09/12/13 and tech/02 updated with the new screens, keys, fields and validators
+- [ ] Interactive layout prototype for the new screens (⑩ region map, ⑪ site map, split view) in `prototype/` or as a shareable page
+
+### 5.1 Dice (smallest step, unblocks the rest)
+- [ ] `Dice3D` shape table: d4 / d6 / d8 / d10 / d12 (+ d100 as two d10) with per-shape face tests
+- [ ] DiceTray (multi-dice, ~1 s, skippable) and dice-strip shape glyphs
+- [ ] Core emits `dice` lists on check / attack / item / rest / table events (doc 17 §5)
+
+### 5.2 Maps and tables
+- [ ] `tables.json` loader + roller (modifiers, nested, `once`), event cards, `table.roll` events; packlint V20–V21
+- [ ] Region map: data, travel loop, pace, navigation, watches → clock, fog/reveal; ⑩ screen in both forms; packlint V19
+- [ ] Site map: areas/features/doors; portrait room sequence + landscape fogged map from the same data; maze beats as presets
+- [ ] campaign01 or arc_tide: a small region map (≥5 locations) and one site to prove the loop
+
+### 5.3 Party split
+- [ ] Groups/threads/rejoin in StoryGraph; per-character check rollers; `party_from: "group"` encounters; packlint V16–V18
+- [ ] Divide-the-pack sheet (reuses loadout v2 drag-and-drop); per-group stash invariant
+- [ ] Group strip, focus switching, split view (portrait 2 groups, landscape panes + rail); battles pause other groups
+- [ ] Links: message / help / remote trigger / item and member teleport with charges and anchors
+- [ ] `progression` per playthrough (linear first run); a demo side scenario that splits the party
+
+### 5.4 New-game kit
+- [ ] Game manifest (`game/packs/_game/game.json`): title, packs, theme, audio map — read by main/AudioManager/theme
+- [ ] `_template` pack that passes packlint and the simulation
+- [ ] Move remaining story nouns out of shell code into pack text
+
+### 5.5 Multiplayer (later)
+- [ ] Local pass-and-play seats → async online turns → real-time co-op (doc 15 §8)
+
 ## Known gap
 
 - tech/04 §5 effect-modifier runtime pipeline (base→add→mul→override→clamp + `effect.attach`/`effect.expire` events) is not implemented. No current content uses it (no pack has an effects.json); it must land before the first pack that uses modifiers ships.

@@ -30,6 +30,9 @@
 | [12 Gesture and Interaction Spec](framework/12-gesture-and-interaction-spec.md) | Gesture vocabulary and parameters, scene mapping, conflict resolution, first-run tutorial and help page, Home hotspot illustration |
 | [13 Feature Checklist and Loops](framework/13-feature-checklist-and-loops.md) | Full feature CHECKLIST: interaction completeness, prototype vs Godot comparison, gap summary |
 | [14 Presentation and Platform Checklist](framework/14-presentation-and-platform-checklist.md) | Productisation roadmap: P0 ritual (font / dice / hit feel), P1 atmosphere (audio / art / transitions), P2 platform, P3 operations tech |
+| [15 Party Split, Perspective and Remote Play](framework/15-party-split-and-perspective-spec.md) | Groups and threads, focus switching and split view, links (remote interaction / teleport), progression per playthrough, multiplayer constraints |
+| [16 Maps, Travel and Event Tables](framework/16-map-and-exploration-spec.md) | Region point-crawl, site maps in both forms, choose → roll → outcome tables, event cards |
+| [17 Polyhedral Dice](framework/17-polyhedral-dice-spec.md) | d4–d100 usage and presentation tiers (strip / tray / key), fairness, event data |
 
 ## tech/ — technical implementation
 
@@ -41,6 +44,7 @@
 | [04 Resources and Effects System](tech/04-resources-and-effects-system.md) | Schemas for characters / skills / items / effects, the modifier pipeline (base→add→mul→override→clamp), growth system |
 | [05 Art Pipeline](tech/05-art-pipeline.md) | Asset directories, naming, resolution tiers, placeholder fallback, `art_ref` |
 | [06 English Mobile Plan](tech/06-english-mobile-plan.md) | Decision record and phased plan for the English mobile release |
+| [07 New-Game Kit](tech/07-new-game-kit.md) | What a new game supplies (story, art, music, theme, game manifest) and what the engine provides; the ten-step recipe |
 | [store/](store/store-listing.md) | Store listing draft, [privacy policy](store/privacy-policy.md), [billing adapter contract](store/billing-adapter.md) |
 | [Code review 2026-11-10](tech/code-review-2026-11-10.md) | Review of `game/` and verification of the TASKS / 13 / 14 checklists |
 
