@@ -217,7 +217,7 @@
         { "type": "choice", "label": "撕掉税吏的命运页", "to": "N2U-3",
           "effects": [ { "rep.uninked": 2 }, { "write": "page_tearer", "value": true }, { "give_item": "black_feather_token" }, { "alignment": -10 } ] },
         { "type": "choice", "label": "不撕", "to": "N2U-3",
-          "effects": [ { "rep.uninked": 1 }, { "write": "mercy_shown", "value": true }, { "give_item": "black_feather_token" }, { "alignment": -10 } ] }
+          "effects": [ { "rep.uninked": 1 }, { "write": "mercy_shown", "value": true }, { "inspiration": 1 }, { "give_item": "black_feather_token" }, { "alignment": -10 } ] }
       ]
     },
     {

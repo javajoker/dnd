@@ -327,9 +327,9 @@
   "items.boathook_axe.name": "Boathook Axe",
   "items.boathook_axe.source": "N1-1 shop / camp Supplies",
   "items.padded_coat.name": "Padded Coat",
-  "items.padded_coat.source": "N1-1 shop / camp Supplies",
+  "items.padded_coat.source": "N1-1 shop / camp Supplies / N2U-1b loot",
   "items.dock_buckler.name": "Dock Buckler",
-  "items.dock_buckler.source": "N1-1 shop / camp Supplies",
+  "items.dock_buckler.source": "N1-1 shop / camp Supplies / N2L-1b loot",
   "items.tide_charm.name": "Tide Charm",
-  "items.tide_charm.source": "N1-1 shop / camp Supplies"
+  "items.tide_charm.source": "N1-1 shop / camp Supplies / R3 loot"
 }
