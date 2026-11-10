@@ -32,14 +32,14 @@ The logic core is genuinely well built: clean RefCounted layering, seeded RNG, p
 
 ## 2. Blocking defects (must fix before any device build)
 
-> **Status 2026-11-10: B1, B3 and B4 are fixed (TASKS P4 Phase 0); the suite is 1583 PASS / 0 FAIL. B2 remains (Phase 3).**
+> **Status 2026-11-10: B1, B3 and B4 are fixed (TASKS P4 Phase 0); the suite is 1583 PASS / 0 FAIL. B2 is implemented in Phase 3 (device rotation API, safe area, lifecycle, back button, export presets) and awaits a real-device check.**
 
 ### B1 · Saves are written but never loaded — `main.gd` ✅ fixed
 `SaveSystem.read()` is never called outside tests. `main.gd:_ready` always builds a fresh `Board`. On relaunch, `_has_continuable()` (`main.gd:1396`) returns true because `has_save()` finds the file, so Home shows **"Continue"**, but `_on_campaign_start` sees an empty `visit_log` and starts a new campaign from N0-1. Every session's progress is lost when the app closes.
 - Contradicts: PRD F6.1, doc 07 §4 (snapshot timing / migration chain), doc 13 §9 "Save snapshots ✅", TASKS TP4 "SaveSystem ✅".
 - Fix: on launch, `SaveSystem.read()` → `migrate()` → `apply()` → `graph.deserialize(meta.graph)`; add a test that runs two `main` instances against the same temp slot.
 
-### B2 · Landscape mode is a desktop window resize — `main.gd:252`
+### B2 · Landscape mode is a desktop window resize — `main.gd:252` (implemented in P4 Phase 3; device check pending)
 `_set_window_orientation` only sets `get_window().size` to 1280×720. On iOS/Android that does nothing; the device stays in portrait. There's no `DisplayServer.screen_set_orientation()`, no `display/window/handheld/orientation` setting, no safe-area handling (notch / home indicator), no handling of `NOTIFICATION_APPLICATION_PAUSED` (doc 09 §7 promises auto-pause on calls/backgrounding), and no Android back-button handling.
 - Contradicts: the dual-form promise (whitepaper §7, PRD F1) on the target platform; doc 13 rates every landscape item ✅.
 

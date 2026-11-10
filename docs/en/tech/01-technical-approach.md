@@ -224,12 +224,12 @@ Load flow: read manifest → framework version check → namespace registration 
 
 | Capability | Requirement |
 |---|---|
-| Screen orientation | Form switching calls `DisplayServer.screen_set_orientation()` (real device rotation); resizing a desktop window is only a dev convenience. English v1 is portrait-first (`display/window/handheld/orientation = portrait`); the landscape spatial form is feature-flagged until v1.1 |
-| Safe area | The three-band layout and full-screen takeovers avoid the notch / home indicator (`DisplayServer.get_display_safe_area()`) |
-| Lifecycle | `NOTIFICATION_APPLICATION_PAUSED` auto-pauses and takes a fallback save, then resumes (doc 09 §7); the Android back button = ☰ menu / previous screen |
+| Screen orientation | Form switching calls `DisplayServer.screen_set_orientation()` (real device rotation); resizing a desktop window is only a dev convenience. English v1 is portrait-first (`display/window/handheld/orientation = portrait`); the landscape spatial form is controlled by the project setting `game/features/landscape` (overridden off for `.mobile`) — when off, `ShellRouter.effective()` turns every landscape request into portrait and the entry hides the landscape card |
+| Safe area | `shell/ui/safe_area.gd`: every screen root calls `SafeArea.fit`, both shell roots `SafeArea.apply_offsets`, keeping content inside `DisplayServer.get_display_safe_area()`; on desktop `-- --safe-area=top,right,bottom,left` simulates it for review |
+| Lifecycle | `NOTIFICATION_APPLICATION_PAUSED` / close: fallback save outside encounters (never mid-encounter, doc 09 §7); Android back (`quit_on_go_back=false`): ☰ menu in encounters/story, the screen's own back exit elsewhere, and on Home close help first, otherwise save and quit |
 | Load on launch | On launch, read the latest snapshot → migration chain → apply → restore story-graph progress (doc 07 §4.2); "Continue" on Home must really continue |
-| Package size | BGM as Ogg Vorbis; fonts loaded per language (a Latin face for en, Noto Sans SC only for zh-CN); export filters include the PNG/WAV files read via `load_from_file` |
-| Export | Android (AAB) and iOS export presets committed (without signing keys); at least one real-device build per milestone |
+| Package size | Audio loads as imported resources (Godot's built-in QOA compression, loop points in the `.import` `edit/loop_mode`; BGM 2.6 MB → 0.54 MB, no external Ogg encoder needed); only the Regular weight of the font ships and serves both languages (its Latin glyphs are the English face), with bold derived via FontVariation (the unused 8 MB Bold is removed); fonts, images and audio always load as imported resources, so builds don't carry raw files; pack JSON is included explicitly via the export include_filter. Further reduction: subset Noto Sans SC to the glyphs actually used (needs fontTools) |
+| Export | `game/export_presets.cfg` is committed (Android AAB arm64 / iOS portrait / a desktop PCK check preset) without signing secrets (supplied via environment variables); includes `*.json`, excludes `tools/*, tests/*`. `--export-pack "Desktop PCK check"` produces a PCK without export templates, to verify package contents and that it runs; at least one real-device build per milestone |
 
 ## 11. Open decisions
 

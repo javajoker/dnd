@@ -165,9 +165,9 @@ The framework has built rule depth and the business model in as extension axes (
 
 **Phase 3 · Mobile platform layer (portrait)**
 
-- [ ] Orientation API, safe area, pause/resume, back button (tech/01 §10.1)
-- [ ] Android / iOS export presets; Ogg audio; per-language font loading
-- [ ] Real-device pass (gesture thresholds, 44 pt targets, legibility, low-end Android performance)
+- [x] Orientation API, safe area, pause/resume, back button (tech/01 §10.1) — verified by desktop simulation and headless tests; device pass pending
+- [x] Android / iOS export presets committed; audio via imported QOA (instead of Ogg, no external encoder); unused Bold font removed (−8 MB), Regular shared by both languages. The PCK is 9.5 MB, contains all 44 pack JSON files, and runs from outside the project
+- [ ] Real-device pass (gesture thresholds, 44 pt targets, legibility, low-end Android performance) — needs export templates + Android SDK / full Xcode and real devices, not available on this machine
 
 **Phase 4 · Store and monetization**
 

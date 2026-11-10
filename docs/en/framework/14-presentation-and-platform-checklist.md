@@ -33,8 +33,8 @@
 | 10 | Compliance | Identity verification, minor protection, privacy policy; licence (ISBN) assessment for mainland China | Compliance checklist passes review | [ ] |
 | 11 | Accounts and cloud saves | Account system + cloud save sync (snapshots are already structured) | Continue on multiple devices | [ ] |
 | 12 | Crash monitoring | Crash reporting, performance monitoring | Queryable in a backend | [ ] |
-| 12a | Mobile platform layer | Device orientation API, safe area, pause/resume, back button, export presets, Ogg audio (tech/01 §10.1) | Playable on real Android/iOS devices | [ ] |
-| 12b | Bilingual build | Event msg_keys, locale tables, pack text keys, Latin font, English layout widths (tech/01 E-5) | Switch zh/en with no overflow on any screen | [ ] |
+| 12a | Mobile platform layer | Device orientation API, safe area, pause/resume, back button, export presets, audio compression (tech/01 §10.1) | Playable on real Android/iOS devices | [~] implemented, device verification pending |
+| 12b | Bilingual build | Event msg_keys, locale tables, pack text keys, English layout widths (tech/01 E-5) | Switch zh/en with no overflow on any screen | [x] |
 
 ## Phase 4: Operations tech (P3, prerequisite for M4)
 
