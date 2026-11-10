@@ -6870,6 +6870,23 @@ func test_transition_camera() -> void:
 		"遭遇进场上移滑入轻微（≤64px，14 #8）")
 	var tr := UiTransition.new()
 	root.add_child(tr)
+	# ---- 中场换屏只记实例 id：被提前回收的屏不让回调持有已释放对象（"Lambda capture was freed" 回归）----
+	var gone := Control.new()
+	var shown := Control.new()
+	shown.visible = false
+	root.add_child(gone)
+	root.add_child(shown)
+	tr.swap_at_mid(gone, null, shown)
+	gone.free() # 中场前已被回收（连续快速切换的真实情形）
+	var shown2 := Control.new()
+	root.add_child(shown2)
+	tr.swap_at_mid(null, null, shown2) # 第二次切换快速完成前场：执行第一段中场回调
+	check(shown.visible and int(tr.stats["fast_forward"]) >= 1, "前场已回收的屏被跳过，新屏照常现身（无已释放捕获）")
+	tr.skip_all()
+	check(shown2.visible and not tr.transitioning, "连续切换后转场归位")
+	shown.queue_free()
+	shown2.queue_free()
+	tr.stats = {"fades": 0, "slides": 0, "fast_forward": 0}
 	check(tr.veil.mouse_filter == Control.MOUSE_FILTER_IGNORE,
 		"幕布不吞输入：转场期间可点（14 #8 不打断交互；12 §5 覆盖层不残留同铁律）")
 	# ---- 触发、中场换屏回调、时长记账 ----

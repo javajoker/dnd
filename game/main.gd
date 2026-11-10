@@ -284,13 +284,8 @@ func _swap(screen: Control) -> void:
 	add_child(screen)
 	if transition != null:
 		screen.visible = false # 淡出中场现身（14 #8；逻辑可用，视觉切换在转场中场）
-		transition.fade_through(func() -> void:
-			if old != null and old != old_shell and is_instance_valid(old):
-				old.queue_free()
-			elif old_shell != null and is_instance_valid(old_shell):
-				old_shell.visible = false
-			if is_instance_valid(screen):
-				screen.visible = true)
+		var freeing := old != null and old != old_shell
+		transition.swap_at_mid(old if freeing else null, null if freeing else old_shell, screen)
 	else:
 		if old != null and old != old_shell:
 			old.queue_free()

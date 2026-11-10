@@ -145,12 +145,7 @@ func _ensure_sub_shell() -> void:
 	if created and m.transition != null:
 		# 入口→子游戏遭遇（壳新建）：转场中场壳现身、旧屏回收（14 #8，与战役同一通道）
 		m.shell.visible = false
-		var new_shell: Control = m.shell
-		m.transition.fade_through(func() -> void:
-			if old != null and is_instance_valid(old):
-				old.queue_free()
-			if is_instance_valid(new_shell):
-				new_shell.visible = true)
+		m.transition.swap_at_mid(old, null, m.shell)
 	else:
 		if old != null and old != m.shell:
 			old.queue_free()

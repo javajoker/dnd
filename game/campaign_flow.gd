@@ -135,12 +135,7 @@ func _ensure_story_shell() -> void:
 	if created and m.transition != null:
 		# 入口→遭遇（故事壳新建）：转场中场壳现身、旧屏回收（14 #8 淡入淡出）
 		m.shell.visible = false
-		var new_shell: Control = m.shell
-		m.transition.fade_through(func() -> void:
-			if old != null and is_instance_valid(old):
-				old.queue_free()
-			if is_instance_valid(new_shell):
-				new_shell.visible = true)
+		m.transition.swap_at_mid(old, null, m.shell)
 	else:
 		if old != null and old != m.shell:
 			old.queue_free()

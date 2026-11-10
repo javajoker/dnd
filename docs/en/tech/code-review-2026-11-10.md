@@ -88,7 +88,7 @@ No `EffectEngine`, no `effect.attach`/`effect.expire` events, no base→add→mu
 ## 4. Minor findings
 
 - **Status-bar overlap in portrait battles** (found in P4 Phase 1, present before it) ✅ fixed in Phase 2: the battle camera scrolled unclipped content under the status band; the main view now clips.
-- **Transition callback after free** (pre-existing, seen in the Act III and mode-boundary screenshot flows): `shell/ui/transition.gd` `_flush_mid` calls a lambda whose captured screen was already freed during rapid screen swaps ("Lambda capture at index 0 was freed"). Harmless today; fix by checking the capture or binding instance ids.
+- **Transition callback after free** ✅ fixed: the screen-swap callbacks captured screen objects, so a screen freed before the transition midpoint (rapid swaps) logged "Lambda capture at index 0 was freed". `UiTransition.swap_at_mid` now records instance ids and resolves them at the midpoint; all three swap sites use it.
 - **Package size**: BGM shipped as uncompressed 16-bit WAV (2 × 2.6 MB for 30 s loops); use Ogg Vorbis (~10× smaller).
 - **No export presets**: `export_presets.cfg` is gitignored and absent; no Android/iOS build has been produced or tested (doc 14 phase 3 is honestly unchecked).
 - **Doc index was stale** (fixed): `docs/README.md` listed riddle-maze as "not started" though it is live; `game/packs/README.md` listed only campaign01 and arena.

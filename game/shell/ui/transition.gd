@@ -65,6 +65,28 @@ func fade_through(on_mid := Callable(), slide: Control = null) -> void:
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	_tween.tween_callback(func() -> void: transitioning = false)
 
+## 中场换屏：回收 free_node、隐藏 hide_node、显示 show_node（任一可空）。
+## 只记实例 id、中场再解析——不捕获对象本身：连续快速切换时某屏已被提前回收，回调也不会持有
+## 已释放对象（避免 "Lambda capture ... was freed"），已回收的屏直接跳过。
+func swap_at_mid(free_node: Node, hide_node: CanvasItem, show_node: CanvasItem) -> void:
+	var ids := [_id_of(free_node), _id_of(hide_node), _id_of(show_node)]
+	fade_through(func() -> void:
+		var f := _alive(ids[0])
+		if f != null:
+			(f as Node).queue_free()
+		var h := _alive(ids[1])
+		if h != null:
+			(h as CanvasItem).visible = false
+		var s := _alive(ids[2])
+		if s != null:
+			(s as CanvasItem).visible = true)
+
+static func _id_of(o: Object) -> int:
+	return o.get_instance_id() if o != null and is_instance_valid(o) else 0
+
+static func _alive(id: int) -> Object:
+	return instance_from_id(id) if id != 0 and is_instance_id_valid(id) else null
+
 ## 遭遇进场：淡入淡出 + 目标上移滑入（14 #8：主屏⇄入口⇄功能界面⇄遭遇 的「进遭遇」一场）。
 func encounter_enter(target: Control) -> void:
 	fade_through(Callable(), target)
