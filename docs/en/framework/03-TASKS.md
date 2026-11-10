@@ -213,7 +213,7 @@ Goal: turn the framework into a reusable D&D-style engine — new narrative game
 - [x] UI flavour overlay (`packs/_game/texts/<locale>.json`): 24 world-flavoured keys moved out of the framework tables, which keep neutral wording
 - [x] Starter kit (`game/kit/_game` + `game/kit/starter`): packlint 0 FAIL, simulation 24/24 runs to the ending, 100% node coverage; excluded from exports
 - [x] Bot simulation runs any pack and explores maps / sites / party splits (campaign01 coverage restored to 98.1% after the Fog Coast detour had dropped it to 83%)
-- [ ] Home-screen art and palette tokens from the manifest; win-rate tool for any pack (tech/07 §5)
+- [x] Home-screen art and palette tokens from the manifest; win-rate tool for any pack (tech/07 §5; done in P6.1)
 
 ### 5.5 Multiplayer (later)
 - [ ] Local pass-and-play seats → async online turns → real-time co-op (doc 15 §8)
@@ -226,16 +226,16 @@ Goal: turn the framework into a reusable D&D-style engine — new narrative game
 - [x] Party split extras: player-chosen groups (`"assign": "player"` + min/max/requires + assignment sheet), lead character (`lead: "any"` tier; Character screen "Make party lead"; condition `lead`), timeout rejoin (`timeout`) and recall link (`allow_recall`); packlint V16 checks them
 
 ### 6.2 Classes, backgrounds and items (worldview)
-- [ ] `classes.json`: three classes from the worldview's skill bundles — Harbor Guard / Scavenger / Ink Adept — each with attributes, Hit Die, proficiencies, basic attack, 3 class skills, starting gear
-- [ ] Backgrounds tied to Ashenport and its factions (Dockhand / Scriptorium Novice / Uninked Runaway / Salvager's Apprentice): proficiency, item, reputation, a written backstory
-- [ ] New-game screen: choose class + background (the existing hero stays as the default when none is chosen)
-- [ ] Conditions `hero_class` / `background`; class / background-gated options in campaign01
-- [ ] New items and props (consumables, gear per class, background keepsakes)
+- [x] `classes.json`: three classes from the worldview's skill bundles — Harbor Guard / Scavenger / Ink Adept — each with attributes, Hit Die, proficiencies, basic attack, 3 class skills, starting gear
+- [x] Backgrounds tied to Ashenport and its factions (Dockhand / Scriptorium Novice / Uninked Runaway / Salvager's Apprentice): proficiency, item, reputation, a written backstory
+- [x] New-game screen: choose class + background (the existing hero stays as the default when none is chosen)
+- [x] Conditions `hero_class` / `background`; class / background-gated options in campaign01
+- [x] New items and props (consumables, gear per class, background keepsakes)
 
 ### 6.3 Companions and balance
-- [ ] Healing / support skills (utility `heal`), auto-play uses them
-- [ ] Companion second skills (Kelan: mending ink; Old Fei: brace) and per-class skills in battle
-- [ ] Rebalance every battle back into its band with the win-rate tool
+- [x] Healing / support skills (utility `heal`), auto-play uses them
+- [x] Companion second skills (Kelan: mending ink; Old Fei: brace) and per-class skills in battle
+- [x] Rebalance every battle back into its band with the win-rate tool
 
 ### 6.4 Art and audio
 - [ ] Procedural assets: class portraits, new BGM (map / ending), new SFX (coin, door, card, link, throw)

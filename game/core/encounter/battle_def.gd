@@ -127,6 +127,15 @@ static func assemble(pack: Dictionary, encounter_id: String, selection: Dictiona
 				(u as Dictionary)["attack_mod"] = int((u as Dictionary)["attack_mod"]) \
 					+ int(weaken.get("attack_mod", 0))
 
+	# ---- 平衡微调（tech/02 §6 enemy_mods）：本场全部敌人 HP / 攻击修正加值——保留战役书阵容只调强度 ----
+	var mods: Dictionary = enc.get("enemy_mods", {})
+	if not mods.is_empty():
+		for u: Variant in foes:
+			var ud: Dictionary = u
+			ud["hp"] = int(ud["hp"]) + int(mods.get("hp", 0))
+			ud["max_hp"] = int(ud["max_hp"]) + int(mods.get("hp", 0))
+			ud["attack_mod"] = int(ud["attack_mod"]) + int(mods.get("attack_mod", 0))
+
 	var loot: Array = []
 	for l: Variant in enc.get("loot", []):
 		loot.append({"item": str((l as Dictionary).get("item", "")), "n": int((l as Dictionary).get("n", 1))})
@@ -388,6 +397,10 @@ static func runtime_skill(s: Dictionary) -> Dictionary:
 	out["target"] = str(TARGET_MAP.get(str(s.get("target", "enemy_single")), "enemy"))
 	if s.has("effect"):
 		out["effect"] = (s["effect"] as Dictionary).duplicate(true)
+	if s.has("heal"):
+		out["heal"] = str(s["heal"]) # 治疗技能（utility + heal 骰）
+	if bool(s.get("adv", false)):
+		out["adv"] = true # 攻击自带优势（如偷袭）
 	if s.has("save"):
 		out["save"] = (s["save"] as Dictionary).duplicate(true)
 	return out

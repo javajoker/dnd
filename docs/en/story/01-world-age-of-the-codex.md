@@ -103,6 +103,16 @@ The campaign-mode declaration (framework §7) has an in-world identity, so force
 - **Landscape · Spatial campaigns** = "chapters written in plain text": battlefields, city defenses, great battles — space is clearly written;
 - **Portrait · Temporal campaigns** = "fragments and remembrance": regions eaten by the Fading are only fragmentary scenes that can only be replayed and advanced one room at a time — **a forced-portrait campaign is, narratively, "this stretch of history is already in ruins"**.
 
+## 8.1 Who the hero can be: classes and backgrounds (P6.2)
+
+The three classes are three ways Ashenport survives the Fading:
+
+- **Harbor Guard** — the city's last uniformed order, keeping the piers when the names on them fade. Shield and stubbornness; they stand where the ink-tide comes ashore.
+- **Scavenger** — the mudlarks and wreck-pickers of the Salvage Guild's margins. Quick hands, a hook knife, smoke and a nose for what the tide gives up.
+- **Ink Adept** — a scribe who learned that written ink can still answer. They write wounds closed and bolts into being, at the cost of a little of themselves.
+
+Backgrounds bind the hero to a faction before the first page: a **Dockhand** grew up under Old Fei's crane; a **Scriptorium Novice** copied pages in the archive until the pages began to empty; an **Uninked Runaway** fled the ink tithe and owes the Uninked a debt; a **Salvager's Apprentice** knows the price of every fragment. Each grants a keepsake item, a starting reputation and a written backstory, and opens extra lines at matching scenes (doc 11 §1.1).
+
 ## 9. Compendium Lore entry framework
 
 Lore entries in the Compendium (screen ⑥) are organised into four series; completing a series unlocks hidden content:

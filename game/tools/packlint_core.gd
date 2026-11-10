@@ -36,7 +36,7 @@ static func load_entitlement_registry(path: String = ENTITLEMENT_REGISTRY_PATH) 
 			out.append(str((e as Dictionary)["id"]))
 	return {"ok": true, "error": "", "entitlements": out}
 const EFFECT_KEYS := ["write", "value", "clock", "alignment", "give_item", "remove_item", "xp", "gold", "lore", "inspiration", "reveal", "watch"]
-const COND_KEYS := ["clock", "alignment", "bond_max", "all", "any"]
+const COND_KEYS := ["clock", "alignment", "bond_max", "all", "any", "hero_class", "background", "lead", "in_group", "group_size", "thread"]
 const EFFECT_PREFIXES := ["rep.", "bond.", "clock."]
 const COND_PREFIXES := ["flag.", "rep.", "item.", "bond.", "clock."]
 # ---- tech/04 合法值集合（V11~V13；规则包 light v1 注册的属性/枚举）----

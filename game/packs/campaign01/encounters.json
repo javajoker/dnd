@@ -210,7 +210,10 @@
     },
     "xp": 120,
     "gold": 24,
-    "note": "护送缮写士完成局部重墨：存活 3 回合或全歼即胜；缮写士倒地 = 目标失败（罚时 +1 仍至 N2S-3，N2S-1 注记）；定稿阵容：墨魈群×2（winrate 78.5% ∈ 中 70~80）"
+    "note": "护送缮写士完成局部重墨：存活 3 回合或全歼即胜；缮写士倒地 = 目标失败（罚时 +1 仍至 N2S-3，N2S-1 注记）；定稿阵容：墨魈群×2（winrate 78.5% ∈ 中 70~80）",
+    "enemy_mods": {
+      "hp": 1
+    }
   },
   {
     "id": "N2U-1b",
@@ -247,10 +250,18 @@
         "ref": "uninked_guard"
       }
     ],
-    "loot": [ { "item": "padded_coat", "n": 1 } ],
+    "loot": [
+      {
+        "item": "padded_coat",
+        "n": 1
+      }
+    ],
     "xp": 100,
     "gold": 20,
-    "note": "潜行失败路：暴露战（黑羽卫）；定稿阵容：黑羽卫×3（winrate 80.0% ∈ 中 70~80）"
+    "note": "潜行失败路：暴露战（黑羽卫）；定稿阵容：黑羽卫×3（winrate 80.0% ∈ 中 70~80）",
+    "enemy_mods": {
+      "hp": 1
+    }
   },
   {
     "id": "N2U-2",
@@ -464,7 +475,12 @@
         "ref": "mercenary"
       }
     ],
-    "loot": [ { "item": "dock_buckler", "n": 1 } ],
+    "loot": [
+      {
+        "item": "dock_buckler",
+        "n": 1
+      }
+    ],
     "xp": 150,
     "gold": 30,
     "note": "独狼失败路：三方通缉惩罚战（难），战后强制择一链（节点三出边）"
@@ -504,10 +520,18 @@
         "ref": "ink_swarm"
       }
     ],
-    "loot": [ { "item": "tide_charm", "n": 1 } ],
+    "loot": [
+      {
+        "item": "tide_charm",
+        "n": 1
+      }
+    ],
     "xp": 120,
     "gold": 24,
-    "note": "墨魈巢穴：墨魈 + 墨魈群 ×2（战役书幕三战斗房）（winrate 70.5% ∈ 中 70~80）"
+    "note": "墨魈巢穴：墨魈 + 墨魈群 ×2（战役书幕三战斗房）（winrate 70.5% ∈ 中 70~80）",
+    "enemy_mods": {
+      "hp": 2
+    }
   },
   {
     "id": "R4-r",
@@ -550,7 +574,10 @@
     ],
     "xp": 100,
     "gold": 20,
-    "note": "回廊右路第一场（无黑羽令路径；战役书幕三 右路两场战斗，R4-r → R4-r2 场间无休整）；定稿阵容：墨魈群×3+幼体×1（winrate 72.5% ∈ 中 70~80）"
+    "note": "回廊右路第一场（无黑羽令路径；战役书幕三 右路两场战斗，R4-r → R4-r2 场间无休整）；定稿阵容：墨魈群×3+幼体×1（winrate 72.5% ∈ 中 70~80）",
+    "enemy_mods": {
+      "hp": 1
+    }
   },
   {
     "id": "R4-r2",
@@ -589,7 +616,10 @@
     ],
     "xp": 120,
     "gold": 24,
-    "note": "回廊右路第二场（R4-r 派生节点链，README 转写决策）；定稿阵容：墨魈+墨魈群×2（winrate 70.5% ∈ 中 70~80）"
+    "note": "回廊右路第二场（R4-r 派生节点链，README 转写决策）；定稿阵容：墨魈+墨魈群×2（winrate 70.5% ∈ 中 70~80）",
+    "enemy_mods": {
+      "hp": 2
+    }
   },
   {
     "id": "R5",
@@ -688,15 +718,36 @@
     "max_units": 7,
     "node": "N1-1m",
     "party": [
-      { "id": "pc", "ref": "player_blank" },
-      { "id": "kelan", "ref": "companion_kelan" },
-      { "id": "laofei", "ref": "companion_laofei" }
+      {
+        "id": "pc",
+        "ref": "player_blank"
+      },
+      {
+        "id": "kelan",
+        "ref": "companion_kelan"
+      },
+      {
+        "id": "laofei",
+        "ref": "companion_laofei"
+      }
     ],
     "enemies": [
-      { "id": "imp1", "ref": "ink_imp" },
-      { "id": "imp2", "ref": "ink_imp" },
-      { "id": "imp3", "ref": "ink_imp" },
-      { "id": "swarm1", "ref": "ink_swarm" }
+      {
+        "id": "imp1",
+        "ref": "ink_imp"
+      },
+      {
+        "id": "imp2",
+        "ref": "ink_imp"
+      },
+      {
+        "id": "imp3",
+        "ref": "ink_imp"
+      },
+      {
+        "id": "swarm1",
+        "ref": "ink_swarm"
+      }
     ],
     "xp": 40,
     "gold": 8,

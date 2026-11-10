@@ -25,6 +25,7 @@ const KNOWN_FILES := {
 	"lore.json": false,
 	"maps.json": false,   # 区域地图 / 场所（docs/en/framework/16 §6）
 	"tables.json": false, # 事件表 / 事件卡（16 §4）
+	"classes.json": false, # 职业 / 出身（11 §1.1）
 }
 const NODE_TYPES := ["scene", "hub", "check", "battle", "dialog", "explore", "rest", "branch", "ending", "map", "site"]
 const EDGE_TYPES := ["choice", "check", "item", "doom_clock", "reputation", "split", "remote"]
@@ -148,8 +149,10 @@ static func load_pack(dir_path: String) -> Dictionary:
 	# 地图与事件表（16 §6）：maps.json = {regions[], sites[]}；tables.json = {tables[], cards[]}；按 id 索引
 	var maps_doc: Dictionary = tables.get("maps.json", {})
 	var tables_doc: Dictionary = tables.get("tables.json", {})
+	var classes_doc: Dictionary = tables.get("classes.json", {})
 	for pair: Array in [["maps", maps_doc.get("regions", [])], ["sites", maps_doc.get("sites", [])],
-			["tables", tables_doc.get("tables", [])], ["cards", tables_doc.get("cards", [])]]:
+			["tables", tables_doc.get("tables", [])], ["cards", tables_doc.get("cards", [])],
+			["classes", classes_doc.get("classes", [])], ["backgrounds", classes_doc.get("backgrounds", [])]]:
 		var idx := {}
 		for entry: Variant in pair[1]:
 			var eid := str((entry as Dictionary).get("id", ""))
@@ -206,7 +209,7 @@ static var locale: String = ""
 
 const DEFAULT_SOURCE_LOCALE := "zh-CN"
 ## 视为显示文本的字段名（其余字段即使是字符串也不成键：id、条件、效果等）。
-const TEXT_FIELDS := ["title", "summary", "label", "name", "text", "hint", "objective", "content",
+const TEXT_FIELDS := ["title", "summary", "label", "name", "text", "hint", "objective", "content", "story",
 	"ngplus_hook", "desc", "description", "role", "source", "lock_text", "price_text"]
 ## 运营侧数据（packs/_ops，非内容包）的语言表：同一约定式键，前缀 = 文件名（ops / cosmetics）。
 const OPS_TEXTS_DIR := "res://packs/_ops/texts"
@@ -214,7 +217,7 @@ const OPS_TEXTS_DIR := "res://packs/_ops/texts"
 const TEXT_TABLES := {"acts": "list", "nodes": "dict", "events": "list", "encounters": "dict",
 	"items": "dict", "flags": "list", "endings": "list", "lore": "list", "characters": "dict",
 	"skills": "dict", "effects": "dict", "enemies": "dict",
-	"maps": "dict", "sites": "dict", "tables": "dict", "cards": "dict"}
+	"maps": "dict", "sites": "dict", "tables": "dict", "cards": "dict", "classes": "dict", "backgrounds": "dict"}
 
 ## 包内全部显示文本键 → 原文（V15 完整性检查与文本抽取的唯一口径）。
 static func text_entries(pack: Dictionary) -> Dictionary:

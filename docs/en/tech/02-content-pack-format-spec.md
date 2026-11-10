@@ -19,7 +19,8 @@
 ├── items.json         # item table: four identities (§7); the use block for usable items is in `04-resources-and-effects-system.md` §4
 ├── flags.json         # flag declarations: ledger of writers / readers (§8)
 ├── characters.json    # characters / companions / NPCs (optional; schema in `04-resources-and-effects-system.md` §2)
-├── skills.json        # skill table (optional; same doc §3)
+├── skills.json        # skill table (optional; same doc §3; utility skills may declare "heal": "<dice>")
+├── classes.json       # player classes and backgrounds (optional; { "classes": [], "backgrounds": [] }, doc 11 §1.1)
 ├── effects.json       # effects / modifiers (optional; same doc §5)
 ├── enemies.json       # enemy table (optional; same doc §1)
 ├── endings.json       # ending types (campaign packs only) (§9)
@@ -207,6 +208,20 @@ Rules: file names are fixed and case-sensitive; the validator warns on unknown f
 - `items`: items brought in at the start (narratively fixed, e.g. supplies carried into the Prologue); must be registered in items.json;
 - The framework hard-codes no pack's economy — changing the start is a one-line data change.
 
+### 2.9 classes.json (player builds, optional)
+
+```json
+{ "classes": [ { "id": "harbor_guard", "name": "…", "desc": "…", "attrs": {"might": 2, "finesse": 1, "wits": 0},
+                 "hp_formula": "9 + 2*might", "ac_formula": "10 + finesse", "hit_die": "d10",
+                 "proficiencies": ["athletics", "intimidate"], "basic_attack": "slash",
+                 "skills": ["guard_bash", "second_wind", "inkshield"],
+                 "start_items": [{"item": "dock_buckler", "n": 1}], "start_equip": [] } ],
+  "backgrounds": [ { "id": "dockhand", "name": "…", "desc": "…", "story": "…", "proficiency": "athletics",
+                     "keepsake": "dock_tally", "effects": [{"gold": 10}, {"give_item": "heal_potion"}] } ] }
+```
+
+The class fields replace the same fields on the pack's player character (`characters.json`, `kind: "player"`); skills and items must be registered (packlint V11). Background `effects` use the effect DSL (§4.6) and are applied once, when the hero is created. `name` / `desc` / `story` are translated through `texts/<locale>.json` tables `classes` / `backgrounds`.
+
 ## 3. nodes.json: nodes
 
 ```json
@@ -309,6 +324,9 @@ Conditions (usable in `requires` and ending conditions):
 | `alignment` | `{ "ink_gt": 50 }` / `{ "blank_gt": 50 }` | alignment axis (Inkbound / Blankward past the midline) |
 | `bond.<npc>` | `{ ">=": n }` | a specific companion's Bond |
 | `bond_max` | `{ ">=": n }` | any companion's Bond (common in ending conditions) |
+| `hero_class` | class id | the class chosen on the hero screen (doc 11 §1.1) |
+| `background` | background id | the chosen background |
+| `lead` | character id | the current party lead (doc 15 §7, `lead: "any"` tier) |
 | `all` / `any` | array of conditions | combination |
 
 Effects (usable in `effects` / `on_enter` / settlement):
@@ -364,6 +382,7 @@ Party conditions (doc 15 §2.2, implemented): `in_group` (character id), `group_
 | pos | object | optional, initial tactical-grid placement (e.g. `{ "allies": [[2,4]], "enemies": [[3,1]] }`); **when omitted, the rendering layer places units deterministically by side + initiative order** — placement is pure presentation and doesn't enter the event stream |
 | party_advantage | object | optional, an advantage-source declaration (doc 11 §3.1: sources are declared by content packs): `{ "flag": "witnessed_revocation", "rounds": 1 }` — while the flag holds, the whole party has attack advantage for `rounds` rounds |
 | enemy_weaken | object | optional, a conditional enemy-weakening declaration (flag-driven modifier symmetric with party_advantage): `{ "flag": "mercy_shown", "attack_mod": -2 }` — while the flag holds, every enemy instance's attack modifier gets `attack_mod` (negative = easier); `flag` without a prefix resolves to this pack's namespace. Used for "past choices make a boss easier" (e.g. campaign book §5: showed_mercy → the tax collector's testimony at N4-1) |
+| enemy_mods | object | optional, a balance knob: `{ "hp": n, "attack_mod": n }` added to every enemy instance of this encounter (story/03 §1); the shared enemies.json entry is unchanged |
 | escort | object | required for `escort`: the escort target: `{ "unit": {…}, "survive_rounds": 3, "failure_effects": […] }`. `unit` is an inline friendly NPC entry (same fields as an enemies.json entry: id/name/hp/ac/attrs/attack_mod/damage), joining with `kind=escort_npc`: takes no turn, can't be commanded, HP doesn't persist across encounters. Win/lose per doc 11 §5 "objective defined by the encounter": the escort survives `survive_rounds` full rounds **or** all enemies are wiped out = win; escort HP reaches 0 = **objective failed** (`objective_failed`, a time penalty instead of a wipe) — battle ends immediately, no loot/XP, `failure_effects` (effect DSL §4.6) are written, and the node's single out-edge is still taken (failure is a branch, doc 08 §2). Enemy melee intent prefers the escort (interrupting the rite); area effects hit the whole party as usual |
 | maze | object | required for `maze`: an exploration sequence: `{ "beats": […] }` (a serialised presentation of the doc 04 §④.3 room types; a full grid maze is left for later). 2–3 beats, each one of: `{ "type": "check", "skill", "difficulty", "text", "success_effects"?, "failure_effects"? }` (check room; modifier = player attribute + proficiency, doc 11 §2/§3); `{ "type": "loot", "item", "n"?, "text" }` (pickup room; `item` must be registered in items.json, V11); `{ "type": "ambush", "skill", "difficulty", "enemy"?, "text", "failure_effects"? }` (ambush check: failing applies `failure_effects`; `enemy` is a presentation-only enemy reference and must be registered, V11). Check/ambush beats may declare `"retry_on_fail": true` + `"hint": "…"` (**puzzle-room semantics**: a failed check doesn't advance the beat or apply `failure_effects`; it shows the hint and retries in place — how pure puzzle sequences "give a hint and retry, never a dead end"; default false = apply failure effects and advance). Beat effects use the effect DSL (§4.6) and are part of the V4/V5/V11/V12 validation loop; once the sequence completes, the node's out-edges are shown |
 | loot | array | optional, victory loot: `[{ "item": "ink_core", "n": 1 }]`; `item` must be registered in items.json (V11) |

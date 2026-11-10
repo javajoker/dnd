@@ -28,6 +28,31 @@ func next_command(sm: EncounterSM) -> Dictionary:
 				cmd["item"] = str((it as Dictionary)["id"])
 				cmd["target"] = uid
 				return cmd
+	# 1.5) 治疗技能（11 §8 v1.2）：有倒地或低血队友时，先救伤最重者（倒地优先）
+	if not bool(u["action_used"]):
+		for sk: Variant in (u["skills"] as Array):
+			var sd: Dictionary = sk
+			if str(sd.get("kind", "")) != "utility" or not sd.has("heal"):
+				continue
+			if int((u["skill_uses"] as Dictionary).get(str(sd["id"]), -1)) == 0:
+				continue
+			var best := ""
+			var best_ratio := heal_threshold
+			for id: String in sm.get_order():
+				var a := sm.get_unit(id)
+				if str(a["side"]) != "party" or bool(a["dead"]) or str(a.get("kind", "")) == "escort_npc":
+					continue
+				if str(sd.get("target", "ally")) == "self" and id != uid:
+					continue
+				var ratio := -1.0 if bool(a["downed"]) else float(a["hp"]) / float(maxi(1, int(a["max_hp"])))
+				if ratio < best_ratio:
+					best_ratio = ratio
+					best = id
+			if best != "":
+				cmd["type"] = EncounterSM.CMD_SKILL
+				cmd["skill"] = str(sd["id"])
+				cmd["target"] = best
+				return cmd
 	# 2) 按序技能（次数技能优先 → 耗尽退普攻，09 §9.3）
 	if not bool(u["action_used"]):
 		var target := sm.first_alive_enemy()

@@ -14,6 +14,25 @@
 - **HP = 10 + 2×level + Might modifier**;
 - Extension point: the data structure is an "attribute table", not three hard-coded fields, so when the Standard tier moves to 6 attributes a mapping table folds them (doc 05 §5).
 
+### 1.1 Classes and backgrounds (implemented, P6.2)
+
+A new campaign opens with a **hero screen**: pick one class and one background (pack `classes.json`; tech/02 §1). The choice is stored on the Board (`<ns>.hero.class` / `<ns>.hero.background`) and layered onto the player template on every boot, so saves stay small and old saves (no choice) keep the default hero.
+
+| Class | Attributes (M/F/W) | Hit Die | HP | AC | Proficiencies | Basic attack | Class skills | Starting kit |
+|---|---|---|---|---|---|---|---|---|
+| Harbor Guard | 2 / 1 / 0 | d10 | 9 + 2×Might | 10 + Finesse | athletics, intimidate | slash d6 | Guard Bash (1d6, 1/fight), Second Wind (heal 1d8, self), Inkshield | Dock buckler |
+| Scavenger | 0 / 2 / 1 | d8 | 8 + Finesse | 10 + Finesse | stealth, thievery, perception | hook knife 1d6+1 | Sneak Strike (2d4 with advantage), Smoke Step, Ink Lance | Tide bomb, salvage gloves |
+| Ink Adept | 0 / 1 / 2 | d6 | 8 + Wits | 10 + Finesse | history, investigation, soothe | ink dart | Ink Bolt, Ink Mend (heal 1d8+1, ×2), Inkshield | Ink salve, scribe's ring |
+
+| Background | Proficiency | Keepsake | Start effect | Story hook |
+|---|---|---|---|---|
+| Dockhand | athletics | dock tally | +10 gold, healing potion | Old Fei knows you (Bond +10 at the Weighing House) |
+| Scriptorium Novice | history | novice's quill | Scriptorium reputation +2 | archive scenes open a scholar's option |
+| Uninked Runaway | stealth | torn ribbon | Uninked reputation +2, ink flask | the Uninked treat you as one of their own |
+| Salvager's Apprentice | investigation | appraisal loupe | Salvage Guild reputation +2, +15 gold | the salvagers bargain with you |
+
+Story options gated by class or background use the conditions `hero_class` / `background` (tech/02 §4.6); they are always **extra** options appended to a node — no path requires a particular build. Packs without `classes.json` skip the hero screen.
+
 ## 2. Skill table (derived from the three attributes)
 
 | Skill | Attribute | Example use (placement in campaign01) |
@@ -141,7 +160,8 @@ Recovery between fights follows the d20 core rules' two kinds of rest, turning "
 | Spell-style | d6 (Wits) | Ink Bolt |
 
 - No spell slots; **use-limited skills**: each active skill can be used N times per encounter (marked on the skill card, usually 1–3), refilled at the start of every encounter (counts as a short-rest recharge, §7.2);
-- Classes are presented as **skill-combination bundles** (three at launch: Harbor Guard / Scavenger / Ink Adept — players feel a style rather than read clauses, doc 05 §8).
+- Classes are presented as **skill-combination bundles** (three at launch: Harbor Guard / Scavenger / Ink Adept — players feel a style rather than read clauses, doc 05 §8; data in §1.1);
+- **Healing skills** (implemented, P6.3): a `utility` skill with `"heal": "<dice>"` restores HP to an ally (or self) and **revives a downed ally** (death saves reset); rolled on the dice tray like any healing. Use-limited as above. Companions carry a second, support skill — Kelan: *Mending Ink* (heal 1d6+1, 1/fight); Old Fei: *Brace* (defensive stance). Auto-play heals the most wounded ally below its heal threshold before attacking.
 
 ### 8.1 Equipment (four slots, d20 core-rules style)
 

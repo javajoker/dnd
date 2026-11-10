@@ -17,6 +17,10 @@
 
 Calibration: `tools/winrate.gd` runs 200 bot battles per encounter with the default party; once the win rate lands in the target band, the numbers are final. If not, adjust enemy HP / attack / count (never the rule pack).
 
+**Per-encounter knob** (P6.3): `encounters.json` `"enemy_mods": {"hp": n, "attack_mod": n}` adjusts every enemy instance of that encounter without touching the shared enemy entry. Used after companion healing skills arrived: R3 and R4-r2 got `hp +2`; N2S-2, N2U-1b and R4-r `hp +1`. Measured at 1000 games per battle (seed 5): N2S-2 76.9%, N2U-1b 73.0% (3000 games), N2U-2 77.2%, R3 71.9%, R4-r 72.2%, R4-r2 71.9%; easy 89–90%, hard 56.6–63.6%. Re-run with several seeds before changing a knob: at 200 games one battle wobbles by about ±3 points.
+
+**Class check** (P6.3): `tools/winrate.gd -- <games> <seed> <pack dir> <class>` reruns every battle with a chosen class (tech/07 §5). Each class must stay within **±7 points** of the default hero's rate per battle, so no build trivialises or locks a fight; the default hero alone is held to the bands above.
+
 ## 2. Boss turn-behavior scripts
 
 Enemy entries gain a `behavior` field (a data-driven turn-behavior script):

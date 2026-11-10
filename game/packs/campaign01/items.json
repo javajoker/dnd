@@ -59,5 +59,13 @@
     "source": "N1-1 商店 / 营地补给 / R3 战利品",
     "unlocks": [],
     "price": 35,
-    "equip": { "slot": "trinket", "max_hp": 3 } }
+    "equip": { "slot": "trinket", "max_hp": 3 } },
+  {"id": "ink_salve", "name": "墨膏", "roles": ["stat"], "source": "N1-1 商店 / 墨徒起始", "unlocks": [], "price": 20, "use": {"timing": "bonus_action", "heal": "2d4+2", "consume": true}},
+  {"id": "tide_bomb", "name": "潮雷", "roles": ["stat"], "source": "N1-1 商店 / 拾荒客起始", "unlocks": [], "price": 25, "use": {"timing": "action", "target": "enemy", "damage": "3d4", "consume": true}},
+  {"id": "salvage_gloves", "name": "拾荒手套", "roles": ["stat"], "source": "拾荒客起始装备", "unlocks": [], "equip": {"slot": "trinket", "attack": 1}},
+  {"id": "scribe_ring", "name": "誊写指环", "roles": ["stat"], "source": "墨徒起始装备", "unlocks": [], "equip": {"slot": "trinket", "max_hp": 2}},
+  {"id": "dock_tally", "name": "码头记账牌", "roles": ["codex"], "source": "出身：码头工", "unlocks": ["渔人巷：老费认出记账牌"]},
+  {"id": "novice_quill", "name": "见习羽笔", "roles": ["codex"], "source": "出身：誊写庭见习", "unlocks": ["誊写庭接触：背诵见习誓词"]},
+  {"id": "torn_ribbon", "name": "断墨绶带", "roles": ["codex"], "source": "出身：断墨会逃徒", "unlocks": ["断墨会接触：亮出绶带"]},
+  {"id": "appraisal_loupe", "name": "估价放大镜", "roles": ["codex"], "source": "出身：拾遗学徒", "unlocks": ["拾遗行会接触：替他们估价"]}
 ]

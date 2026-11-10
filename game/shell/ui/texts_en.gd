@@ -533,3 +533,13 @@ const PARTY_ASSIGN_INVALID := "Each group needs the right number of people (and 
 const LINK_RECALL := "Recall everyone to the meeting point (2 charges)"
 const CHAR_MAKE_LEAD := "Make party lead"
 const CHAR_IS_LEAD := "Party lead"
+
+const MSG_SKILL_HEAL := "{unit} uses {skill}: {target} recovers {amount} HP."
+
+const MSG_HERO_CREATED := "You set out as a {class} ({background})."
+
+const HERO_TITLE := "Who are you?"
+const HERO_CLASS_HEAD := "Class"
+const HERO_BG_HEAD := "Background"
+const HERO_HIT_DIE := "Hit Die %s"
+const HERO_BEGIN := "Begin"

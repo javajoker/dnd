@@ -83,6 +83,7 @@ func _ready() -> void:
 		SaveSystem.save_dir = "user://shots/saves" # 截图从全新开局起步，且不触碰玩家真实存档/设置
 		SaveSystem.delete()
 		UiSettings.redirect_path = "user://shots/settings.cfg"
+		CampaignFlow.skip_hero_creation = not args.has("--hero-shots") # 截图走缺省主角，建角截图单独开
 	for a: String in args: # `-- --seed=N`：指定新开局种子（复现问题用）；`-- --locale=en`：指定语言（截图/走查）
 		if a.begins_with("--seed="):
 			Rng.fixed_seed_override = int(a.trim_prefix("--seed="))
@@ -140,6 +141,9 @@ func _ready() -> void:
 	if not resumed.is_empty(): # 故事图进度在支线注入后恢复（合并视图含支线事件定义）
 		graph.deserialize((resumed.get("meta", {}) as Dictionary).get("graph", {}))
 		stream.emit(EventTypes.LOG, {"msg_key": "MSG_RESUMED"}, &"core")
+	HeroBuild.apply(pack, board) # 主角构筑叠回玩家模板（读档 / 新开局均幂等，11 §1.1）
+	if graph.pack != pack:
+		HeroBuild.apply(graph.pack, board)
 	campaign = CampaignFlow.new(self)
 	sub_flow = SubgameFlow.new(self)
 	stream.subscribe(_on_event)

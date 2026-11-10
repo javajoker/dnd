@@ -604,3 +604,13 @@ const PARTY_ASSIGN_INVALID := "每组人数要合规（且组里必须有指定�
 const LINK_RECALL := "召回所有人到会合点（2 次）"
 const CHAR_MAKE_LEAD := "设为领队"
 const CHAR_IS_LEAD := "领队"
+
+const MSG_SKILL_HEAL := "{unit} 施展「{skill}」：{target} 回复 {amount} HP。"
+
+const MSG_HERO_CREATED := "你以{class}的身份启程（出身：{background}）。"
+
+const HERO_TITLE := "你是谁？"
+const HERO_CLASS_HEAD := "职业"
+const HERO_BG_HEAD := "出身"
+const HERO_HIT_DIE := "生命骰 %s"
+const HERO_BEGIN := "启程"

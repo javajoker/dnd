@@ -11,5 +11,14 @@
   { "id": "kelan_bolt", "name": "墨矢", "kind": "attack", "attr": "finesse", "damage": "1d6+1",
     "uses_per_encounter": null, "target": "enemy_single", "gesture": "tap" },
   { "id": "laofei_hook", "name": "船钩", "kind": "attack", "attr": "might", "damage": "1d6+1",
-    "uses_per_encounter": null, "target": "enemy_single", "gesture": "tap" }
+    "uses_per_encounter": null, "target": "enemy_single", "gesture": "tap" },
+  {"id": "guard_bash", "name": "盾击", "kind": "attack", "attr": "might", "damage": "1d6", "uses_per_encounter": 1, "target": "enemy_single", "gesture": "path"},
+  {"id": "second_wind", "name": "缓一口气", "kind": "utility", "uses_per_encounter": 1, "target": "self", "gesture": "tap", "heal": "1d8"},
+  {"id": "hook_knife", "name": "钩刀", "kind": "attack", "attr": "finesse", "damage": "1d6+1", "uses_per_encounter": null, "target": "enemy_single", "gesture": "tap"},
+  {"id": "sneak_strike", "name": "暗袭", "kind": "attack", "attr": "finesse", "damage": "2d4", "uses_per_encounter": 1, "target": "enemy_single", "gesture": "path", "adv": true},
+  {"id": "smoke_step", "name": "烟步", "kind": "utility", "uses_per_encounter": 1, "target": "self", "gesture": "path", "effect": {"attackers_disadvantage": true}},
+  {"id": "ink_dart", "name": "墨针", "kind": "attack", "attr": "wits", "damage": "1d6+1", "uses_per_encounter": null, "target": "enemy_single", "gesture": "tap"},
+  {"id": "ink_mend", "name": "补墨", "kind": "utility", "uses_per_encounter": 2, "target": "ally_single", "gesture": "path", "heal": "1d8+1"},
+  {"id": "kelan_mend", "name": "珂兰的补页", "kind": "utility", "uses_per_encounter": 1, "target": "ally_single", "gesture": "path", "heal": "1d6+1"},
+  {"id": "laofei_brace", "name": "老费稳桩", "kind": "utility", "uses_per_encounter": 1, "target": "self", "gesture": "tap", "effect": {"attackers_disadvantage": true}}
 ]

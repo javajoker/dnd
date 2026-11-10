@@ -23,7 +23,7 @@
     "ac_formula": "10 + finesse",
     "proficiencies": ["history", "soothe"],
     "basic_attack": "kelan_bolt",
-    "skills": ["kelan_bolt"]
+    "skills": ["kelan_bolt", "kelan_mend"]
   },
   {
     "id": "companion_laofei",
@@ -36,6 +36,6 @@
     "ac_formula": "11 + might",
     "proficiencies": ["athletics", "perception"],
     "basic_attack": "laofei_hook",
-    "skills": ["laofei_hook"]
+    "skills": ["laofei_hook", "laofei_brace"]
   }
 ]

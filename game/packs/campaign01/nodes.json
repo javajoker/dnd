@@ -95,7 +95,8 @@
           ],
           "assign": "player", "allow_recall": true,
           "timeout": { "clock": 2, "effects": [ { "gold": -5 } ] },
-          "rejoin": "N1-1mj", "linear_fallback": "N1-1md" }
+          "rejoin": "N1-1mj", "linear_fallback": "N1-1md" },
+        {"type": "choice", "label": "（码头工）老费认出了你的记账牌", "to": "N1-1m", "requires": {"background": "dockhand"}, "effects": [{"bond.laofei": 10}, {"inspiration": 1}]}
       ]
     },
     {
@@ -105,7 +106,8 @@
       "edges": [
         { "type": "check", "skill": "investigation", "difficulty": "easy", "roller": "player_blank",
           "label": "读出值夜簿上残存的字", "success": "N1-1me", "failure": "N1-1me",
-          "success_effects": [ { "gold": 6 } ], "failure_effects": [ { "watch": 1 } ] }
+          "success_effects": [ { "gold": 6 } ], "failure_effects": [ { "watch": 1 } ] },
+        {"type": "choice", "label": "（港卫）按港卫的规矩接下值夜", "to": "N1-1me", "requires": {"hero_class": "harbor_guard"}, "effects": [{"gold": 8}]}
       ]
     },
     {
@@ -150,7 +152,8 @@
       "summary": "钟楼半截沉在潮里，退潮时能看见钟口下压着的供奉匣。",
       "edges": [
         { "type": "choice", "label": "从钟下取出供奉匣", "to": "N1-1m", "effects": [ { "gold": 12 } ] },
-        { "type": "choice", "label": "回到雾岸小路", "to": "N1-1m" }
+        { "type": "choice", "label": "回到雾岸小路", "to": "N1-1m" },
+        {"type": "choice", "label": "（墨徒）读出钟上溺水的铭文", "to": "N1-1m", "requires": {"hero_class": "ink_adept"}, "effects": [{"inspiration": 1}, {"gold": 5}]}
       ]
     },
     {
@@ -159,7 +162,8 @@
       "summary": "灯塔重新亮起后，雾里显出一片盐沼。盐晶在灯光下像没写完的字。",
       "edges": [
         { "type": "choice", "label": "采集盐晶", "to": "N1-1m", "effects": [ { "gold": 20 } ] },
-        { "type": "choice", "label": "回到雾岸小路", "to": "N1-1m" }
+        { "type": "choice", "label": "回到雾岸小路", "to": "N1-1m" },
+        {"type": "choice", "label": "（拾荒客）在盐里翻出值钱的东西", "to": "N1-1m", "requires": {"hero_class": "scavenger"}, "effects": [{"gold": 25}]}
       ]
     },
     {
@@ -202,7 +206,9 @@
       "summary": "灰衣修士的试探。",
       "text_ref": "texts/zh-CN.json#node.N1-4.text",
       "on_enter": [ { "rep.scriptorium": 1 } ],
-      "edges": [ { "type": "choice", "label": "继续", "to": "N1-7" } ]
+      "edges": [ { "type": "choice", "label": "继续", "to": "N1-7" },
+        {"type": "choice", "label": "（誊写庭见习）背诵见习誓词", "to": "N1-7", "requires": {"background": "scriptorium_novice"}, "effects": [{"rep.scriptorium": 1}, {"inspiration": 1}]}
+      ]
     },
     {
       "id": "N1-5", "act": "SL-1", "type": "dialog",
@@ -210,7 +216,9 @@
       "summary": "黑羽传信。",
       "text_ref": "texts/zh-CN.json#node.N1-5.text",
       "on_enter": [ { "rep.uninked": 1 } ],
-      "edges": [ { "type": "choice", "label": "继续", "to": "N1-7" } ]
+      "edges": [ { "type": "choice", "label": "继续", "to": "N1-7" },
+        {"type": "choice", "label": "（断墨会逃徒）亮出撕下的绶带", "to": "N1-7", "requires": {"background": "uninked_runaway"}, "effects": [{"rep.uninked": 1}, {"inspiration": 1}]}
+      ]
     },
     {
       "id": "N1-6", "act": "SL-1", "type": "dialog",
@@ -218,7 +226,9 @@
       "summary": "拍卖行请柬。",
       "text_ref": "texts/zh-CN.json#node.N1-6.text",
       "on_enter": [ { "rep.salvage": 1 } ],
-      "edges": [ { "type": "choice", "label": "继续", "to": "N1-7" } ]
+      "edges": [ { "type": "choice", "label": "继续", "to": "N1-7" },
+        {"type": "choice", "label": "（拾遗学徒）替他们估价那片残页", "to": "N1-7", "requires": {"background": "salvager_apprentice"}, "effects": [{"rep.salvage": 1}, {"gold": 10}]}
+      ]
     },
     {
       "id": "N1-7", "act": "SL-1", "type": "battle",

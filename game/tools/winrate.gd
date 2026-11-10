@@ -1,6 +1,7 @@
 # 胜率标定工具（docs/story/03-数值定稿与Boss设计.md §1 标定方法、§5 成长校核）
 # CLI：godot --headless --path game -s tools/winrate.gd [-- 局数 基种子 [包目录]]（包目录缺省 packs/campaign01；任意包可标定）
 # 预期等级：manifest.balance.act_level（幕 id → 等级）；未声明 = 全部 Lv1。
+# 第 4 参数（可选）= 职业 id：以该职业建角后标定（classes.json，11 §1.1）。
 # - 对每场战斗型遭遇（battle/escort/hybrid）以默认队伍跑 N 局 bot（默认 200），输出胜率表；
 #   默认队伍 = 按战役进度的预期等级（序章 Lv1 / 幕二 Lv2 / 幕三 Lv3 / 终章 Lv3~4 取下限 Lv3），
 #   默认整备（空 selection：兜底技能、无道具），AutoAgent 策略链驱动（09 §9.3 同一指令通道）；
@@ -16,6 +17,10 @@ const ACT_LEVEL := {"SL-0": 1, "SL-1": 1, "SL-2": 2, "SL-3": 3, "SL-4": 3}
 ## 等级 → 入场累计经验（11 §6 门槛 300/700/1200 的下档值）。
 const LEVEL_XP_FLOOR := {1: 0, 2: 300, 3: 700, 4: 1200}
 const SEED_STRIDE := 7919
+## 标定所用职业（空 = 缺省主角模板）。
+static var hero_class := ""
+## 职业容差（百分点）：缺省主角锁在目标区间内；各职业允许落在区间外 ±CLASS_TOLERANCE（职业有强弱项，story/03 §1.1）。
+const CLASS_TOLERANCE := 7.0
 const MAX_TURNS_GUARD := 500
 
 func _init() -> void:
@@ -30,6 +35,7 @@ func _init() -> void:
 	if args.size() >= 3:
 		pack_dir = args[2] if args[2].begins_with("res://") else "res://" + args[2]
 	var res := PackLoader.load_pack(pack_dir)
+	hero_class = args[3] if args.size() >= 4 else ""
 	if not res["ok"]:
 		for e: String in res["errors"]:
 			push_error(e)
@@ -37,6 +43,7 @@ func _init() -> void:
 		return
 	var pack: Dictionary = res["pack"]
 	print("== 胜率标定（story/03 §1）：每场 %d 局 bot，基种子 %d ==" % [games, base_seed])
+	print("职业：%s" % (hero_class if hero_class != "" else "（缺省主角）"))
 	print("包 %s；默认队伍 = 预期等级（manifest.balance.act_level）+ 默认整备（无道具）+ AutoAgent" % str(pack.get("pack_id", "")))
 	print("%-8s %-6s %-4s %-9s %-8s %s" % ["遭遇", "难度", "等级", "目标胜率", "实测", "判定"])
 	var all_in := true
@@ -46,7 +53,8 @@ func _init() -> void:
 		var r: Dictionary = run_encounter(pack, eid, games, base_seed)
 		var rate := 100.0 * int(r["wins"]) / maxi(1, int(r["games"]))
 		var tgt: Array = TARGETS.get(diff, TARGETS["medium"])
-		var in_range := rate >= float(tgt[0]) and rate <= float(tgt[1])
+		var tol := CLASS_TOLERANCE if hero_class != "" else 0.0
+		var in_range := rate >= float(tgt[0]) - tol and rate <= float(tgt[1]) + tol
 		if not in_range:
 			all_in = false
 		print("%-8s %-6s Lv%-3d %3d~%-5d %5.1f%% (%d/%d) %s" % [eid, diff, int(r["level"]),
@@ -102,6 +110,8 @@ static func run_encounter(pack: Dictionary, encounter_id: String, games: int, ba
 		var prov := {"event_id": 0, "node_id": encounter_id, "pack_id": str(pack.get("pack_id", ""))}
 		if xp_floor > 0:
 			Growth.new(board).grant_xp(xp_floor, prov) # 预期等级基线（属性点不分配 = 默认整备）
+		if hero_class != "":
+			HeroBuild.choose(pack, board, hero_class, "", prov) # 按职业建角（起始装备生效）
 		var asm := BattleDef.assemble(pack, encounter_id, {}, board)
 		if not bool(asm["ok"]):
 			push_error("winrate：遭遇 %s 组装失败：%s" % [encounter_id, ";".join(asm["errors"] as Array)])

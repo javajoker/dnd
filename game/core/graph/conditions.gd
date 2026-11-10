@@ -48,6 +48,9 @@ func _eval_one(key: String, expected: Variant, pack_id: String, ctx: Dictionary)
 		return _eval_item(key.substr(5), expected)
 	if key.begins_with("bond."):
 		return _cmp(_board.get_bond(key.substr(5)), expected)
+	if key == "hero_class" or key == "background":
+		# 主角构筑（11 §1.1）：职业 / 出身门槛
+		return str(_board.read("%s.hero.%s" % [pack_id, "class" if key == "hero_class" else "background"], "")) == str(expected)
 	if key == "lead":
 		return str(_board.read("%s.party.lead_char" % pack_id, "")) == str(expected)
 	if key == "in_group" or key == "group_size" or key == "thread":

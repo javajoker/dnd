@@ -23,6 +23,8 @@ var _settle_celebrated := false # 本场胜利演出已播（04 §④.8：加点
 var _map_battle := false # 本场遭遇由地图/事件表触发（16 §4）：胜负都回地图，不走节点出边
 var maps: MapFlow        # 地图与场所流程（docs/en/framework/16）
 var _pending_split: Dictionary = {} # 等待玩家分组的分队边（15 §2.1）
+## 跳过建角（测试 / 截图走"缺省白页者"路径；正式游戏为 false）。
+static var skip_hero_creation := false
 
 func _init(main: Node) -> void:
 	m = main
@@ -47,6 +49,10 @@ func _on_campaign_start(entry: ScreenEntry) -> void:
 
 ## 战役开局：播种金币（hub 商店）→ 序章带入补给 → 从入口节点真实走图（tech/02 §3）。
 func _start_campaign() -> void:
+	# 建角（11 §1.1）：包内有职业表且尚未选择 → 先选职业与出身，确认后再开局
+	if HeroBuild.has_choices(m.pack) and HeroBuild.chosen_class(m.pack, m.board) == "" and not skip_hero_creation:
+		_show_hero_creation()
+		return
 	_campaign_tail = m.stream.tail()
 	m.graph.seed_gold()
 	m.graph.start()
@@ -55,6 +61,23 @@ func _start_campaign() -> void:
 		m.board.give_item(str((it as Dictionary).get("item", "")), int((it as Dictionary).get("n", 1)),
 			{"event_id": m.stream.tail(), "node_id": m.graph.current_id, "pack_id": m._campaign_id})
 	_present_node()
+
+## 建角屏：职业 + 出身（选择经 HeroBuild.choose 写板并叠到玩家模板，再正式开局）。
+func _show_hero_creation() -> void:
+	m._set_window_orientation(ShellRouter.MODE_TIME)
+	var screen := ScreenHero.new()
+	m._swap(screen)
+	var names := {}
+	for sid: String in (m.pack.get("skills", {}) as Dictionary).keys():
+		names[sid] = str((m.pack["skills"][sid] as Dictionary).get("name", sid))
+	screen.bind({"classes": (m.pack.get("classes", {}) as Dictionary).values(),
+		"backgrounds": (m.pack.get("backgrounds", {}) as Dictionary).values(), "skill_names": names})
+	screen.back_requested.connect(m._show_home)
+	screen.confirmed.connect(func(cid: String, bid: String) -> void:
+		HeroBuild.choose(m.pack, m.board, cid, bid, {"event_id": m.stream.tail(), "node_id": "", "pack_id": m._campaign_id})
+		if m.graph.pack != m.pack:
+			HeroBuild.apply(m.graph.pack, m.board) # 支线合并视图同步
+		_start_campaign())
 
 ## 呈现当前节点：ending → 结局屏（tech/02 §9）；battle → 整备/遭遇；
 ## explore（迷宫探索序列，tech/02 §6 maze）→ 逐拍呈现；出切片范围 → 切片结算；其余 → 双壳故事态。

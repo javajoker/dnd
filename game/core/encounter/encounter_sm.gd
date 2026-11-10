@@ -495,8 +495,10 @@ func _validate(cmd: Dictionary) -> String:
 					if str(cmd.get("target", "")) != actor_id:
 						return "bad_target"
 				"ally":
-					if not _is_ally_target(u, str(cmd.get("target", "")), false):
-						return "bad_target"
+					var tid := str(cmd.get("target", ""))
+					var ok_t := _is_ally_target(u, tid, false) or (sk.has("heal") and _is_ally_target(u, tid, true))
+					if not ok_t:
+						return "bad_target" # 治疗技能可救倒地队友
 		CMD_ITEM:
 			var it := _find_item(u, str(cmd.get("item", "")))
 			if it.is_empty():
@@ -632,6 +634,21 @@ func _resolve_skill(u: Dictionary, cmd: Dictionary, src: StringName) -> void:
 			_resolve_attack(u, str(cmd["target"]), sk, src)
 		"utility":
 			u["action_used"] = true
+			if sk.has("heal"):
+				# 治疗技能（11 §8 v1.2）：对目标（自身 / 友方）掷 heal 骰回血，不超过上限；倒地者以此起身
+				var t: Dictionary = _units[str(cmd["target"])]
+				var hr := LightV1.roll_damage(rng, str(sk["heal"]))
+				var healed := mini(int(hr["total"]), int(t["max_hp"]) - int(t["hp"]))
+				t["hp"] = int(t["hp"]) + healed
+				if bool(t.get("downed", false)) and int(t["hp"]) > 0:
+					t["downed"] = false
+					(t["death_saves"] as Dictionary)["s"] = 0
+					(t["death_saves"] as Dictionary)["f"] = 0
+				stream.emit(EventTypes.LOG, {"msg_key": "MSG_SKILL_HEAL", "args": {"unit": str(u["name"]),
+					"skill": str(sk.get("name", sk["id"])), "target": str(t["name"]), "amount": healed},
+					"unit": u["id"], "skill": sk["id"], "target": t["id"], "healed": healed,
+					"dice": LightV1.expr_dice(str(sk["heal"]), hr["rolls"]), "source": src}, &"core", node_id)
+				return
 			var st: Dictionary = (sk.get("effect", {}) as Dictionary).duplicate(true)
 			st["id"] = str(sk["id"])
 			st["until_round"] = _round + int(st.get("duration_rounds", 0))

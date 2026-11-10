@@ -1,0 +1,169 @@
+{
+  "classes": [
+    {
+      "id": "harbor_guard",
+      "name": "港卫",
+      "art_ref": "portraits/class_harbor_guard",
+      "desc": "守过码头、拦过潮水的人。站在最前面，替同伴挡下第一下。",
+      "story": "你记不起自己的名字，却记得盾牌的分量。港卫的号子还在你的骨头里：先站稳，再出手。",
+      "attrs": {
+        "might": 2,
+        "finesse": 1,
+        "wits": 0
+      },
+      "hp_formula": "9 + 2*might",
+      "ac_formula": "10 + finesse",
+      "hit_die": "d10",
+      "proficiencies": [
+        "athletics",
+        "intimidate"
+      ],
+      "basic_attack": "slash",
+      "skills": [
+        "guard_bash",
+        "second_wind",
+        "inkshield"
+      ],
+      "start_items": [
+        {
+          "item": "dock_buckler",
+          "n": 1
+        }
+      ],
+      "start_equip": []
+    },
+    {
+      "id": "scavenger",
+      "name": "拾荒客",
+      "art_ref": "portraits/class_scavenger",
+      "desc": "在褪色的废墟里翻找能卖钱的东西。动作快，下手准，擅长先发制人。",
+      "story": "你醒来时手里攥着一把钩刀和半张当票。拾荒的规矩只有一条：别让别人先看见你。",
+      "attrs": {
+        "might": 0,
+        "finesse": 2,
+        "wits": 1
+      },
+      "hp_formula": "8 + finesse",
+      "ac_formula": "10 + finesse",
+      "hit_die": "d8",
+      "proficiencies": [
+        "stealth",
+        "thievery",
+        "perception"
+      ],
+      "basic_attack": "hook_knife",
+      "skills": [
+        "sneak_strike",
+        "smoke_step",
+        "inklance"
+      ],
+      "start_items": [
+        {
+          "item": "tide_bomb",
+          "n": 1
+        },
+        {
+          "item": "salvage_gloves",
+          "n": 1
+        }
+      ],
+      "start_equip": []
+    },
+    {
+      "id": "ink_adept",
+      "name": "墨徒",
+      "art_ref": "portraits/class_ink_adept",
+      "desc": "能让褪色的墨重新流动的学徒。墨可以伤人，也可以补上伤口。",
+      "story": "你的指尖总沾着墨，洗不掉。旧书摊的老板说，那是命书在你身上留下的一个逗号。",
+      "attrs": {
+        "might": 0,
+        "finesse": 1,
+        "wits": 2
+      },
+      "hp_formula": "8 + wits",
+      "ac_formula": "10 + finesse",
+      "hit_die": "d6",
+      "proficiencies": [
+        "history",
+        "investigation",
+        "soothe"
+      ],
+      "basic_attack": "ink_dart",
+      "skills": [
+        "inkbolt",
+        "ink_mend",
+        "inkshield"
+      ],
+      "start_items": [
+        {
+          "item": "ink_salve",
+          "n": 1
+        },
+        {
+          "item": "scribe_ring",
+          "n": 1
+        }
+      ],
+      "start_equip": []
+    }
+  ],
+  "backgrounds": [
+    {
+      "id": "dockhand",
+      "name": "码头工",
+      "proficiency": "athletics",
+      "keepsake": "dock_tally",
+      "story": "烬港的码头养大了你。你扛过盐包、数过潮次，也看着一整条街在雾里被撤销。工友们的名字还在你的记账牌上——只是写名字的墨正在变淡。",
+      "effects": [
+        {
+          "gold": 10
+        },
+        {
+          "give_item": "heal_potion"
+        }
+      ]
+    },
+    {
+      "id": "scriptorium_novice",
+      "name": "誊写庭见习",
+      "proficiency": "history",
+      "keepsake": "novice_quill",
+      "story": "你曾在金墨穹顶下抄写别人的命运，直到某天你翻开自己那一页，发现它是空白的。誊写庭没有赶你走——他们只是开始小心地看着你。",
+      "effects": [
+        {
+          "rep.scriptorium": 2
+        }
+      ]
+    },
+    {
+      "id": "uninked_runaway",
+      "name": "断墨会逃徒",
+      "proficiency": "stealth",
+      "keepsake": "torn_ribbon",
+      "story": "你在断墨会里学会了撕页，也学会了害怕撕页之后的空洞。你带着一条撕下的绶带离开，不知道自己是逃兵还是信使。",
+      "effects": [
+        {
+          "rep.uninked": 2
+        },
+        {
+          "give_item": "ink_flask"
+        }
+      ]
+    },
+    {
+      "id": "salvager_apprentice",
+      "name": "拾遗学徒",
+      "proficiency": "investigation",
+      "keepsake": "appraisal_loupe",
+      "story": "拾遗行会教你一件事：每一片残页都有价。你替师傅估过上百件从褪色区捞出来的东西，却第一次估不出自己值多少。",
+      "effects": [
+        {
+          "rep.salvage": 2
+        },
+        {
+          "gold": 15
+        }
+      ]
+    }
+  ]
+}

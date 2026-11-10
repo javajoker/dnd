@@ -15,6 +15,7 @@ func _isolate_user_data() -> void:
 	# 既有集成测试按"完整战役随本体"市场运行（国内首发口径）；海外"试玩 + 解锁"门槛由 test_store_and_act_gate 专测
 	ProjectSettings.set_setting("game/market", "cn")
 	Texts.forced_locale = Texts.SOURCE_LOCALE # 语言固定为源语言：断言与系统语言/偏好无关
+	CampaignFlow.skip_hero_creation = true # 既有流程测试走"缺省白页者"；建角流程由 test_hero_build 专测
 	Texts.set_locale(Texts.SOURCE_LOCALE)
 
 ## 新 main 实例（新开局）：先删测试存档槽——main 启动即读回存档（07 §4.2），集成测试默认从零开始。
@@ -84,6 +85,7 @@ func _init() -> void:
 	test_inspiration()
 	test_maps_core()
 	test_party_split()
+	test_hero_build()
 	test_story_vm()
 	test_text_ref()
 	test_subgame_arena()
@@ -120,6 +122,7 @@ func _async_shell_tests() -> void:
 	await test_map_flow()
 	await test_party_flow()
 	await test_new_game_kit()
+	await test_hero_flow()
 	await test_act3_forced_mode()
 	await test_mode_boundary()
 	await test_loadout_settle_landscape()
@@ -389,9 +392,9 @@ func test_pack_loader() -> void:
 	check((pack["nodes"] as Dictionary).size() == 54, "节点表 54 节点（含雾岸地图 4 + 分队演示 5，15/16）")
 	check((pack["acts"] as Array).size() == 5, "五幕 acts")
 	check((pack["encounters"] as Dictionary).size() == 18, "遭遇表 18 场（含雾岸随机遭遇 fog_ambush）")
-	check((pack["items"] as Dictionary).size() == 12, "道具表 12 件（含 4 件装备 + 墨瓶，11 §8.1/§8.2）")
+	check((pack["items"] as Dictionary).size() == 20, "道具表 20 件（装备 / 消耗品 / 职业起始装备 / 出身纪念物）")
 	check((pack["characters"] as Dictionary).size() == 3, "角色表 3 条（玩家模板+珂兰+老费，tech/04 §2）")
-	check((pack["skills"] as Dictionary).size() == 6, "技能表 6 条（tech/04 §3）")
+	check((pack["skills"] as Dictionary).size() == 15, "技能表 15 条（含三职业技能 + 同伴第二技能）")
 	check((pack["enemies"] as Dictionary).size() == 9,
 		"敌人表 9 条（幕三/终章补登：守页人/墨潮化身，tech/04 §1）")
 	var n17: Dictionary = pack["encounters"]["N1-7"]
@@ -3399,9 +3402,9 @@ func test_story_runtime() -> void:
 	for it: Variant in stock:
 		stock_ids.append(str((it as Dictionary)["id"]))
 		any_affordable = any_affordable or bool((it as Dictionary)["affordable"])
-	check(stock.size() == 7 and stock_ids.has("half_tide_table") and stock_ids.has("heal_potion")
+	check(stock.size() == 9 and stock_ids.has("half_tide_table") and stock_ids.has("heal_potion")
 		and stock_ids.has("boathook_axe") and stock_ids.has("ink_flask")
-		and not any_affordable, "货单 = 含 price 条目 ×7（潮汐表/药水/墨瓶/四件装备）+ 可负担标记")
+		and not any_affordable, "货单 = 含 price 条目 ×9（含墨膏 / 潮雷）+ 可负担标记")
 	# 休整（恢复 HP；次数制技能随遭遇组装重置，11 §8）
 	var restored := g3.hub_rest()
 	check(int(restored.get("player_blank", 0)) == 14, "休整：白页者 HP 回满 14（hp_formula 10+2×力2，tech/04 §2）")
@@ -3854,6 +3857,82 @@ func test_party_split() -> void:
 	g3.take_edge(fb)
 	check(not g3.party.is_split() and g3.current_id == "N1-1md", "整队进入守夜屋，不分组")
 
+# ---------------------------------------------------------------- 职业 / 出身 / 治疗技能（11 §1.1 / §8）
+
+func test_hero_build() -> void:
+	print("[hero_build]")
+	var pack := _load_campaign01()
+	check((pack["classes"] as Dictionary).size() == 3 and (pack["backgrounds"] as Dictionary).size() == 4,
+		"classes.json：三职业（港卫 / 拾荒客 / 墨徒）+ 四出身")
+	var s := EventStream.new()
+	var b := Board.new(s)
+	var prov := {"event_id": 0, "node_id": "", "pack_id": "campaign01"}
+	var gold0 := int(b.read("campaign01.gold", 0))
+	check(HeroBuild.choose(pack, b, "scavenger", "uninked_runaway", prov) == "", "建角：拾荒客 + 断墨会逃徒")
+	var pt: Dictionary = pack["characters"]["player_blank"]
+	check(str(pt["basic_attack"]) == "hook_knife" and str(pt["hit_die"]) == "d8" and (pt["skills"] as Array).has("sneak_strike")
+		and (pt["proficiencies"] as Array).has("thievery") and (pt["proficiencies"] as Array).has("stealth"),
+		"职业叠到玩家模板：普攻 / 生命骰 / 技能 / 熟练（含出身熟练）")
+	check(b.has_item("tide_bomb") and b.has_item("salvage_gloves") and b.has_item("torn_ribbon") and b.has_item("ink_flask")
+		and b.get_rep("uninked") == 2, "起始物品 + 出身纪念物 + 出身效果（断墨会声望 +2）")
+	var def: Dictionary = BattleDef.assemble(pack, "N1-7", {}, b)["def"]
+	check(str((def["party"][0] as Dictionary)["damage"]) == "1d6+1", "战斗组装用职业普攻（钩刀 1d6+1）")
+	var g := StoryGraph.new(b, Rng.new(2), pack)
+	g.start()
+	g._enter("N1-5")
+	check(g.available_edges().size() == 2, "断墨会接触：出身专属选项显形")
+	g._enter("N1-4")
+	check(g.available_edges().size() == 1, "誊写庭接触：别的出身不显形")
+	check(Conditions.new(b).evaluate({"hero_class": "scavenger", "background": "uninked_runaway"}, {"pack_id": "campaign01"}),
+		"条件 hero_class / background")
+	HeroBuild.apply(pack, b)
+	check(str(pack["characters"]["player_blank"]["basic_attack"]) == "hook_knife" and (pack["characters"]["player_blank"]["proficiencies"] as Array).count("stealth") == 1,
+		"apply 幂等（重复叠加不重复熟练）")
+	var b2 := Board.new(EventStream.new())
+	HeroBuild.apply(pack, b2)
+	check(str(pack["characters"]["player_blank"]["basic_attack"]) == "slash", "未选择 = 缺省白页者模板（读档 / 旧存档兼容）")
+	# 治疗技能：补墨救倒地队友
+	var p2 := _load_campaign01()
+	var s3 := EventStream.new()
+	var b3 := Board.new(s3)
+	HeroBuild.choose(p2, b3, "ink_adept", "dockhand", prov)
+	var d3: Dictionary = BattleDef.assemble(p2, "N1-7", {"skills": ["ink_mend"]}, b3)["def"]
+	var sm := EncounterSM.new(b3, s3, Rng.new(4), "campaign01")
+	sm.enter("N1-7")
+	sm.transition(EncounterSM.S_EXPLORE)
+	sm.begin_combat(d3)
+	var actor := sm.current_actor_id()
+	var target := "kelan" if actor != "kelan" else "laofei"
+	sm._units[target]["hp"] = 0
+	sm._units[target]["downed"] = true
+	var mend := {}
+	for a: Dictionary in sm.get_available_actions():
+		if str(a.get("skill", "")) == "ink_mend" or str(a.get("skill", "")) == "kelan_mend":
+			mend = a
+	if not mend.is_empty():
+		check(sm.submit_command(sm.command_from_action(mend, target)) and not bool(sm.get_unit(target)["downed"])
+			and int(sm.get_unit(target)["hp"]) > 0, "治疗技能可救起倒地队友（%s）" % str(mend["skill"]))
+	check(s3.query_by_type(EventTypes.LOG).any(func(ev: Dictionary) -> bool:
+		return str((ev["payload"] as Dictionary).get("msg_key", "")) == "MSG_SKILL_HEAL") or mend.is_empty(), "治疗日志（MSG_SKILL_HEAL，带 dice）")
+	var agent_heal := false
+	var r4 := _load_campaign01()
+	var b4 := Board.new(EventStream.new())
+	var d4: Dictionary = BattleDef.assemble(r4, "N1-7", {}, b4)["def"]
+	var sm4 := EncounterSM.new(b4, b4.stream, Rng.new(9), "campaign01")
+	sm4.enter("N1-7")
+	sm4.transition(EncounterSM.S_EXPLORE)
+	sm4.begin_combat(d4)
+	for id: String in sm4.get_order():
+		if str(sm4.get_unit(id)["side"]) == "party":
+			sm4._units[id]["hp"] = 2
+	for i: int in 6:
+		var cmd := AutoAgent.new().next_command(sm4)
+		if str(cmd.get("skill", "")) in ["kelan_mend"]:
+			agent_heal = true
+			break
+		sm4.submit_command(cmd)
+	check(agent_heal, "托管会用同伴的治疗技能救低血队友")
+
 # ---------------------------------------------------------------- 节点流程视图模型（双壳共用内容源，godot-dev §7）
 
 func test_story_vm() -> void:
@@ -3885,7 +3964,7 @@ func test_story_vm() -> void:
 	graph.take_edge(_edge_to(graph, "N1-1"))
 	vm = StoryVM.build(graph, board, pack)
 	check(str(vm["type"]) == "hub" and int(vm["gold"]) == 30
-		and (vm["stock"] as Array).size() == 7 and (vm["rumors"] as Array).size() >= 4,
+		and (vm["stock"] as Array).size() == 9 and (vm["rumors"] as Array).size() >= 4,
 		"vm：hub 金币/货单（7 件在售）/传闻齐备")
 	# 对话选项声望角标（N1-3：接触三方 → 目标节点 on_enter rep 效果）
 	graph.take_edge(_edge_to(graph, "N1-2"))
@@ -4998,6 +5077,37 @@ func test_new_game_kit() -> void:
 	m.queue_free()
 	await process_frame
 	_use_manifest("")
+
+# ---------------------------------------------------------------- 建角流程（11 §1.1）：新开局 → 你是谁？ → 序章
+
+func test_hero_flow() -> void:
+	print("[hero_flow]")
+	CampaignFlow.skip_hero_creation = false
+	var m: Node = _new_main()
+	root.add_child(m)
+	await process_frame
+	await process_frame
+	m._on_home_navigate(&"entry")
+	await process_frame
+	(m.current_screen as ScreenEntry).pick_mode(ShellRouter.MODE_TIME)
+	(m.current_screen as ScreenEntry).start_requested.emit()
+	await process_frame
+	await process_frame
+	check(m.current_screen is ScreenHero, "新开局先进入建角屏")
+	var hs := m.current_screen as ScreenHero
+	check(hs.class_box.get_child_count() == 3 and hs.bg_box.get_child_count() == 4 and hs.story_label.text != "",
+		"三张职业卡 + 四个出身 + 选中项的故事")
+	hs.select_class("ink_adept")
+	hs.select_background("scriptorium_novice")
+	check(hs.story_label.text.contains("逗号") and hs.story_label.text.contains("金墨"), "故事随所选职业 / 出身切换")
+	hs.confirm_button.pressed.emit()
+	await process_frame
+	await process_frame
+	check(m.graph.current_id == "N0-1" and str(m.pack["characters"]["player_blank"]["basic_attack"]) == "ink_dart"
+		and m.board.get_rep("scriptorium") == 2 and m.board.has_item("novice_quill"), "确认 → 序章；模板 / 声望 / 纪念物到位")
+	m.queue_free()
+	await process_frame
+	CampaignFlow.skip_hero_creation = true
 
 # ---------------------------------------------------------------- 锁定态与购买流程（06 §3.1/§6；04 §3.3；tech/02 §2.2 硬门槛）
 
