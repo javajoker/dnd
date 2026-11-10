@@ -30,5 +30,10 @@
   "travel": {
     "watches_per_segment": 4,
     "default_die": "d6"
+  },
+  "balance": {
+    "act_level": {
+      "A1": 1
+    }
   }
 }

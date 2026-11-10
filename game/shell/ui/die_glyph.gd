@@ -12,8 +12,8 @@ var value_text := "":
 	set(v):
 		value_text = v
 		queue_redraw()
-var face_color := Color(0.93, 0.80, 0.45)
-var edge_color := Color(0.55, 0.42, 0.18)
+var face_color := Palette.color("accent")
+var edge_color := Palette.color("accent").darkened(0.4)
 
 func _init() -> void:
 	custom_minimum_size = Vector2(52, 48)

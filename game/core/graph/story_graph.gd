@@ -144,7 +144,7 @@ func available_edges() -> Array:
 func take_edge(edge: Dictionary) -> void:
 	match str(edge.get("type", "")):
 		"split":
-			_do_split(edge)
+			_do_split(edge, {})
 			return
 		"remote":
 			_do_remote(edge)
@@ -167,12 +167,35 @@ func travel_to(node_id: String) -> void:
 # ---------------------------------------------------------------- 队伍分合（15）
 
 ## 分队边：离开当前节点、结算边效果、建组，焦点进入第一组的支线入口。
-func _do_split(edge: Dictionary) -> void:
+func _do_split(edge: Dictionary, assignment: Dictionary) -> void:
 	_leave_current()
 	_apply(edge.get("effects", []), current_id, _edge_ns(edge))
-	var first := party.begin(edge, current_id)
+	var first := party.begin(edge, current_id, assignment)
 	_scan_triggers()
 	_enter(str(party.group(first).get("node", "")))
+
+## 玩家自选分组的分队（15 §2.1 assign: "player"）。返回原因码（"" = 成功）。
+func take_split(edge: Dictionary, assignment: Dictionary) -> String:
+	var r := party.validate_assignment(edge, assignment)
+	if r != "":
+		return r
+	_do_split(edge, assignment)
+	return ""
+
+## 召回（15 §5.2）：分队边声明 allow_recall 时，2 次联络让全队立刻在汇合点会合。
+func link_recall() -> bool:
+	if not party.is_split() or not party.recall_allowed() or not party.spend(party.focus(), 2, current_id):
+		return false
+	board.stream.emit(EventTypes.PARTY_LINK, {"kind": "recall", "from": party.focus(), "to": "all"}, &"graph", current_id)
+	_force_rejoin([])
+	return true
+
+## 强制汇合（时限 / 召回）：结算附带效果后全队并回，进入汇合节点。
+func _force_rejoin(effects: Array) -> void:
+	var rj := party.rejoin_node()
+	_apply(effects, current_id)
+	party.merge(current_id)
+	_enter(rj)
 
 ## 远程触发（15 §5.1）：不移动；扣联络次数、结算效果（作用于另一支线可见的共享世界）。
 func _do_remote(edge: Dictionary) -> void:
@@ -255,6 +278,8 @@ func check_mod(skill: String) -> int:
 	var lead := party.lead()
 	if lead != "":
 		return char_check_mod(lead, skill) # 分队时由焦点小组领队掷（15 §2.2）
+	if party.lead_char() != "":
+		return char_check_mod(party.lead_char(), skill) # 指定领队掷队伍检定（15 §7 lead: any）
 	return LightV1.skill_mod(player_attrs(), player_proficiencies(), skill)
 
 ## 任一角色的检定修正：模板属性（玩家模板叠加成长）+ 熟练（11 §2）。
@@ -558,7 +583,7 @@ func party_roster() -> Array:
 		for sid: Variant in learned:
 			var sd: Dictionary = skills.get(str(sid), {})
 			skill_entries.append({"id": str(sid), "name": str(sd.get("name", sid))})
-		out.append({"id": cid, "name": str(c.get("name", cid)),
+		out.append({"id": cid, "name": str(c.get("name", cid)), "kind": kind,
 			"hp": hp_now, "max_hp": max_hp, "attrs": final_attrs, "skills": skill_entries})
 	return out
 
@@ -671,6 +696,9 @@ func _scan_triggers() -> void:
 		if not to.is_empty() and to != current_id:
 			_enter(to)
 	_scan_clock_quests() # doom_clock 触发的事件随时钟写板复查（tech/02 §5）
+	if party.is_split() and party.deadline() > 0 and board.get_doom_clock() >= party.deadline():
+		board.stream.emit(EventTypes.LOG, {"msg_key": "MSG_PARTY_TIMEOUT", "toast": true}, &"graph", current_id)
+		_force_rejoin(party.timeout_effects()) # 时限到：强制汇合（15 §2.3）
 
 # ---------------------------------------------------------------- L3 任务/事件运行时（tech/02 §5，TP4 接入）
 # 触发 → quest.trigger 事件 + 事件中心可见；节点完成（离开）→ 按 settle 写板 + quest.settle 事件。

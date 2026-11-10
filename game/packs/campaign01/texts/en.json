@@ -402,5 +402,7 @@
   "nodes.N1-1mj.title": "Under the Lamp",
   "nodes.N1-1mj.summary": "The two groups meet under the pier lamp and piece together what each of them saw.",
   "nodes.N1-1mj.edges.0.label": "Back to the coast road",
-  "flags.tide_gate_open.name": "Tide gate open"
+  "flags.tide_gate_open.name": "Tide gate open",
+  "nodes.N1-1mr.edges.2.groups.0.name": "Docks",
+  "nodes.N1-1mr.edges.2.groups.1.name": "Archive"
 }

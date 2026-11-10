@@ -1309,6 +1309,9 @@ func _build_party_split(pane: Rect2, bar_top: float, bar_left: float, bar_right:
 	party_ui.link_requested.connect(func(action: String) -> void:
 		if story_cb.has("hub"):
 			story_cb["hub"].call("link", action))
+	party_ui.assigned.connect(func(assignment: Dictionary) -> void:
+		if story_cb.has("hub"):
+			story_cb["hub"].call("assign", JSON.stringify(assignment)))
 	party_ui.divided.connect(func(assign: Dictionary) -> void:
 		if story_cb.has("hub"):
 			story_cb["hub"].call("divide", JSON.stringify(assign)))
@@ -1320,6 +1323,11 @@ func _refresh_party_split() -> void:
 	party_bar.visible = party_ui.visible
 	if split_spacer != null:
 		split_spacer.visible = party_ui.visible
+
+## 自选分组弹层（CampaignFlow 分队边 assign: "player" 时调用）。
+func open_assign(data: Dictionary) -> void:
+	if party_ui != null:
+		party_ui.open_assign(data)
 
 ## 分装弹层（CampaignFlow 分队后调用）。
 func open_divide(data: Dictionary) -> void:

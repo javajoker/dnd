@@ -3817,6 +3817,30 @@ func test_party_split() -> void:
 	gp["encounters"]["fog_ambush"]["party_from"] = "group"
 	var gdef: Dictionary = BattleDef.assemble(gp, "fog_ambush", {}, b2)["def"]
 	check((gdef["party"] as Array).size() == 2, "小组战只派焦点组成员（白页者 + 老费）")
+	# ---- 自选分组 / 时限 / 召回 / 领队（15 §2.1/§2.3/§5.2/§7）----
+	var r4 := _split_graph(pack, 2)
+	var g4: StoryGraph = r4[0]
+	var b4: Board = r4[1]
+	var sp := _edge_of(g4, "split")
+	check(g4.party.validate_assignment(sp, {"docks": ["player_blank", "companion_kelan"], "archive": ["companion_laofei"]}) == "requires",
+		"自选分组校验：珂兰必须在档案馆")
+	check(g4.party.validate_assignment(sp, {"docks": ["player_blank"], "archive": ["companion_kelan"]}) == "unassigned",
+		"自选分组校验：每人都要有组")
+	check(g4.take_split(sp, {"docks": ["player_blank", "companion_laofei"], "archive": ["companion_kelan"]}) == ""
+		and g4.party.members("docks") == ["player_blank", "companion_laofei"], "按玩家分组分队")
+	var gold0 := g4.get_gold()
+	b4.write("global.doom_clock", b4.get_doom_clock() + 2, {"event_id": 0, "node_id": "x", "pack_id": "campaign01"})
+	g4.rescan()
+	check(not g4.party.is_split() and g4.current_id == "N1-1mj" and g4.get_gold() == maxi(gold0 - 5, 0),
+		"时限到（时间钟 +2）：强制汇合 + timeout 效果")
+	var r5 := _split_graph(pack, 2)
+	var g5: StoryGraph = r5[0]
+	g5.take_edge(_edge_of(g5, "split"))
+	check(g5.link_recall() and not g5.party.is_split() and g5.current_id == "N1-1mj", "召回：2 次联络，全队立刻会合")
+	check(g5.party.lead_enabled() and g5.party.set_lead("companion_kelan", "N1-1mj") and g5.check_mod("history") == 3
+		and Conditions.new(r5[1]).evaluate({"lead": "companion_kelan"}, {"pack_id": "campaign01"}),
+		"周目 2：可指定珂兰为领队，队伍检定用她的修正；条件 lead")
+	check(not _split_graph(pack)[0].party.set_lead("companion_kelan", "x"), "周目 1：不能换领队")
 	# ---- 线性兜底：周目 1 关闭分队 ----
 	var lp := pack.duplicate(true)
 	lp["manifest"]["progression"] = {"1": {"split": false, "links": false}, "2": {"split": true, "links": true}}
@@ -4871,7 +4895,15 @@ func test_party_flow() -> void:
 	check(idx >= 0, "渔人巷：分头行动选项")
 	m._on_story_edge(idx)
 	await process_frame
+	check(sh.party_ui.is_assigning() and not m.graph.party.is_split(), "自选分组：先弹出谁去哪里（尚未分队）")
+	check(sh.party_ui.divide_box.find_child("Member_companion_kelan", true, false).disabled, "必需成员（珂兰在档案馆）锁定不可移")
+	sh.party_ui.cycle_member("companion_laofei")
+	check(sh.party_ui._group_of("companion_laofei") == "docks" and sh.party_ui.assignment_valid(), "点按老费：换到码头组（仍合规）")
+	sh.party_ui.cycle_member("companion_laofei")
+	(sh.party_ui.divide_box.find_child("AssignDone", true, false) as Button).pressed.emit()
 	await process_frame
+	await process_frame
+	check(m.graph.party.is_split() and m.graph.party.members("docks") == ["player_blank"], "确认分组 → 分队")
 	check(sh.party_ui.is_dividing() and sh.party_ui.divide_box.get_node_or_null("DivideItem_heal_potion") != null,
 		"分队后弹出分装背包")
 	sh.party_ui.cycle_item("heal_potion")
@@ -4947,6 +4979,8 @@ func test_new_game_kit() -> void:
 	# 换一整款游戏：包根 + 清单指向 kit
 	_use_manifest("res://kit/_game/game.json")
 	check(GameManifest.default_campaign() == "starter" and not GameManifest.pack_enabled("arena"), "kit 清单：默认战役 starter，只启用自己的包")
+	check(Palette.color("accent") == Color.from_string("#8fc77a", Color.MAGENTA) and Palette.color("danger") == Color.from_string(Palette.DEFAULTS["danger"], Color.MAGENTA),
+		"调色板令牌：清单覆盖的取清单值，未覆盖的取默认（theme.palette）")
 	var m: Node = _new_main()
 	m.packs_root = "res://kit"
 	root.add_child(m)

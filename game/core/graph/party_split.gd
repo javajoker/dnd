@@ -59,6 +59,53 @@ func split_enabled() -> bool:
 func links_enabled() -> bool:
 	return bool(tier().get("links", true))
 
+## 领队可换（tier.lead = "any"，15 §7）：玩家可指定由哪位队员掷队伍的故事检定。
+func lead_enabled() -> bool:
+	return str(tier().get("lead", "player")) == "any"
+
+## 当前领队（未指定 / 未开放 = ""，即玩家模板）。
+func lead_char() -> String:
+	var c := str(board.read(_k("lead_char"), ""))
+	return "" if c == "false" or not lead_enabled() else c
+
+func set_lead(cid: String, node_id: String) -> bool:
+	if not lead_enabled() or not (pack.get("characters", {}) as Dictionary).has(cid):
+		return false
+	board.write(_k("lead_char"), cid, _prov(node_id))
+	board.stream.emit(EventTypes.LOG, {"msg_key": "MSG_PARTY_LEAD", "toast": true, "args": {
+		"name": str(((pack.get("characters", {}) as Dictionary).get(cid, {}) as Dictionary).get("name", cid))}}, &"graph", node_id)
+	return true
+
+## 队伍名单（玩家模板 + 同伴，包内顺序）——自选分组的候选。
+func roster() -> Array:
+	var out: Array = []
+	for cid: String in (pack.get("characters", {}) as Dictionary).keys():
+		if ["player_template", "companion"].has(str((pack["characters"][cid] as Dictionary).get("kind", ""))):
+			out.append(cid)
+	return out
+
+## 自选分组校验（15 §2.1 assign: "player"）：每人恰在一组；各组人数在 min~max；requires 成员在指定组。
+## assignment = {gid: [cid…]}。返回原因码（"" = 合法）。
+func validate_assignment(edge: Dictionary, assignment: Dictionary) -> String:
+	var seen := {}
+	for g: Variant in edge.get("groups", []):
+		var gd: Dictionary = g
+		var gid := str(gd.get("id", ""))
+		var ms: Array = assignment.get(gid, [])
+		if ms.size() < int(gd.get("min", 1)) or ms.size() > int(gd.get("max", 99)):
+			return "size"
+		for r: Variant in gd.get("requires", []):
+			if not ms.has(str(r)):
+				return "requires"
+		for m: Variant in ms:
+			if seen.has(str(m)):
+				return "duplicate"
+			seen[str(m)] = true
+	for cid: Variant in roster():
+		if not seen.has(str(cid)):
+			return "unassigned"
+	return ""
+
 # ---------------------------------------------------------------- 状态读取
 
 func groups() -> Dictionary:
@@ -126,15 +173,16 @@ func blocked() -> bool:
 func _write_groups(gs: Dictionary, node_id: String) -> void:
 	board.write(_k("groups"), gs, _prov(node_id))
 
-## 建组（分队边，15 §2.1）。返回首个小组 id。
-func begin(edge: Dictionary, node_id: String) -> String:
+## 建组（分队边，15 §2.1）。assignment 非空 = 玩家自选分组（已校验）。返回首个小组 id。
+func begin(edge: Dictionary, node_id: String, assignment: Dictionary = {}) -> String:
 	var gs := {}
 	var links := {}
 	var first := ""
 	for g: Variant in edge.get("groups", []):
 		var gd: Dictionary = g
 		var gid := str(gd.get("id", ""))
-		gs[gid] = {"members": (gd.get("members", []) as Array).duplicate(), "node": str(gd.get("entry", "")),
+		var ms: Array = (assignment.get(gid, gd.get("members", [])) as Array).duplicate()
+		gs[gid] = {"members": ms, "node": str(gd.get("entry", "")),
 			"status": "active", "entered": false, "steps": 0}
 		links[gid] = int(_settings().get("link_charges", DEFAULT_CHARGES))
 		if first == "":
@@ -144,6 +192,11 @@ func begin(edge: Dictionary, node_id: String) -> String:
 	board.write(_k("links"), links, _prov(node_id))
 	board.write(_k("stash"), {}, _prov(node_id))
 	board.write(_k("focus"), first, _prov(node_id))
+	# 时限汇合（15 §2.3）：时间钟走过 timeout.clock 格仍未汇合 = 强制汇合（并结算 timeout.effects）
+	var to: Dictionary = edge.get("timeout", {})
+	board.write(_k("deadline"), board.get_doom_clock() + int(to.get("clock", 0)) if to.has("clock") else 0, _prov(node_id))
+	board.write(_k("timeout_effects"), (to.get("effects", []) as Array).duplicate(true), _prov(node_id))
+	board.write(_k("allow_recall"), bool(edge.get("allow_recall", false)), _prov(node_id))
 	board.stream.emit(EventTypes.PARTY_SPLIT, {"groups": gs.duplicate(true), "rejoin": str(edge.get("rejoin", "")),
 		"label": str(edge.get("label", ""))}, &"graph", node_id)
 	return first
@@ -172,8 +225,10 @@ func set_focus(gid: String, node_id: String) -> void:
 func merge(node_id: String) -> void:
 	var gs := groups()
 	board.stream.emit(EventTypes.PARTY_REJOIN, {"groups": gs.keys(), "node": node_id}, &"graph", node_id)
-	for k: String in ["groups", "stash", "links", "help"]:
-		board.write(_k(k), {} if k != "help" else [], _prov(node_id))
+	for k: String in ["groups", "stash", "links", "help", "timeout_effects"]:
+		board.write(_k(k), {} if not (k in ["help", "timeout_effects"]) else [], _prov(node_id))
+	board.write(_k("deadline"), 0, _prov(node_id))
+	board.write(_k("allow_recall"), false, _prov(node_id))
 	board.write(_k("focus"), "", _prov(node_id))
 	board.write(_k("rejoin"), "", _prov(node_id))
 
@@ -289,6 +344,16 @@ func consume_help(gid: String, node_id: String) -> bool:
 	h.erase(gid)
 	board.write(_k("help"), h, _prov(node_id))
 	return true
+
+func deadline() -> int:
+	return int(board.read(_k("deadline"), 0))
+
+func recall_allowed() -> bool:
+	return bool(board.read(_k("allow_recall"), false))
+
+func timeout_effects() -> Array:
+	var e: Variant = board.read(_k("timeout_effects"), [])
+	return (e as Array).duplicate(true) if e is Array else []
 
 func max_items() -> int:
 	return int(_settings().get("max_items", DEFAULT_MAX_ITEMS))

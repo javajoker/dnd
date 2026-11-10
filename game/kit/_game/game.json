@@ -10,7 +10,15 @@
     "en"
   ],
   "theme": {
-    "font": ""
+    "font": "",
+    "palette": {
+      "accent": "#8fc77a",
+      "accent_soft": "#8fc77a80",
+      "bg": "#0e140f",
+      "sheet": "#121a13f7",
+      "text": "#e6eadf"
+    },
+    "home_art": ""
   },
   "audio": {
     "bgm": {

@@ -67,7 +67,7 @@ func _ready() -> void:
 
 func _build() -> void:
 	var bg := ColorRect.new()
-	bg.color = Color(0.05, 0.05, 0.08)
+	bg.color = Palette.color("bg")
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bg)
@@ -198,14 +198,7 @@ func _build_card_sheet() -> void:
 	card_sheet.anchor_right = 1.0
 	card_sheet.anchor_top = 0.42
 	card_sheet.anchor_bottom = 1.0
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.08, 0.08, 0.10, 0.97)
-	sb.corner_radius_top_left = 14
-	sb.corner_radius_top_right = 14
-	sb.border_width_top = 1
-	sb.border_color = Color(0.85, 0.75, 0.45, 0.5)
-	sb.set_content_margin_all(14)
-	card_sheet.add_theme_stylebox_override("panel", sb)
+	card_sheet.add_theme_stylebox_override("panel", Palette.sheet_style())
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 8)
 	card_sheet.add_child(v)

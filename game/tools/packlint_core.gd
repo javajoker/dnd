@@ -1309,8 +1309,17 @@ static func _v16_split(pack: Dictionary) -> Array:
 				issues.append({"v": "V16", "level": LEVEL_FAIL, "msg": "节点 %s 分队边 rejoin '%s' 不存在" % [nid, rejoin]})
 				continue
 			var seen_members := {}
+			if e.has("assign") and str(e["assign"]) not in ["player", "fixed"]:
+				issues.append({"v": "V16", "level": LEVEL_FAIL, "msg": "节点 %s 分队边 assign '%s' 非法（player / fixed）" % [nid, str(e["assign"])]})
+			if e.has("timeout") and int((e["timeout"] as Dictionary).get("clock", 0)) < 1:
+				issues.append({"v": "V16", "level": LEVEL_FAIL, "msg": "节点 %s 分队边 timeout.clock 须 ≥1" % nid})
 			for g: Variant in gs:
 				var gd: Dictionary = g
+				if int(gd.get("min", 1)) > int(gd.get("max", 99)) or int(gd.get("min", 1)) < 1:
+					issues.append({"v": "V16", "level": LEVEL_FAIL, "msg": "节点 %s 小组 %s 人数区间非法" % [nid, str(gd.get("id", ""))]})
+				for rq: Variant in gd.get("requires", []):
+					if not chars.has(str(rq)):
+						issues.append({"v": "V16", "level": LEVEL_FAIL, "msg": "节点 %s 小组 %s requires 未登记角色 '%s'" % [nid, str(gd.get("id", "")), str(rq)]})
 				var entry := str(gd.get("entry", ""))
 				if not nodes.has(entry):
 					issues.append({"v": "V16", "level": LEVEL_FAIL, "msg": "节点 %s 小组 %s 入口 '%s' 不存在" % [nid, str(gd.get("id", "")), entry]})

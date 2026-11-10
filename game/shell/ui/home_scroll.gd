@@ -23,6 +23,7 @@ const GOLD := Color(0.88, 0.72, 0.32)
 const EMBER := Color(0.95, 0.55, 0.20)
 
 const HORIZON := 0.55 # 海天分界（归一化）
+var _art_checked := false
 ## 热点坐标表（数据化：rect = 绘卷归一化区域；screen_id = 入口映射，12 §5 ① 表）。
 const HOTSPOTS: Array[Dictionary] = [
 	{"id": "tide_tower", "screen_id": &"entry", "rect": Rect2(0.06, 0.10, 0.15, 0.42)},     # 潮汐塔（远景微光）→ ② 战役入口
@@ -133,7 +134,28 @@ func _gui_input(event: InputEvent) -> void:
 
 # ---------------------------------------------------------------- 程序化绘卷（一期占位：分层色块+剪影，无外部美术资源）
 
+## 本作主屏插画（游戏清单 theme.home_art；空 = 程序化烬港夜景占位）。热点仍按 HOTSPOTS 归一化矩形响应。
+var home_art: Texture2D = null
+
+func _ready_art() -> void:
+	var path := str((GameManifest.data().get("theme", {}) as Dictionary).get("home_art", ""))
+	if path != "" and ResourceLoader.exists(path):
+		home_art = load(path) as Texture2D
+
 func _draw() -> void:
+	if home_art == null and not _art_checked:
+		_art_checked = true
+		_ready_art()
+	if home_art != null:
+		# 自定义插画：等比铺满（cover），热点只画金色微光框（插画自带建筑，不再叠剪影）
+		var ts := home_art.get_size()
+		var k := maxf(size.x / ts.x, size.y / ts.y)
+		var dst := Rect2((size - ts * k) * 0.5, ts * k)
+		draw_texture_rect(home_art, dst, false)
+		var g := breath_glow()
+		for hs: Dictionary in HOTSPOTS:
+			draw_rect(hotspot_rect(hs), Color(Palette.color("accent"), 0.15 + g * 0.35), false, 2.0)
+		return
 	var w := size.x
 	var h := size.y
 	var horizon_y := HORIZON * size.y

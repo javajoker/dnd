@@ -5,6 +5,10 @@ class_name ScreenCharacter
 extends Control
 
 signal back_requested
+signal lead_requested(cid: String) ## 设为领队（15 §7 lead: any）
+
+## 领队选择：lead_enabled = 本周目开放；lead = 当前领队 id（"" = 玩家模板）。
+var lead_info := {"enabled": false, "lead": ""}
 
 var list_box: VBoxContainer
 var back_button: Button
@@ -71,6 +75,16 @@ func bind(party: Array, bonds: Dictionary, growth: Dictionary = {}) -> void:
 			float(attrs.get("might", 0)), float(attrs.get("finesse", 0)), float(attrs.get("wits", 0)),
 			Texts.s(&"LIST_SEP").join(skill_names) if not skill_names.is_empty() else "—"]
 		list_box.add_child(l)
+		if bool(lead_info.get("enabled", false)):
+			var cid := str(d.get("id", ""))
+			var is_lead := cid == str(lead_info.get("lead", "")) or (str(lead_info.get("lead", "")) == "" and str(d.get("kind", "")) == "player_template")
+			var lb := Button.new()
+			lb.name = "Lead_%s" % cid
+			lb.custom_minimum_size = Vector2(0, 40)
+			lb.text = Texts.s(&"CHAR_IS_LEAD") if is_lead else Texts.s(&"CHAR_MAKE_LEAD")
+			lb.disabled = is_lead
+			lb.pressed.connect(func() -> void: lead_requested.emit(cid))
+			list_box.add_child(lb)
 	if not bonds.is_empty():
 		var head := Label.new()
 		head.text = Texts.s(&"BRACKET_FMT") % Texts.s(&"CHAR_BOND")

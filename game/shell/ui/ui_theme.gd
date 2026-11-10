@@ -42,6 +42,12 @@ static func apply(root: Window = null) -> bool:
 		var theme := Theme.new()
 		theme.default_font = regular
 		theme.default_font_size = SIZE_BODY
+		# 调色板令牌（游戏清单 theme.palette，tech/07 §3）：正文 / 按钮文字 / 次要文字
+		theme.set_color("font_color", "Label", Palette.color("text"))
+		theme.set_color("font_color", "Button", Palette.color("text"))
+		theme.set_color("font_pressed_color", "Button", Palette.color("accent"))
+		theme.set_color("font_hover_color", "Button", Palette.color("accent"))
+		theme.set_color("font_disabled_color", "Button", Palette.color("muted"))
 		theme_res = theme
 		if root != null:
 			root.theme = theme

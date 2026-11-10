@@ -37,14 +37,7 @@ func _ready() -> void:
 	panel.anchor_right = 1.0
 	panel.anchor_top = 0.45
 	panel.anchor_bottom = 1.0
-	var sheet := StyleBoxFlat.new() # 不透明底板：弹层内容不与背后叙事文字叠印
-	sheet.bg_color = Color(0.08, 0.08, 0.10, 0.97)
-	sheet.corner_radius_top_left = 14
-	sheet.corner_radius_top_right = 14
-	sheet.border_width_top = 1
-	sheet.border_color = Color(0.85, 0.75, 0.45, 0.5)
-	sheet.set_content_margin_all(14)
-	panel.add_theme_stylebox_override("panel", sheet)
+	panel.add_theme_stylebox_override("panel", Palette.sheet_style()) # 不透明底板（调色板令牌 sheet / accent）
 	add_child(panel)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 6)
@@ -110,7 +103,7 @@ func bind(gold: int, stock: Array, party: Array = [], p_mode: StringName = &"") 
 	if camp and not stock.is_empty():
 		var sup := Label.new()
 		sup.text = Texts.s(&"CAMP_SUPPLIES")
-		sup.add_theme_color_override("font_color", Color(0.85, 0.75, 0.45))
+		sup.add_theme_color_override("font_color", Palette.color("accent"))
 		stock_box.add_child(sup)
 	for item: Variant in stock:
 		var it: Dictionary = item

@@ -92,6 +92,7 @@ static func split_view(graph: StoryGraph, board: Board, pack: Dictionary) -> Dic
 			members.append({"id": str(cid2), "name": str((chars.get(str(cid2), {}) as Dictionary).get("name", cid2))})
 	return {"groups": groups, "blocked": party.blocked(),
 		"link": {"enabled": party.links_enabled(), "charges": party.charges(focus), "others": others,
+			"recall": party.recall_allowed(),
 			"items": items, "members": members}}
 
 ## 长文本解析（tech/02 §1.1 text_ref 机制）：ref = "texts/<locale>.json#<键>"；

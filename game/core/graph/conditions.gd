@@ -48,6 +48,8 @@ func _eval_one(key: String, expected: Variant, pack_id: String, ctx: Dictionary)
 		return _eval_item(key.substr(5), expected)
 	if key.begins_with("bond."):
 		return _cmp(_board.get_bond(key.substr(5)), expected)
+	if key == "lead":
+		return str(_board.read("%s.party.lead_char" % pack_id, "")) == str(expected)
 	if key == "in_group" or key == "group_size" or key == "thread":
 		# 队伍分合（15 §2.2）：读焦点小组；未分队时视整队为一组
 		var gs: Variant = _board.read("%s.party.groups" % pack_id, {})

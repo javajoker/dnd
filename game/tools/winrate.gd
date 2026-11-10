@@ -1,5 +1,6 @@
 # 胜率标定工具（docs/story/03-数值定稿与Boss设计.md §1 标定方法、§5 成长校核）
-# CLI：godot --headless --path game -s tools/winrate.gd [-- 局数 基种子]
+# CLI：godot --headless --path game -s tools/winrate.gd [-- 局数 基种子 [包目录]]（包目录缺省 packs/campaign01；任意包可标定）
+# 预期等级：manifest.balance.act_level（幕 id → 等级）；未声明 = 全部 Lv1。
 # - 对每场战斗型遭遇（battle/escort/hybrid）以默认队伍跑 N 局 bot（默认 200），输出胜率表；
 #   默认队伍 = 按战役进度的预期等级（序章 Lv1 / 幕二 Lv2 / 幕三 Lv3 / 终章 Lv3~4 取下限 Lv3），
 #   默认整备（空 selection：兜底技能、无道具），AutoAgent 策略链驱动（09 §9.3 同一指令通道）；
@@ -25,7 +26,10 @@ func _init() -> void:
 		games = int(args[0])
 	if args.size() >= 2:
 		base_seed = int(args[1])
-	var res := PackLoader.load_pack("res://packs/campaign01")
+	var pack_dir := "res://packs/campaign01"
+	if args.size() >= 3:
+		pack_dir = args[2] if args[2].begins_with("res://") else "res://" + args[2]
+	var res := PackLoader.load_pack(pack_dir)
 	if not res["ok"]:
 		for e: String in res["errors"]:
 			push_error(e)
@@ -33,7 +37,7 @@ func _init() -> void:
 		return
 	var pack: Dictionary = res["pack"]
 	print("== 胜率标定（story/03 §1）：每场 %d 局 bot，基种子 %d ==" % [games, base_seed])
-	print("默认队伍 = 预期等级（序章 Lv1/幕二 Lv2/幕三 Lv3/终章 Lv3）+ 默认整备（无道具）+ AutoAgent")
+	print("包 %s；默认队伍 = 预期等级（manifest.balance.act_level）+ 默认整备（无道具）+ AutoAgent" % str(pack.get("pack_id", "")))
 	print("%-8s %-6s %-4s %-9s %-8s %s" % ["遭遇", "难度", "等级", "目标胜率", "实测", "判定"])
 	var all_in := true
 	for eid: String in battle_encounters(pack):
@@ -49,7 +53,10 @@ func _init() -> void:
 			int(tgt[0]), int(tgt[1]), rate, int(r["wins"]), int(r["games"]),
 			"✓" if in_range else "✗ 超区间"])
 	print("== 胜率表%s全部落入 §1 目标区间 ==" % ("" if all_in else "未"))
-	# ---- §5 成长校核 ----
+	if str(pack.get("pack_id", "")) != "campaign01":
+		quit(0 if all_in else 1)
+		return
+	# ---- §5 成长校核（campaign01 战役书专属）----
 	print("-- §5 主线经验校核（门槛 300/700/1200，通关应达 Lv3 区间 [700,1200)） --")
 	var xp_report: Dictionary = main_path_xp(pack)
 	for chain: String in xp_report.keys():
@@ -72,10 +79,14 @@ static func battle_encounters(pack: Dictionary) -> Array[String]:
 
 ## 遭遇 → 预期队伍等级：按挂载节点的幕次映射（ACT_LEVEL）。
 static func encounter_level(pack: Dictionary, encounter_id: String) -> int:
+	var act_level: Dictionary = (((pack.get("manifest", {}) as Dictionary).get("balance", {}) as Dictionary).get("act_level", {}))
+	if act_level.is_empty() and str(pack.get("pack_id", "")) == "campaign01":
+		act_level = ACT_LEVEL # 旧口径兜底（campaign01 manifest 已声明同值）
+	var node_id := str(((pack.get("encounters", {}) as Dictionary).get(encounter_id, {}) as Dictionary).get("node", ""))
 	for nid: String in (pack.get("nodes", {}) as Dictionary).keys():
 		var n: Dictionary = pack["nodes"][nid]
-		if str(n.get("encounter", "")) == encounter_id:
-			return int(ACT_LEVEL.get(str(n.get("act", "")), 1))
+		if str(n.get("encounter", "")) == encounter_id or nid == node_id:
+			return int(act_level.get(str(n.get("act", "")), 1))
 	return 1
 
 ## 单场遭遇跑 games 局 bot。返回 {wins, games, level, results[]}（results[i]=该局 result，供确定性断言）。

@@ -77,9 +77,9 @@ The framework's UI tables (`texts_en.gd` / `texts_zh.gd`) keep **neutral** wordi
 | Font | **Done** — `theme.font` |
 | World-flavoured UI wording in framework tables | **Done** — moved to `packs/_game/texts` (§3.1) |
 | Template pack | **Done** — `kit/starter` (packlint 0 FAIL, simulation 100% coverage) |
-| Home-screen illustration | **Left** — the camp scene (lighthouse, harbour, fire) is a procedural placeholder drawn in code; a new game needs a home-art reference in the manifest |
-| Theme palette tokens | **Left** — only the font is read from the manifest; colours stay in code |
-| Battle win-rate tool for any pack | **Left** — `tools/winrate.gd` targets campaign01 |
+| Home-screen illustration | **Done** — `theme.home_art` (image path; hotspots keep working); without it the procedural Ashenport scene is drawn |
+| Theme palette tokens | **Done** — `theme.palette` (`bg`, `panel`, `sheet`, `accent`, `accent_soft`, `text`, `muted`, `success`, `danger`, `ink`; hex) feeds the UI theme and the shared sheets; colours not yet tokenised remain in screen code |
+| Battle win-rate tool for any pack | **Done** — `tools/winrate.gd -- <games> <seed> <pack dir>`, expected level per act from manifest `balance.act_level` |
 
 ## 6. Guardrails
 

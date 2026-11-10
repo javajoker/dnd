@@ -89,9 +89,12 @@
         { "type": "choice", "label": "回到雾岸小路", "to": "N1-1m" },
         { "type": "split", "label": "分头行动：守夜屋与潮汐档案馆",
           "groups": [
-            { "id": "docks", "members": ["player_blank"], "entry": "N1-1md" },
-            { "id": "archive", "members": ["companion_kelan", "companion_laofei"], "entry": "N1-1ma" }
+            { "id": "docks", "name": "码头组", "members": ["player_blank"], "entry": "N1-1md", "min": 1, "max": 2 },
+            { "id": "archive", "name": "档案馆组", "members": ["companion_kelan", "companion_laofei"], "entry": "N1-1ma",
+              "min": 1, "max": 2, "requires": ["companion_kelan"] }
           ],
+          "assign": "player", "allow_recall": true,
+          "timeout": { "clock": 2, "effects": [ { "gold": -5 } ] },
           "rejoin": "N1-1mj", "linear_fallback": "N1-1md" }
       ]
     },

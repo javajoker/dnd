@@ -33,6 +33,10 @@
       {
         "id": "b2",
         "ref": "bandit"
+      },
+      {
+        "id": "s1",
+        "ref": "scout"
       }
     ],
     "xp": 60,
@@ -66,8 +70,8 @@
         "ref": "bandit"
       },
       {
-        "id": "b3",
-        "ref": "bandit"
+        "id": "w1",
+        "ref": "wolf"
       }
     ],
     "xp": 80,
@@ -94,6 +98,10 @@
     "enemies": [
       {
         "id": "w1",
+        "ref": "wolf"
+      },
+      {
+        "id": "w2",
         "ref": "wolf"
       }
     ],

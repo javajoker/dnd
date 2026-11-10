@@ -218,6 +218,29 @@ Goal: turn the framework into a reusable D&D-style engine — new narrative game
 ### 5.5 Multiplayer (later)
 - [ ] Local pass-and-play seats → async online turns → real-time co-op (doc 15 §8)
 
+## P6 World depth, balance and production assets (started 2026-11-10)
+
+### 6.1 Framework follow-ups (from P5)
+- [x] Palette tokens in the game manifest (`theme.palette`, `Palette` class) applied to the UI theme and shared sheets; optional `theme.home_art` image for the home screen
+- [x] Win-rate tool for any pack (`tools/winrate.gd -- <games> <seed> <pack dir>`; act → level map from manifest `balance`); starter kit battles tuned into their bands
+- [x] Party split extras: player-chosen groups (`"assign": "player"` + min/max/requires + assignment sheet), lead character (`lead: "any"` tier; Character screen "Make party lead"; condition `lead`), timeout rejoin (`timeout`) and recall link (`allow_recall`); packlint V16 checks them
+
+### 6.2 Classes, backgrounds and items (worldview)
+- [ ] `classes.json`: three classes from the worldview's skill bundles — Harbor Guard / Scavenger / Ink Adept — each with attributes, Hit Die, proficiencies, basic attack, 3 class skills, starting gear
+- [ ] Backgrounds tied to Ashenport and its factions (Dockhand / Scriptorium Novice / Uninked Runaway / Salvager's Apprentice): proficiency, item, reputation, a written backstory
+- [ ] New-game screen: choose class + background (the existing hero stays as the default when none is chosen)
+- [ ] Conditions `hero_class` / `background`; class / background-gated options in campaign01
+- [ ] New items and props (consumables, gear per class, background keepsakes)
+
+### 6.3 Companions and balance
+- [ ] Healing / support skills (utility `heal`), auto-play uses them
+- [ ] Companion second skills (Kelan: mending ink; Old Fei: brace) and per-class skills in battle
+- [ ] Rebalance every battle back into its band with the win-rate tool
+
+### 6.4 Art and audio
+- [ ] Procedural assets: class portraits, new BGM (map / ending), new SFX (coin, door, card, link, throw)
+- [ ] Prompt pack for external AI tools (portraits, units, item icons, home art, map backgrounds, BGM, SFX) — `docs/en/tech/08-asset-prompts.md`
+
 ## Known gap
 
 - tech/04 §5 effect-modifier runtime pipeline (base→add→mul→override→clamp + `effect.attach`/`effect.expire` events) is not implemented. No current content uses it (no pack has an effects.json); it must land before the first pack that uses modifiers ships.

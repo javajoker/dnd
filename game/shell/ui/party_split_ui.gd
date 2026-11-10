@@ -10,6 +10,7 @@ extends VBoxContainer
 signal focus_requested(gid: String)
 signal link_requested(action: String) ## "help:<gid>" / "send:<iid>:<gid>" / "move:<cid>:<gid>"
 signal divided(assign: Dictionary)
+signal assigned(assignment: Dictionary) ## 自选分组完成（15 §2.1 assign: "player"）
 signal pane_changed(shown: bool) ## 分屏窗格显隐（横屏据此把焦点故事区收窄到左侧）
 
 var tabs_row: HBoxContainer
@@ -25,18 +26,12 @@ var divide_sheet: PanelContainer
 var divide_box: VBoxContainer
 var split_view := false
 var _split: Dictionary = {}
-var _divide: Dictionary = {} # {groups:[{id,label}], items:[{id,name,count}], assign:{gid:{iid:n}}}
+var _divide: Dictionary = {}
+var _assign: Dictionary = {} # {groups:[{id,label,min,max,requires}], roster:[{id,name}], assign:{gid:[cid]}} # {groups:[{id,label}], items:[{id,name,count}], assign:{gid:{iid:n}}}
 var _pane_gid := ""
 
 static func _sheet_style() -> StyleBoxFlat:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.08, 0.08, 0.10, 0.97)
-	sb.corner_radius_top_left = 14
-	sb.corner_radius_top_right = 14
-	sb.border_width_top = 1
-	sb.border_color = Color(0.85, 0.75, 0.45, 0.5)
-	sb.set_content_margin_all(12)
-	return sb
+	return Palette.sheet_style()
 
 func _init() -> void:
 	name = "PartySplitUi"
@@ -83,7 +78,7 @@ func _init() -> void:
 	var hint := Label.new()
 	hint.text = Texts.s(&"PARTY_TAP_SWITCH")
 	hint.add_theme_font_size_override("font_size", 11)
-	hint.add_theme_color_override("font_color", Color(0.85, 0.75, 0.45))
+	hint.add_theme_color_override("font_color", Palette.color("accent"))
 	pv.add_child(hint)
 	split_pane.gui_input.connect(func(ev: InputEvent) -> void:
 		if ev is InputEventMouseButton and (ev as InputEventMouseButton).pressed and _pane_gid != "":
@@ -221,6 +216,8 @@ func _open_link_sheet() -> void:
 					var md: Dictionary = mm
 					link_box.add_child(_sheet_button(Texts.s(&"LINK_MOVE") % [str(md["name"]), str(od["label"])],
 						"move:%s:%s" % [str(md["id"]), str(od["id"])], ch >= 2))
+		if bool(link.get("recall", false)):
+			link_box.add_child(_sheet_button(Texts.s(&"LINK_RECALL"), "recall", int(link.get("charges", 0)) >= 2))
 		if link_box.get_child_count() == 1:
 			var l2 := Label.new()
 			l2.text = Texts.s(&"LINK_NONE")
@@ -338,3 +335,111 @@ func _render_divide() -> void:
 ## 测试探针：当前分装。
 func divide_assign() -> Dictionary:
 	return (_divide.get("assign", {}) as Dictionary).duplicate(true)
+
+# ---------------------------------------------------------------- 自选分组（15 §2.1）
+
+## data = {groups:[{id,label,min,max,requires}], roster:[{id,name}], assign:{gid:[cid]}}（assign = 默认建议）。
+func open_assign(data: Dictionary) -> void:
+	_assign = data.duplicate(true)
+	_render_assign()
+	divide_sheet.visible = true
+
+func is_assigning() -> bool:
+	return divide_sheet.visible and not _assign.is_empty()
+
+func _group_of(cid: String) -> String:
+	for gid: Variant in (_assign.get("assign", {}) as Dictionary).keys():
+		if ((_assign["assign"] as Dictionary)[gid] as Array).has(cid):
+			return str(gid)
+	return ""
+
+## 把 cid 换到 gid（拖放落点）。
+func move_to(cid: String, gid: String) -> void:
+	var a: Dictionary = _assign.get("assign", {})
+	for g: Variant in a.keys():
+		(a[g] as Array).erase(cid)
+	if not a.has(gid):
+		a[gid] = []
+	(a[gid] as Array).append(cid)
+	_render_assign()
+
+## 点按：换到下一组。
+func cycle_member(cid: String) -> void:
+	var gs: Array = _assign.get("groups", [])
+	var cur := _group_of(cid)
+	for i: int in gs.size():
+		if str((gs[i] as Dictionary)["id"]) == cur:
+			move_to(cid, str((gs[(i + 1) % gs.size()] as Dictionary)["id"]))
+			return
+
+## 前端预校验（core 再校验一次）：人数与必需成员。
+func assignment_valid() -> bool:
+	for g: Variant in _assign.get("groups", []):
+		var gd: Dictionary = g
+		var ms: Array = (_assign.get("assign", {}) as Dictionary).get(str(gd["id"]), [])
+		if ms.size() < int(gd.get("min", 1)) or ms.size() > int(gd.get("max", 99)):
+			return false
+		for r: Variant in gd.get("requires", []):
+			if not ms.has(str(r)):
+				return false
+	return true
+
+func _render_assign() -> void:
+	_clear(divide_box)
+	var title := Label.new()
+	title.add_theme_font_size_override("font_size", 18)
+	title.text = Texts.s(&"PARTY_ASSIGN_TITLE")
+	divide_box.add_child(title)
+	var hint := Label.new()
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.add_theme_font_size_override("font_size", 12)
+	hint.text = Texts.s(&"PARTY_ASSIGN_HINT")
+	divide_box.add_child(hint)
+	var names := {}
+	for r: Variant in _assign.get("roster", []):
+		names[str((r as Dictionary)["id"])] = str((r as Dictionary).get("name", ""))
+	for g: Variant in _assign.get("groups", []):
+		var gd: Dictionary = g
+		var gid := str(gd["id"])
+		var head := Button.new()
+		head.name = "AssignGroup_%s" % gid
+		head.custom_minimum_size = Vector2(0, 40)
+		head.text = Texts.s(&"PARTY_ASSIGN_RULE") % [str(gd.get("label", gid)), int(gd.get("min", 1)), int(gd.get("max", 99))]
+		head.set_drag_forwarding(Callable(), func(_p: Vector2, d: Variant) -> bool: return d is Dictionary and (d as Dictionary).has("assign_member"),
+			func(_p: Vector2, d: Variant) -> void: move_to(str((d as Dictionary)["assign_member"]), gid))
+		divide_box.add_child(head)
+		var row := HFlowContainer.new()
+		for cid: Variant in (_assign.get("assign", {}) as Dictionary).get(gid, []):
+			var c := str(cid)
+			var b := Button.new()
+			b.name = "Member_%s" % c
+			b.custom_minimum_size = Vector2(0, 44)
+			var required := (gd.get("requires", []) as Array).has(c)
+			b.text = ("🔒 " if required else "") + str(names.get(c, c))
+			b.disabled = required
+			b.pressed.connect(func() -> void: cycle_member(c))
+			b.set_drag_forwarding(func(_p: Vector2) -> Variant:
+				var pv := Label.new()
+				pv.text = str(names.get(c, c))
+				b.set_drag_preview(pv)
+				return {"assign_member": c}, Callable(), Callable())
+			row.add_child(b)
+		divide_box.add_child(row)
+	var ok := assignment_valid()
+	if not ok:
+		var warn := Label.new()
+		warn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		warn.add_theme_color_override("font_color", Palette.color("danger"))
+		warn.text = Texts.s(&"PARTY_ASSIGN_INVALID")
+		divide_box.add_child(warn)
+	var done := Button.new()
+	done.name = "AssignDone"
+	done.text = Texts.s(&"PARTY_ASSIGN_DONE")
+	done.custom_minimum_size = Vector2(0, 48)
+	done.disabled = not ok
+	done.pressed.connect(func() -> void:
+		divide_sheet.visible = false
+		var out := (_assign.get("assign", {}) as Dictionary).duplicate(true)
+		_assign = {}
+		assigned.emit(out))
+	divide_box.add_child(done)

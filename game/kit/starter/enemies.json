@@ -24,5 +24,18 @@
       "finesse": 2,
       "wits": 0
     }
+  },
+  {
+    "id": "scout",
+    "name": "Bandit Scout",
+    "hp": 4,
+    "ac": 10,
+    "attack_mod": 1,
+    "damage": "1d4",
+    "attrs": {
+      "might": 0,
+      "finesse": 1,
+      "wits": 0
+    }
   }
 ]

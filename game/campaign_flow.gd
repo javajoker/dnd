@@ -22,6 +22,7 @@ var _settle_lines: Array[String] = [] # 结算汇总缓存（卷轴往返 / 加�
 var _settle_celebrated := false # 本场胜利演出已播（04 §④.8：加点/卷轴往返重绑不重播）
 var _map_battle := false # 本场遭遇由地图/事件表触发（16 §4）：胜负都回地图，不走节点出边
 var maps: MapFlow        # 地图与场所流程（docs/en/framework/16）
+var _pending_split: Dictionary = {} # 等待玩家分组的分队边（15 §2.1）
 
 func _init(main: Node) -> void:
 	m = main
@@ -166,6 +167,10 @@ func _on_story_edge(idx: int) -> void:
 		m.stream.emit(EventTypes.LOG, {"msg_key": "MSG_STORY_ECHO", "args": {
 			"title": str(m.graph.current().get("title", "")),
 			"text": str(edge.get("label", Texts.s(&"STORY_CONTINUE")))}}, &"core", m.graph.current_id)
+	if str(edge.get("type", "")) == "split" and str(edge.get("assign", "")) == "player":
+		_pending_split = edge # 自选分组（15 §2.1）：先让玩家决定谁去哪里，确认后才分队
+		m.shell.open_assign(_assign_data(edge))
+		return
 	if str(edge.get("type", "")) == "check":
 		var res: Dictionary = m.graph.roll_check(edge)
 		await m.get_tree().create_timer(2.3 if bool(res.get("key", false)) else 0.8).timeout # 等演出落定
@@ -181,6 +186,21 @@ func _sync_item_names() -> void:
 	for iid: String in (m.pack.get("items", {}) as Dictionary).keys():
 		inames[iid] = str((m.pack["items"][iid] as Dictionary).get("name", iid))
 	BattleText.item_names = inames
+
+## 自选分组弹层数据：分组规则 + 队伍名单 + 默认建议（分队边的 members）。
+func _assign_data(edge: Dictionary) -> Dictionary:
+	var chars: Dictionary = m.pack.get("characters", {})
+	var groups: Array = []
+	var assign := {}
+	for g: Variant in edge.get("groups", []):
+		var gd: Dictionary = g
+		groups.append({"id": str(gd["id"]), "label": str(gd.get("name", gd["id"])), "min": int(gd.get("min", 1)),
+			"max": int(gd.get("max", 99)), "requires": (gd.get("requires", []) as Array).duplicate()})
+		assign[str(gd["id"])] = (gd.get("members", []) as Array).duplicate()
+	var roster: Array = []
+	for cid: Variant in m.graph.party.roster():
+		roster.append({"id": str(cid), "name": str((chars.get(str(cid), {}) as Dictionary).get("name", cid))})
+	return {"groups": groups, "roster": roster, "assign": assign}
 
 ## 分装弹层数据：各组 + 可用道具 + 默认分配（壳内调整后回传 divide）。
 func _open_divide() -> void:
@@ -219,12 +239,29 @@ func _on_hub_action(action: String, arg: String) -> void:
 		"link": # 联络（15 §5）："help:<gid>" / "send:<iid>:<gid>" / "move:<cid>:<gid>"
 			var parts := arg.split(":")
 			match parts[0]:
+				"recall":
+					if m.graph.link_recall():
+						_present_node()
+						return
 				"help":
 					m.graph.link_help(parts[1])
 				"send":
 					m.graph.party.send_item(parts[1], 1, parts[2], m.graph.current_id)
 				"move":
 					m.graph.link_move(parts[1], parts[2])
+		"assign": # 自选分组完成（15 §2.1）→ 真正分队 → 分装背包
+			var assignment: Variant = JSON.parse_string(arg)
+			if assignment is Dictionary and not _pending_split.is_empty():
+				var edge := _pending_split
+				_pending_split = {}
+				if m.graph.take_split(edge, assignment) == "":
+					_present_node()
+					_open_divide()
+			return
+		"recall":
+			if m.graph.link_recall():
+				_present_node()
+			return
 		"divide": # 分装背包（15 §3.3）
 			var assign: Variant = JSON.parse_string(arg)
 			if assign is Dictionary:

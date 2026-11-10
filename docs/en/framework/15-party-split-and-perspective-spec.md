@@ -239,10 +239,16 @@ Not in scope for implementation; the constraints below keep it possible and are 
 - Layouts: portrait group bar under the status band (story content moves down to make room), "Meanwhile" ticker, ⧉ split pane over the lower main view; landscape group bar over the centre, side-by-side pane (the focused story narrows to the left);
 - packlint V16 (thread integrity, members registered and unique, every thread reaches the rejoin node, no node with only remote edges), V17 (`party_from` value), V18 (gated splits have a `linear_fallback`).
 
+**Added in P6.1**
+
+- `"assign": "player"`: before splitting, a *Who goes where?* sheet lists each group with its `min`–`max` size; tap a companion to move them to the next group or drag them onto a group; members listed in a group's `requires` are locked there. The split edge's `members` are the suggested default. Core re-validates (`validate_assignment`);
+- `lead: "any"` (progression tier): the Character screen offers *Make party lead*; while not split, story checks are rolled with the lead's modifiers; condition `lead: "<char id>"` lets content react. (This is "who speaks for the party", not a change of player character);
+- `timeout: {"clock": n, "effects": [...]}` on a split edge: when the Doom Clock has advanced `n` segments since the split, every group is pulled to the rejoin node and the effects apply;
+- `allow_recall: true`: a *Recall everyone* link (2 charges) regroups immediately at the rejoin node.
+
+campaign01's demo now uses all four: player-chosen groups (Kelan must go to the archive, 1–2 people per group), a 2-segment time limit costing 5 gold, recall, and party-lead choice from the second playthrough.
+
 **Not built yet**
 
-- `"assign": "player"` (players choosing who goes where) — groups use the fixed `members` lists;
-- `lead: "any"` (starting the campaign as a companion);
-- `timeout` edges forcing an early rejoin, and `allow_recall`;
 - Simultaneous battles in split view (one battle at a time; other groups pause);
 - Multiplayer (§8 constraints are respected by the implementation: all writes go through core, commands stay isomorphic, rolls are made in core).
