@@ -120,6 +120,7 @@ func _async_shell_tests() -> void:
 	await test_camp_flow()
 	await test_loadout_v2()
 	await test_map_flow()
+	await test_pre_battle_camp()
 	await test_party_flow()
 	await test_new_game_kit()
 	await test_hero_flow()
@@ -1609,6 +1610,28 @@ func test_juice() -> void:
 	check(portrait.juice.shake_max_dev > 0.0, "竖屏：震动产生实际位移（≤2px 档）")
 	await create_timer(0.2).timeout
 	check(portrait.position == Vector2.ZERO and not portrait.juice.is_shaking(), "竖屏：小震结束归位")
+	# 连击叠震不漂移：震动进行中再震沿用原基准（曾因每次取当前位做基准，多场战斗后整屏偏移）
+	var jl := JuiceLayer.new()
+	var jt := Control.new()
+	root.add_child(jt)
+	root.add_child(jl)
+	jt.position = Vector2(12, 0) # 非零原位（安全区内缩等）
+	jl.shake_target = jt
+	jl.shake_override = 1
+	for k: int in 40:
+		jl._shake_start(JuiceConfig.SHAKE_SMALL)
+		jl._tick_shake(0.03)
+	jl._tick_shake(5.0)
+	check(jt.position == Vector2(12, 0), "叠震 40 次后归位原点（无累积漂移）")
+	jl._shake_start(JuiceConfig.SHAKE_BIG)
+	jl._tick_shake(0.02)
+	jl.reset()
+	check(jt.position == Vector2(12, 0), "震动中换局 reset：归位原点")
+	jt.position = Vector2(30, 0) # 两场之间布局变化（换向 / 安全区）
+	jl.reset()
+	check(jt.position == Vector2(30, 0), "空闲时 reset 不改位置（不套用旧布局的基准）")
+	jl.queue_free()
+	jt.queue_free()
 	# 暴击：金色加大飘字 + 大震
 	stream.emit(EventTypes.BATTLE_ATTACK, _atk_ev(target, true, true, 14)["payload"], &"core", "N1-7")
 	await process_frame
@@ -4967,6 +4990,71 @@ func test_map_flow() -> void:
 	sc.card_option.emit(1)
 	await process_frame
 	check(not sc.is_card_open() and int(m.board.read("campaign01.inspiration", 0)) == 1, "选项结算：激励 +1，弹层收起")
+	m.queue_free()
+	await process_frame
+
+# ---------------------------------------------------------------- 开战前扎营 / 补给 / 用道具（11 §7.2 / §8.2）
+
+func test_pre_battle_camp() -> void:
+	print("[pre_battle_camp]")
+	var m: Node = _new_main()
+	root.add_child(m)
+	await process_frame
+	await process_frame
+	m._on_home_navigate(&"entry")
+	await process_frame
+	(m.current_screen as ScreenEntry).pick_mode(ShellRouter.MODE_TIME)
+	(m.current_screen as ScreenEntry).start_requested.emit()
+	await process_frame
+	await process_frame
+	var g: StoryGraph = m.graph
+	var prov := {"event_id": m.stream.tail(), "node_id": "N1-7", "pack_id": "campaign01"}
+	# ---- core：可用道具 = 治疗类；投掷类排除；满血拒绝；用掉扣 1 ----
+	m.board.give_item("ink_flask", 1, prov)
+	var ids: Array = g.camp_usable_items().map(func(u: Dictionary) -> String: return str(u["id"]))
+	check(ids.has("heal_potion") and not ids.has("ink_flask") and not ids.has("tide_bomb"),
+		"营地可用道具：治疗药水在列，投掷类（墨瓶 / 潮汐弹）不在列")
+	check(str(g.use_item("player_blank", "heal_potion").get("reason", "")) == "full", "满血不用药（拒绝且不扣道具）")
+	check(str(g.use_item("player_blank", "ink_flask").get("reason", "")) == "not_usable", "投掷道具战斗外不可用")
+	m.board.write("campaign01.hp.player_blank", 3, prov)
+	var potions: int = m.board.item_count("heal_potion")
+	var res: Dictionary = g.use_item("player_blank", "heal_potion")
+	check(bool(res["ok"]) and g.hp_of("player_blank") == 3 + int(res["heal"]) and int(res["heal"]) >= 3
+		and m.board.item_count("heal_potion") == potions - 1, "用药回血（1d4+2）并消耗 1 瓶")
+	check(m.stream.query_by_type(EventTypes.LOG).any(func(e: Dictionary) -> bool:
+		return str(e["payload"].get("msg_key", "")) == "MSG_CAMP_ITEM" and not (e["payload"].get("dice", []) as Array).is_empty()),
+		"用药写日志（带骰子，可上骰条）")
+	# ---- 流程：战斗节点 → 整备屏有「扎营与补给」→ 弹层用药 → 整备 HP 刷新、已选保留 ----
+	m.board.write("campaign01.hp.companion_kelan", 2, prov)
+	m.graph._enter("N1-7")
+	m._present_node()
+	await process_frame
+	await process_frame
+	check(m.current_screen is ScreenLoadout, "战斗节点 → 整备屏")
+	var lo := m.current_screen as ScreenLoadout
+	check(lo.camp_button != null and lo.camp_button.is_inside_tree(), "整备屏有「扎营与补给」按钮")
+	lo.tap_library(ScreenLoadout.LIB_SKILLS, "inkbolt")
+	lo.camp_button.pressed.emit()
+	await process_frame
+	check(lo.camp_popup.visible and lo.camp_popup.mode == HubPopup.MODE_CAMP, "点按 → 营地弹层（营地模式）")
+	var give := lo.camp_popup.use_box.get_node_or_null("Use_heal_potion/Give_companion_kelan")
+	check(give != null, "用道具段：治疗药水 → 「给 Kelan」按钮（伤员才有）")
+	check(lo.camp_popup.use_box.get_node_or_null("Use_heal_potion/Give_companion_laofei") == null, "满血队员无给药按钮")
+	(give as Button).pressed.emit()
+	await process_frame
+	var kelan_hp := g.hp_of("companion_kelan")
+	check(kelan_hp > 2, "弹层给药：Kelan 回血")
+	var card := lo.party_bar.get_node_or_null("Card_companion_kelan") as Button
+	check(card != null and card.text.contains("%d/" % kelan_hp), "整备队伍卡 HP 即时刷新")
+	check(lo.picked_skills().has("inkbolt"), "营地动作后已选技能保留")
+	check(lo.camp_popup.visible, "用药后弹层保持打开")
+	var gold0: int = g.get_gold()
+	lo.camp_popup.buy_requested.emit("heal_potion")
+	await process_frame
+	check(g.get_gold() < gold0, "开战前在营地补给（购买扣金币）")
+	lo.camp_popup.short_rest_requested.emit("player_blank")
+	await process_frame
+	check(m.current_screen is ScreenLoadout, "短休后仍在整备屏（可直接开战）")
 	m.queue_free()
 	await process_frame
 

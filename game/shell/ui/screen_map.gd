@@ -191,6 +191,8 @@ func _build() -> void:
 	camp_popup.buy_requested.connect(func(iid: String) -> void: camp_action.emit("buy", iid))
 	camp_popup.short_rest_requested.connect(func(cid: String) -> void: camp_action.emit("short_rest", cid))
 	camp_popup.rest_requested.connect(func() -> void: camp_action.emit("long_rest", ""))
+	camp_popup.use_item_requested.connect(func(iid: String, cid: String) -> void:
+		camp_action.emit("use_item", "%s:%s" % [iid, cid]))
 	add_child(camp_popup)
 
 func _build_card_sheet() -> void:
@@ -257,11 +259,13 @@ func is_card_open() -> bool:
 	return card_sheet.visible
 
 func open_camp(data: Dictionary) -> void:
+	camp_popup.usable = data.get("usable", [])
 	camp_popup.open(int(data.get("gold", 0)), data.get("stock", []), data.get("party", []),
 		HubPopup.MODE_CAMP, bool(data.get("rest_free", false)))
 
 func sync_camp(data: Dictionary) -> void:
 	if camp_popup.visible:
+		camp_popup.usable = data.get("usable", [])
 		camp_popup.bind(int(data.get("gold", 0)), data.get("stock", []), data.get("party", []))
 
 static func _check_tag(chk: Dictionary) -> String:

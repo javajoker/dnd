@@ -56,9 +56,9 @@ func reset() -> void:
 	last_dissolve_fragments = 0
 	for k: String in stats:
 		stats[k] = 0
+	if _shake_left > 0.0 and shake_target != null and is_instance_valid(shake_target):
+		shake_target.position = _shake_base # 只在震动进行中归位；空闲时不碰（旧基准可能来自另一种布局）
 	_shake_left = 0.0
-	if shake_target != null and is_instance_valid(shake_target):
-		shake_target.position = _shake_base
 
 ## 壳事件回调入口（唯一输入：事件流）。只登记规格，不立即播出。
 func on_event(ev: Dictionary) -> void:
@@ -158,12 +158,21 @@ func _hit_feedback(spec: Dictionary) -> void:
 	if dir == Vector2.ZERO:
 		var ang := deg_to_rad(float(_rng.range_int(0, 359)))
 		dir = Vector2(cos(ang), sin(ang))
-	var home := node.position
+	# 原位：连续受击时沿用第一次记下的原位（击退中再击退不以偏移位为家，防漂移）
+	var home: Vector2 = node.get_meta(&"juice_home", node.position)
+	node.set_meta(&"juice_home", home)
 	stats["knockbacks"] += 1
+	var prev: Variant = node.get_meta(&"juice_kb", null)
+	if prev is Tween and (prev as Tween).is_valid():
+		(prev as Tween).kill() # 新击退接管：旧击退不再写位置
 	var ktw := node.create_tween()
+	node.set_meta(&"juice_kb", ktw)
 	ktw.tween_property(node, "position", home + dir * JuiceConfig.KNOCKBACK_PX,
 		JuiceConfig.KNOCKBACK_TIME * 0.5)
 	ktw.tween_property(node, "position", home, JuiceConfig.KNOCKBACK_TIME * 0.5)
+	ktw.tween_callback(func() -> void:
+		node.remove_meta(&"juice_home")
+		node.remove_meta(&"juice_kb"))
 
 # ---------------------------------------------------------------- #3-3 击杀消散（墨色碎片 + 淡出 0.5s）
 
@@ -224,7 +233,8 @@ func _shake_start(level: int) -> void:
 	shake_max_dev = 0.0
 	if shake_target == null or not is_instance_valid(shake_target):
 		return
-	_shake_base = shake_target.position
+	if _shake_left <= 0.0:
+		_shake_base = shake_target.position # 只在静止时取基准：震动中再震沿用原基准，否则偏移逐次累积（整屏漂移）
 	_shake_amp = float(params["amp"])
 	_shake_left = float(params["dur"]) # 新震覆盖旧震（就近原则：最近一次事件说了算）
 

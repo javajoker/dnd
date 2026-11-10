@@ -142,7 +142,7 @@ Recovery between fights follows the d20 core rules' two kinds of rest, turning "
 
 - **Hit Dice**: each party member has as many as the party level; the die comes from `hit_die` in `characters.json` (default d8; launch: the Unwritten d10, Old Fei d8, Kelan d6); spent dice are tracked in `<ns>.hd_spent.<char_id>` (a bookkeeping key, never read out to the player);
 - A short rest is refused at full HP (no wasted dice) and with no Hit Dice left;
-- **Camp access**: the "Make Camp" exit on the victory settle screen, plus any non-hub, non-battle story node once the party has fought at least once (it never appears in the Prologue tutorial); camp also offers **Supplies** (the same stock and prices as the hub shop);
+- **Camp access**: the "Make Camp" exit on the victory settle screen, the **"Camp & supplies" button on the Loadout screen before every campaign battle** (so a party can heal, shop and drink potions before it commits), the region map's "Make Camp", plus any non-hub, non-battle story node once the party has fought at least once (it never appears in the Prologue tutorial); camp also offers **Supplies** (the same stock and prices as the hub shop) and **Use items** (§8.2);
 - A long rest in the wild advances the clock, which may fire `doom_clock` edges/events — that is the cost: the more you rest, the faster the world fades.
 
 ### 7.3 Battle gold
@@ -181,6 +181,7 @@ Recovery between fights follows the d20 core rules' two kinds of rest, turning "
 - Items picked into the **quick pouch** at loadout (`item_slots` of them) are used in combat as a **bonus action**;
 - Every other usable item you own is in the **pack**: still usable in combat, but rummaging costs **1 action** — choosing what goes in the pouch is a real trade-off, not "if you didn't bring it you can't use it";
 - Items are shared by the party: anyone can use them on their turn, drawing from the same stock;
+- **Outside combat** (camp, hub shop, the camp on the Loadout screen): healing items (`use.heal`) can be given to any wounded party member — roll `use.heal`, capped at max HP, `consume` items are used up; refused at full HP; thrown / `target: enemy` items are combat-only. The roll is logged with its dice (`MSG_CAMP_ITEM`);
 - Items with `use.timing: action` (such as a thrown Ink Flask) cost an action wherever they are; items with `use.target: enemy` make an attack roll (d20 + Finesse vs AC, rolling `use.damage` on a hit) and can be dragged onto an enemy.
 
 ## 9. Difficulty calibration and placement pacing (for content authors)

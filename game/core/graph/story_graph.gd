@@ -522,6 +522,46 @@ func short_rest(cid: String) -> Dictionary:
 			"heal": new_hp - hp, "hp": new_hp, "max_hp": mx}}, &"graph", current_id)
 	return {"ok": true, "roll": roll, "heal": new_hp - hp, "hp": new_hp, "max_hp": mx}
 
+## 营地可用道具（战斗外，11 §8.2）：items.json 带 use.heal 的条目，且当前（焦点组）持有 >0。
+## 投掷 / 伤害类（use.target = enemy）只在战斗中用。
+func camp_usable_items() -> Array:
+	var out: Array = []
+	for iid: String in (pack.get("items", {}) as Dictionary).keys():
+		var it: Dictionary = pack["items"][iid]
+		var use: Dictionary = it.get("use", {})
+		if not use.has("heal") or str(use.get("target", "")) == "enemy":
+			continue
+		var n := party.available(iid)
+		if n > 0:
+			out.append({"id": iid, "name": str(it.get("name", iid)), "heal": str(use["heal"]), "count": n})
+	return out
+
+## 战斗外使用治疗道具：掷 use.heal 回复 HP（不超上限），consume 道具扣 1；满血 / 不持有 / 非治疗道具拒绝。
+func use_item(cid: String, iid: String) -> Dictionary:
+	if not party_ids().has(cid):
+		return {"ok": false, "reason": "unknown"}
+	var it: Dictionary = (pack.get("items", {}) as Dictionary).get(iid, {})
+	var use: Dictionary = it.get("use", {})
+	if not use.has("heal") or str(use.get("target", "")) == "enemy":
+		return {"ok": false, "reason": "not_usable"}
+	if party.available(iid) <= 0:
+		return {"ok": false, "reason": "none"}
+	var mx := max_hp_of(cid)
+	var hp := hp_of(cid)
+	if hp >= mx:
+		return {"ok": false, "reason": "full", "hp": hp, "max_hp": mx}
+	var r := LightV1.roll_damage(rng, str(use["heal"]))
+	var new_hp := mini(mx, hp + int(r["total"]))
+	board.write("%s.hp.%s" % [pack_id, cid], new_hp, _hub_prov())
+	if bool(use.get("consume", false)):
+		board.remove_item(iid, 1, _hub_prov())
+	var c: Dictionary = pack["characters"][cid]
+	board.stream.emit(EventTypes.LOG, {"msg_key": "MSG_CAMP_ITEM", "toast": true,
+		"dice": LightV1.expr_dice(str(use["heal"]), r["rolls"]), "item": iid, "unit": cid, "healed": new_hp - hp,
+		"args": {"name": str(c.get("name", cid)), "item": str(it.get("name", iid)), "heal": new_hp - hp,
+			"hp": new_hp, "max_hp": mx}}, &"graph", current_id)
+	return {"ok": true, "heal": new_hp - hp, "hp": new_hp, "max_hp": mx}
+
 ## 长休：全队 HP 全满 + 生命骰清零花费；at_inn=false（野外营地）推进末日时钟 +1，
 ## 时钟写板后复查 doom_clock 触发（可能直接把剧情推到触发节点，调用方需重新呈现）。
 func long_rest(at_inn: bool) -> Dictionary:

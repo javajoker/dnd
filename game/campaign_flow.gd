@@ -22,6 +22,7 @@ var _settle_lines: Array[String] = [] # 结算汇总缓存（卷轴往返 / 加�
 var _settle_celebrated := false # 本场胜利演出已播（04 §④.8：加点/卷轴往返重绑不重播）
 var _map_battle := false # 本场遭遇由地图/事件表触发（16 §4）：胜负都回地图，不走节点出边
 var maps: MapFlow        # 地图与场所流程（docs/en/framework/16）
+var _loadout_cfg: Dictionary = {} # 当前整备配置（营地动作后重算备选用）
 var _pending_split: Dictionary = {} # 等待玩家分组的分队边（15 §2.1）
 ## 跳过建角（测试 / 截图走"缺省白页者"路径；正式游戏为 false）。
 static var skip_hero_creation := false
@@ -255,6 +256,12 @@ func _on_hub_action(action: String, arg: String) -> void:
 			m.graph.long_rest(m.graph.rest_is_free())
 		"inspire":
 			m.graph.arm_inspiration(not m.graph.inspiration_armed)
+		"use_item": # 战斗外用治疗道具（11 §8.2）："<item_id>:<char_id>"
+			var ui := arg.split(":")
+			if ui.size() == 2:
+				var res: Dictionary = m.graph.use_item(ui[1], ui[0])
+				if not bool(res.get("ok", false)) and str(res.get("reason", "")) == "full":
+					m.stream.emit(EventTypes.LOG, {"msg_key": "CAMP_FULL", "toast": true}, &"core", m.graph.current_id)
 		"focus": # 切换焦点小组（15 §4.1）：目标组的节点可能是战斗 / 地图，走统一呈现
 			if m.graph.focus_group(arg):
 				_present_node()
@@ -297,6 +304,11 @@ func _on_hub_action(action: String, arg: String) -> void:
 	if m.graph.current_id != before: # 时钟触发改道：弹层随旧节点作废
 		_present_node()
 		return
+	if m.current_screen is ScreenLoadout: # 开战前扎营：刷新弹层 + 整备备选（HP / 道具数变了，选择保留）
+		var lo := m.current_screen as ScreenLoadout
+		lo.sync_camp(_camp_data())
+		lo.update_candidates(_loadout_candidates(_loadout_cfg))
+		return
 	if m.current_screen is ScreenSettle: # 结算屏营地（战斗之间）：只刷新弹层
 		(m.current_screen as ScreenSettle).sync_camp(_camp_data())
 		return
@@ -311,7 +323,7 @@ func _on_hub_action(action: String, arg: String) -> void:
 ## 营地弹层数据（结算屏用；故事态由 StoryVM 提供同口径字段）。
 func _camp_data() -> Dictionary:
 	return {"gold": m.graph.get_gold(), "stock": m.graph.hub_stock(), "party": m.graph.party_status(),
-		"rest_free": m.graph.rest_is_free()}
+		"rest_free": m.graph.rest_is_free(), "usable": m.graph.camp_usable_items()}
 
 ## 切片终点（出 SL-0/SL-1 范围或结局节点）：结算快照落盘（07 §4.2 主快照点）+ ⑨结算屏。
 func _end_slice() -> void:
@@ -467,6 +479,9 @@ func _enter_encounter(enc_override: String = "") -> void:
 	screen.bind(cfg, _loadout_candidates(cfg))
 	screen.confirmed.connect(_on_loadout_confirmed.bind(cfg))
 	screen.back_requested.connect(_present_node) # 整备可退回节点（04 §5 有退路）
+	_loadout_cfg = cfg
+	screen.camp_pressed.connect(func() -> void: screen.open_camp(_camp_data())) # 开战前扎营 / 补给 / 用药（11 §7.2）
+	screen.camp_action.connect(_on_hub_action)
 
 ## 整备备选（09 §9.1 v2 逐角色整备）：
 ## - skills = 玩家模板已习得 ∩ skills.json（tech/04 §7）；items = 背包含 use 块条目（快取袋候选，tech/04 §4）；

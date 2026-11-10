@@ -67,6 +67,8 @@ func _build() -> void:
 	camp_popup.buy_requested.connect(func(iid: String) -> void: camp_action.emit("buy", iid))
 	camp_popup.short_rest_requested.connect(func(cid: String) -> void: camp_action.emit("short_rest", cid))
 	camp_popup.rest_requested.connect(func() -> void: camp_action.emit("long_rest", ""))
+	camp_popup.use_item_requested.connect(func(iid: String, cid: String) -> void:
+		camp_action.emit("use_item", "%s:%s" % [iid, cid]))
 	add_child(camp_popup)
 
 func _make_common_widgets() -> void:
@@ -252,11 +254,13 @@ func is_landscape_layout() -> bool:
 
 ## 打开营地弹层（data = {gold, stock, party, rest_free}，引导层 CampaignFlow._camp_data 组装）。
 func open_camp(data: Dictionary) -> void:
+	camp_popup.usable = data.get("usable", [])
 	camp_popup.open(int(data.get("gold", 0)), data.get("stock", []), data.get("party", []),
 		HubPopup.MODE_CAMP, bool(data.get("rest_free", false)))
 
 ## 营地动作后刷新弹层（开着才刷，不关弹层）。
 func sync_camp(data: Dictionary) -> void:
 	if camp_popup.visible:
+		camp_popup.usable = data.get("usable", [])
 		camp_popup.rest_free = bool(data.get("rest_free", false))
 		camp_popup.bind(int(data.get("gold", 0)), data.get("stock", []), data.get("party", []))

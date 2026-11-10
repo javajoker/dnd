@@ -11,6 +11,7 @@ const MODE_CAMP := &"camp"
 signal buy_requested(item_id: String)
 signal rest_requested ## hub = 旅店长休；camp = 野外长休（耗时钟）
 signal short_rest_requested(char_id: String)
+signal use_item_requested(item_id: String, char_id: String) ## 战斗外用治疗道具（11 §8.2；营地 / 旅店 / 整备前）
 
 var mode: StringName = MODE_HUB
 var rest_free := false ## 营地模式下长休免费（rest 安全落脚节点，StoryGraph.rest_is_free）
@@ -18,6 +19,9 @@ var title_label: Label
 var gold_label: Label
 var party_box: VBoxContainer ## 队伍 HP / 生命骰（两种模式都显示：休息前先看清伤势）
 var stock_box: VBoxContainer
+var use_box: VBoxContainer ## 「使用道具」：每件治疗道具一行 + 每名伤员一个「给 X」按钮
+## 可用道具 [{id, name, heal, count}]（StoryGraph.camp_usable_items）；调用方在 open / bind 前赋值。
+var usable: Array = []
 var hint_label: Label
 var rest_button: Button
 var close_button: Button
@@ -32,10 +36,10 @@ func _ready() -> void:
 			hide())
 	add_child(dim)
 	var panel := PanelContainer.new()
-	# 半屏弹层：下 55%（04 §3.3 半屏弹层；营地多一段队伍区）
+	# 弹层：下 75%（04 §3.3；营地有队伍 / 用道具 / 补给三段，竖屏半屏放不下）
 	panel.anchor_left = 0.0
 	panel.anchor_right = 1.0
-	panel.anchor_top = 0.45
+	panel.anchor_top = 0.25
 	panel.anchor_bottom = 1.0
 	panel.add_theme_stylebox_override("panel", Palette.sheet_style()) # 不透明底板（调色板令牌 sheet / accent）
 	add_child(panel)
@@ -61,6 +65,10 @@ func _ready() -> void:
 	party_box = VBoxContainer.new()
 	party_box.add_theme_constant_override("separation", 4)
 	body.add_child(party_box)
+	use_box = VBoxContainer.new()
+	use_box.name = "UseItems"
+	use_box.add_theme_constant_override("separation", 4)
+	body.add_child(use_box)
 	stock_box = VBoxContainer.new()
 	stock_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	stock_box.add_theme_constant_override("separation", 4)
@@ -97,6 +105,7 @@ func bind(gold: int, stock: Array, party: Array = [], p_mode: StringName = &"") 
 		child.queue_free()
 	for p: Variant in party:
 		party_box.add_child(_party_row(p as Dictionary, camp))
+	_render_use(party)
 	for child: Node in stock_box.get_children():
 		stock_box.remove_child(child)
 		child.queue_free()
@@ -118,6 +127,47 @@ func bind(gold: int, stock: Array, party: Array = [], p_mode: StringName = &"") 
 		ArtLoader.decorate_item_button(b, iid, it)
 		b.pressed.connect(func() -> void: buy_requested.emit(iid))
 		stock_box.add_child(b)
+
+## 「使用道具」段：持有的治疗道具 × 伤员（满血队员不出按钮；全员满血给一行说明）。
+func _render_use(party: Array) -> void:
+	for child: Node in use_box.get_children():
+		use_box.remove_child(child)
+		child.queue_free()
+	if usable.is_empty() or party.is_empty():
+		return
+	var head := Label.new()
+	head.text = Texts.s(&"CAMP_USE_HEAD")
+	head.add_theme_color_override("font_color", Palette.color("accent"))
+	use_box.add_child(head)
+	var wounded: Array = party.filter(func(p: Variant) -> bool:
+		return int((p as Dictionary).get("hp", 0)) < int((p as Dictionary).get("max_hp", 0)))
+	for u: Variant in usable:
+		var it: Dictionary = u
+		var iid := str(it.get("id", ""))
+		var row := HFlowContainer.new()
+		row.name = "Use_%s" % iid
+		row.add_theme_constant_override("h_separation", 6)
+		var lbl := Button.new() # 扁平按钮当标签用：可挂图标，点了无动作
+		lbl.flat = true
+		lbl.focus_mode = Control.FOCUS_NONE
+		lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		lbl.text = Texts.s(&"CAMP_USE_LINE") % [str(it.get("name", iid)), int(it.get("count", 0)), str(it.get("heal", ""))]
+		ArtLoader.decorate_item_button(lbl, iid, it)
+		row.add_child(lbl)
+		for p2: Variant in wounded:
+			var cid := str((p2 as Dictionary).get("id", ""))
+			var b := Button.new()
+			b.name = "Give_%s" % cid
+			b.custom_minimum_size = Vector2(0, 40)
+			b.text = Texts.s(&"CAMP_USE_ON") % str((p2 as Dictionary).get("name", cid))
+			b.pressed.connect(func() -> void: use_item_requested.emit(iid, cid))
+			row.add_child(b)
+		use_box.add_child(row)
+	if wounded.is_empty():
+		var none := Label.new()
+		none.text = Texts.s(&"CAMP_USE_NONE")
+		none.add_theme_color_override("font_color", Color(0.65, 0.65, 0.7))
+		use_box.add_child(none)
 
 ## 队伍行：名字 + HP + 生命骰；营地模式附「短休」按钮（满血 / 无骰时禁用并说明原因）。
 func _party_row(p: Dictionary, camp: bool) -> Control:

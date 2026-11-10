@@ -15,6 +15,8 @@ extends Control
 
 signal confirmed(selection: Dictionary)
 signal back_requested
+signal camp_pressed ## 开战前扎营 / 补给 / 用药（11 §7.2 / §8.2）：引导层回填营地数据 → open_camp
+signal camp_action(action: String, arg: String) ## 营地弹层动作（buy / short_rest / long_rest / use_item）
 
 const LIB_SKILLS := &"skills"
 const LIB_ITEMS := &"items"
@@ -35,6 +37,8 @@ var attr_box: HBoxContainer
 var hint_label: Label
 var confirm_button: Button
 var back_button: Button
+var camp_button: Button         # 扎营：开战前回血 / 补给 / 用道具
+var camp_popup: HubPopup        # 与结算屏 / 地图同一弹层组件（04 §3.3）
 
 # 横屏专版容器（04 §④.8；竖屏形态恒为 null，作布局形态探针）
 var cols: HBoxContainer
@@ -91,6 +95,13 @@ func _build() -> void:
 		_build_landscape()
 	else:
 		_build_portrait()
+	camp_popup = HubPopup.new() # 最后加入：盖在布局之上
+	camp_popup.buy_requested.connect(func(iid: String) -> void: camp_action.emit("buy", iid))
+	camp_popup.short_rest_requested.connect(func(cid: String) -> void: camp_action.emit("short_rest", cid))
+	camp_popup.rest_requested.connect(func() -> void: camp_action.emit("long_rest", ""))
+	camp_popup.use_item_requested.connect(func(iid: String, cid: String) -> void:
+		camp_action.emit("use_item", "%s:%s" % [iid, cid]))
+	add_child(camp_popup)
 
 func _make_widgets() -> void:
 	party_bar = HBoxContainer.new()
@@ -144,6 +155,11 @@ func _make_widgets() -> void:
 	back_button.text = Texts.s(&"COMMON_BACK")
 	back_button.custom_minimum_size = Vector2(0, 44)
 	back_button.pressed.connect(func() -> void: back_requested.emit())
+	camp_button = Button.new()
+	camp_button.name = "CampButton"
+	camp_button.text = Texts.s(&"LOADOUT_CAMP")
+	camp_button.custom_minimum_size = Vector2(0, 44)
+	camp_button.pressed.connect(func() -> void: camp_pressed.emit())
 
 func _scroll(content: Control) -> ScrollContainer:
 	var sc := ScrollContainer.new()
@@ -164,6 +180,7 @@ func _build_portrait() -> void:
 	title.add_theme_font_size_override("font_size", 22)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(title)
+	top.add_child(camp_button)
 	top.add_child(back_button)
 	v.add_child(top)
 	v.add_child(party_bar)
@@ -243,6 +260,8 @@ func _build_landscape() -> void:
 	col_right.add_child(hint_label)
 	confirm_button.custom_minimum_size = Vector2(240, 72) # 大号开战按钮（拇指右手区）
 	col_right.add_child(confirm_button)
+	camp_button.custom_minimum_size = Vector2(240, 48)
+	col_right.add_child(camp_button)
 	col_right.add_child(back_button)
 
 # ---------------------------------------------------------------- 数据绑定
@@ -274,6 +293,30 @@ func bind(config: Dictionary, candidates: Dictionary) -> void:
 	_sel = _player_id
 	_prefill(candidates.get("last", {}))
 	_refresh()
+
+## 营地动作后刷新备选（HP / 道具数 / 装备库变了），保留当前已做的选择（仍合法的部分）。
+func update_candidates(candidates: Dictionary) -> void:
+	_party = candidates.get("party", _party)
+	_items = candidates.get("items", _items)
+	_gear = candidates.get("gear", _gear)
+	_skills = candidates.get("skills", _skills)
+	for iid: String in _picked_items.duplicate():
+		if _item_entry(iid).is_empty():
+			_picked_items.erase(iid) # 用掉的最后一瓶药：从快取袋摘下
+	_refresh()
+
+## 打开营地弹层（data = {gold, stock, party, rest_free, usable}，引导层 CampaignFlow._camp_data 组装）。
+func open_camp(data: Dictionary) -> void:
+	camp_popup.usable = data.get("usable", [])
+	camp_popup.open(int(data.get("gold", 0)), data.get("stock", []), data.get("party", []),
+		HubPopup.MODE_CAMP, bool(data.get("rest_free", false)))
+
+## 营地动作后刷新弹层（开着才刷，不关弹层）。
+func sync_camp(data: Dictionary) -> void:
+	if camp_popup.visible:
+		camp_popup.usable = data.get("usable", [])
+		camp_popup.rest_free = bool(data.get("rest_free", false))
+		camp_popup.bind(int(data.get("gold", 0)), data.get("stock", []), data.get("party", []))
 
 ## 沿用上次整备（只填仍合法的：已习得 / 仍持有 / 槽位内）。
 func _prefill(last: Dictionary) -> void:

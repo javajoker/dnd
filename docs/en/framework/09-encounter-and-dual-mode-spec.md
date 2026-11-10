@@ -98,6 +98,7 @@ A persistent ☰ menu inside encounters (portrait: right end of the room progres
 ### 9.1 Loadout
 
 - Battle encounters go through a **Loadout screen** before Enter; confirming enters the Enter state — the ritual moment of "preparing for battle";
+- **Camp & supplies** (both forms; portrait: title row, landscape: under Set Out): opens the camp sheet — short / long rest, use healing items, buy supplies (11 §7.2 / §8.2). Party cards and the item library refresh in place and the current picks are kept, so the player heals, restocks and sets out without leaving the screen;
 - **Per-character loadout (v2)**: skills, items and equipment can all be numerous and party members differ, so loadout is organised by *person* rather than as three flat lists:
   - **Party cards** (top): one per member (name / HP); tap to open that member's **character sheet**;
   - **Character sheet**: four equipment slots (Weapon / Armor / Shield / Trinket, 11 §8.1) + prepared-skill slots (the player per `skill_slots`; companions per `companion_skill_slots`, by default their signature skills are always ready) + live AC;

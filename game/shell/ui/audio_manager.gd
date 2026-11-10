@@ -133,8 +133,8 @@ func on_event(ev: Dictionary) -> void:
 				play_sfx(&"heal")
 		EventTypes.LOG:
 			match str(p.get("msg_key", "")):
-				"MSG_SKILL_HEAL":
-					play_sfx(&"heal") # 治疗技能（11 §8）
+				"MSG_SKILL_HEAL", "MSG_CAMP_ITEM":
+					play_sfx(&"heal") # 治疗技能（11 §8）/ 战斗外用药（11 §8.2）
 				"MSG_CARD_CHOICE":
 					play_sfx(&"card") # 事件卡（doc 16 §4）
 		EventTypes.FLAG_WRITE:

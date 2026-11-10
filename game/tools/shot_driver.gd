@@ -13,7 +13,7 @@ const FLAGS := {
 	"--font-shot": "_run_shot_font", "--trans-shots": "_run_shots_trans", "--lock-shot": "_run_shot_lock",
 	"--loadout-shots": "_run_shots_loadout", "--dice-shots": "_run_shots_dice",
 	"--map-shots": "_run_shots_map", "--split-shots": "_run_shots_split", "--hero-shots": "_run_shots_hero",
-	"--icon-shots": "_run_shots_icons",
+	"--icon-shots": "_run_shots_icons", "--camp-shots": "_run_shots_camp",
 }
 const SHOT_SEED := 20260009 # 固定种子：截图路径确定（主线两次检定均为成功路）
 
@@ -627,6 +627,35 @@ func _run_shots_icons() -> void:
 		(m.current_screen as ScreenInventory).show_item_detail("tide_bomb")
 		await m.get_tree().create_timer(0.3).timeout
 		await _shot("/tmp/icons_detail.png")
+	m.get_tree().quit()
+
+## 开战前扎营（11 §7.2 / §8.2）：`-- --locale=en --camp-shots [--landscape]` → /tmp/camp_loadout_<form>.png（整备 + 扎营按钮）
+## /tmp/camp_popup_<form>.png（营地弹层：短休 / 用道具 / 补给）/tmp/camp_used_<form>.png（用药后）。
+func _run_shots_camp() -> void:
+	var land := OS.get_cmdline_user_args().has("--landscape")
+	var tag := "land" if land else "port"
+	await m.get_tree().create_timer(0.8).timeout
+	m._on_home_navigate(&"entry")
+	await m.get_tree().create_timer(0.3).timeout
+	var entry := m.current_screen as ScreenEntry
+	entry.pick_mode(ShellRouter.MODE_SPACE if land else ShellRouter.MODE_TIME)
+	entry.start_requested.emit()
+	await m.get_tree().create_timer(0.5).timeout
+	var prov := {"event_id": m.stream.tail(), "node_id": "N1-7", "pack_id": m._campaign_id}
+	m.board.write("%s.hp.player_blank" % m._campaign_id, 5, prov) # 带伤进入：上一战的伤势
+	m.board.write("%s.hp.companion_kelan" % m._campaign_id, 4, prov)
+	m.board.give_item("ink_salve", 1, prov)
+	m.graph._enter("N1-7")
+	m._present_node()
+	await m.get_tree().create_timer(0.5).timeout
+	await _shot("/tmp/camp_loadout_%s.png" % tag)
+	var lo := m.current_screen as ScreenLoadout
+	lo.camp_button.pressed.emit()
+	await m.get_tree().create_timer(0.3).timeout
+	await _shot("/tmp/camp_popup_%s.png" % tag)
+	lo.camp_popup.use_item_requested.emit("heal_potion", "player_blank")
+	await m.get_tree().create_timer(0.4).timeout
+	await _shot("/tmp/camp_used_%s.png" % tag)
 	m.get_tree().quit()
 
 func _run_shots_map() -> void:

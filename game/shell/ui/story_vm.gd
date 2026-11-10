@@ -27,6 +27,7 @@ static func build(graph: StoryGraph, board: Board, pack: Dictionary) -> Dictiona
 	# 补给与休息（04 §3.3 弹层；11 §7.2）：金币/货单恒随行——hub 商店与野外营地补给同一货单
 	vm["gold"] = graph.get_gold()
 	vm["stock"] = graph.hub_stock()
+	vm["usable"] = graph.camp_usable_items()  # 战斗外可用的治疗道具（11 §8.2）
 	vm["camp"] = graph.camp_available()       # 野外营地入口（短休/长休/补给）
 	vm["rest_free"] = graph.rest_is_free()    # 旅店 / 安全落脚点长休不耗时钟
 	vm["inspiration"] = graph.inspiration()   # 激励（11 §3.2）：持有数 0/1
