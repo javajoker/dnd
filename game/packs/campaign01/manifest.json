@@ -13,6 +13,8 @@
   },
   "namespace": "campaign01",
   "travel": { "watches_per_segment": 4, "default_die": "d6" },
+  "party": { "link_charges": 2, "max_items": 2, "max_drift": 3 },
+  "progression": { "1": { "split": true, "links": false }, "2": { "split": true, "links": true } },
   "source_locale": "zh-CN",
   "locales": ["zh-CN", "en"],
   "loadout": { "enabled": true, "item_slots": 2, "skill_slots": 2, "respec": false,

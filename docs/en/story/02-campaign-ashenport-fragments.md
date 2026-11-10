@@ -53,7 +53,9 @@ Tutorial duties: the console's three tabs and always-visible dice strip, quick d
 ```
 N1-1 Free City Plaza (Hub: rest / shop / rumors)
   ├─→ N1-1m The Fog Coast (optional region-map detour, doc 16; costs watches → Doom Clock):
-  │     Fishers' Row (Inspiration) · Sunken Bell Chapel (gold) · Old Lighthouse site (stuck door,
+  │     Fishers' Row (Inspiration; split-party demo: the Unwritten → watch-house & tide gate,
+  │       Kelan + Old Fei → tide archive [Kelan rolls History]; from run 2 the archive can pull the
+  │       tide lever by link to open the gate; both meet Under the Lamp) · Sunken Bell Chapel (gold) · Old Lighthouse site (stuck door,
   │     locked lamp room, secret storeroom; relighting the lamp reveals the Salt Marsh) · Salt Marsh (gold);
   │     road tables, fog tables (ink-fog ambush, a drowned courier card, tideline finds); back to N1-1
   └─→ N1-2 Investigate the faded site [K · Investigation · medium]

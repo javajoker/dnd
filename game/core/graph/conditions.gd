@@ -48,6 +48,19 @@ func _eval_one(key: String, expected: Variant, pack_id: String, ctx: Dictionary)
 		return _eval_item(key.substr(5), expected)
 	if key.begins_with("bond."):
 		return _cmp(_board.get_bond(key.substr(5)), expected)
+	if key == "in_group" or key == "group_size" or key == "thread":
+		# 队伍分合（15 §2.2）：读焦点小组；未分队时视整队为一组
+		var gs: Variant = _board.read("%s.party.groups" % pack_id, {})
+		var focus := str(_board.read("%s.party.focus" % pack_id, ""))
+		var split := gs is Dictionary and (gs as Dictionary).size() > 1
+		var members: Array = ((gs as Dictionary).get(focus, {}) as Dictionary).get("members", []) if split else []
+		match key:
+			"in_group":
+				return members.has(str(expected)) if split else true
+			"group_size":
+				return _cmp(members.size(), expected) if split else _cmp(99, expected)
+			"thread":
+				return split and focus == str(expected)
 	push_warning("Conditions: 未登记的条件键 '%s'（tech/02 §4.6），按 false 处理" % key)
 	return false
 

@@ -83,6 +83,7 @@ func _init() -> void:
 	test_equipment()
 	test_inspiration()
 	test_maps_core()
+	test_party_split()
 	test_story_vm()
 	test_text_ref()
 	test_subgame_arena()
@@ -117,6 +118,7 @@ func _async_shell_tests() -> void:
 	await test_camp_flow()
 	await test_loadout_v2()
 	await test_map_flow()
+	await test_party_flow()
 	await test_act3_forced_mode()
 	await test_mode_boundary()
 	await test_loadout_settle_landscape()
@@ -383,7 +385,7 @@ func test_pack_loader() -> void:
 	var pack: Dictionary = res["pack"]
 	check(pack["pack_id"] == "campaign01", "pack_id 解析")
 	check(str(pack["manifest"]["namespace"]) == "campaign01", "命名空间注册 = pack_id（tech/02 §2 防呆）")
-	check((pack["nodes"] as Dictionary).size() == 49, "节点表 49 节点（含雾岸地图节点 + 3 个地点节点，16）")
+	check((pack["nodes"] as Dictionary).size() == 54, "节点表 54 节点（含雾岸地图 4 + 分队演示 5，15/16）")
 	check((pack["acts"] as Array).size() == 5, "五幕 acts")
 	check((pack["encounters"] as Dictionary).size() == 18, "遭遇表 18 场（含雾岸随机遭遇 fog_ambush）")
 	check((pack["items"] as Dictionary).size() == 12, "道具表 12 件（含 4 件装备 + 墨瓶，11 §8.1/§8.2）")
@@ -396,7 +398,7 @@ func test_pack_loader() -> void:
 		and n17.has("pos") and n17.has("party_advantage"),
 		"N1-7 遭遇登记 party/enemies/pos/party_advantage（tech/02 §6 扩展字段）")
 	check((pack["endings"] as Array).size() == 4, "结局表 E1~E4")
-	check((pack["flags"] as Array).size() == 16, "旗标台账 16 条（结局旗标 ×4 + 多周目解锁 ×4：传闻钩子 ×2 落地，战役书 §11）")
+	check((pack["flags"] as Array).size() == 17, "旗标台账 17 条（结局旗标 ×4 + 多周目解锁 ×4 + 分队演示潮闸 ×1）")
 	check((pack["events"] as Array).size() == 10, "事件清单 10 条")
 	check((pack["lore"] as Array).size() == 7, "图鉴条目 7 条")
 	# 字段缺省容错（tech/02 §11）：N0-1 未声明 on_enter/on_complete 应补默认空数组
@@ -3708,6 +3710,125 @@ func test_maps_core() -> void:
 	check(s3.query_by_type(EventTypes.SITE_ENTER).size() == 3 and s3.query_by_type(EventTypes.FEATURE_USE).size() == 2,
 		"site.enter / feature.use 事件可追溯")
 
+# ---------------------------------------------------------------- 队伍分合（docs/en/framework/15）
+
+func _split_graph(pack: Dictionary, playthrough: int = 1) -> Array:
+	var s := EventStream.new()
+	var b := Board.new(s)
+	if playthrough > 1:
+		b.write("campaign01.ngplus", playthrough - 1, {"event_id": 0, "node_id": "x", "pack_id": "campaign01"})
+	var g := StoryGraph.new(b, Rng.new(21), pack)
+	g.start()
+	g._enter("N1-1mr")
+	return [g, b, s]
+
+func _edge_of(g: StoryGraph, etype: String) -> Dictionary:
+	for e: Variant in g.available_edges():
+		if str((e as Dictionary).get("type", "")) == etype:
+			return e
+	return {}
+
+func test_party_split() -> void:
+	print("[party_split]")
+	var pack := _load_campaign01()
+	var r := _split_graph(pack)
+	var g: StoryGraph = r[0]
+	var b: Board = r[1]
+	var s: EventStream = r[2]
+	check(g.party.playthrough() == 1 and g.party.split_enabled() and not g.party.links_enabled(),
+		"周目 1：可分队、不可联络（manifest.progression）")
+	var split := _edge_of(g, "split")
+	check(not split.is_empty(), "渔人巷出现分队边")
+	g.take_edge(split)
+	check(g.party.is_split() and g.party.focus() == "docks" and g.current_id == "N1-1md"
+		and s.query_by_type(EventTypes.PARTY_SPLIT).size() == 1, "分队：建两组，焦点码头组进入守夜屋")
+	check(g.party.lead() == "player_blank" and g.check_mod("investigation") == g.char_check_mod("player_blank", "investigation"),
+		"码头组检定由白页者掷")
+	check(_edge_of(g, "remote").is_empty() and g.focus_group("archive") and g.current_id == "N1-1ma",
+		"周目 1 无远程边；切到档案馆组 → 首次进入其入口")
+	check(g.check_mod("history") == 3, "档案馆组由珂兰掷：历史 = 智 1 + 熟练 2")
+	check(_edge_of(g, "remote").is_empty(), "周目 1：拉杆（远程联络）不可用")
+	check(g.focus_group("docks") and g.current_id == "N1-1md", "切回码头组：回到其所在节点（不重复进入）")
+	check(s.query_by_type(EventTypes.NODE_ENTER).filter(func(ev: Dictionary) -> bool:
+		return str((ev["payload"] as Dictionary)["node_id"]) == "N1-1md").size() == 1, "切换焦点不重放节点进入")
+	# 码头组走完 → 在汇合点等待，焦点自动切到档案馆组
+	g.resolve_check(g.current()["edges"][0], true)
+	check(g.current_id == "N1-1me", "码头组前进到潮闸")
+	g.take_edge(_edge_of(g, "choice")) # 只有"绕远路"可走（潮闸未开）
+	check(str(g.party.group("docks").get("status", "")) == "waiting" and g.party.focus() == "archive" and g.current_id == "N1-1ma",
+		"先到的组在汇合点等待，焦点自动切到仍在行动的组")
+	g.resolve_check(g.current()["edges"][0], false)
+	g.take_edge(_edge_of(g, "choice"))
+	check(not g.party.is_split() and g.current_id == "N1-1mj" and s.query_by_type(EventTypes.PARTY_REJOIN).size() == 1,
+		"最后一组到达：汇合，队伍并回")
+	check(s.query_by_type(EventTypes.NODE_ENTER).filter(func(ev: Dictionary) -> bool:
+		return str((ev["payload"] as Dictionary)["node_id"]) == "N1-1mj").size() == 1, "汇合节点只进入一次（on_enter 只结算一次）")
+	# ---- 周目 2：联络 ----
+	var r2 := _split_graph(pack, 2)
+	var g2: StoryGraph = r2[0]
+	var b2: Board = r2[1]
+	var s2: EventStream = r2[2]
+	var prov := {"event_id": 0, "node_id": "x", "pack_id": "campaign01"}
+	b2.give_item("heal_potion", 3, prov)
+	b2.give_item("ink_flask", 1, prov)
+	check(g2.party.playthrough() == 2 and g2.party.links_enabled(), "周目 2：联络开放")
+	g2.take_edge(_edge_of(g2, "split"))
+	var div := g2.party.default_division()
+	check(int((div["docks"] as Dictionary).get("heal_potion", 0)) + int((div["archive"] as Dictionary).get("heal_potion", 0)) == 3,
+		"默认分装：药水全部分到两组")
+	check(g2.party.divide({"archive": {"heal_potion": 2, "ink_flask": 1}}, "N1-1md") == "", "分装：档案馆组拿 2 药水 + 墨瓶")
+	check(g2.party.available("heal_potion") == 1 and g2.party.available("ink_flask") == 0, "焦点码头组只可用自己那份（1 药水）")
+	var def: Dictionary = BattleDef.assemble(pack, "fog_ambush", {"items": ["heal_potion"]}, b2)["def"]
+	check(int((def["party"][0]["items"] as Array)[0]["count"]) == 1, "战斗组装按本组份额计数")
+	check(g2.focus_group("archive") and g2.party.available("heal_potion") == 2 and g2.party.available("ink_flask") == 1,
+		"切到档案馆组：可用其份额")
+	var remote := _edge_of(g2, "remote")
+	check(not remote.is_empty(), "周目 2：档案馆可远程拉杆")
+	g2.take_edge(remote)
+	check(bool(b2.read("campaign01.tide_gate_open")) and g2.party.charges("archive") == 1 and g2.current_id == "N1-1ma",
+		"远程触发：写旗标、扣 1 次、不移动")
+	check(g2.party.send_item("heal_potion", 1, "docks", "N1-1ma") == "" and g2.party.charges("archive") == 0,
+		"送物：药水 → 码头组（扣 1 次）")
+	check(g2.party.send_item("heal_potion", 1, "docks", "N1-1ma") == "no_charge", "次数用尽拒绝")
+	g2.focus_group("docks")
+	check(g2.party.available("heal_potion") == 2, "码头组收到送来的药水（1 + 1）")
+	check(g2.link_help("archive") and g2.party.charges("docks") == 1, "远方求援：扣 1 次")
+	check(g2.link_move("player_blank", "archive") == "cannot_leave", "不能清空一组")
+	check(g2.party.move_member("companion_laofei", "docks", "N1-1md") == "bad_target", "只能从焦点组派人")
+	g2.focus_group("archive")
+	g2.party.restore_charges("N1-1ma")
+	var clock0 := b2.get_doom_clock()
+	check(g2.link_move("companion_laofei", "docks") == "" and g2.party.members("docks").has("companion_laofei")
+		and b2.get_doom_clock() == clock0 + 1, "锚点换人：老费去码头组（2 次 + 时间钟 +1）")
+	g2.roll_check(g2.current()["edges"][0])
+	var rolls_adv: Array = s2.query_by_type(EventTypes.CHECK_ROLL)[-1]["payload"]["rolls"]
+	check(rolls_adv.size() == 2, "求援生效：档案馆组下一次检定优势（2d20）")
+	g2.focus_group("docks")
+	g2.resolve_check(g2.current()["edges"][0], true)
+	check(not _edge_of(g2, "choice").is_empty() and str(_edge_of(g2, "choice")["to"]) == "N1-1mj"
+		and g2.available_edges().size() == 2, "潮闸已开：两条路都可走")
+	# 条件：in_group / thread / group_size
+	var c := Conditions.new(b2)
+	check(c.evaluate({"in_group": "companion_laofei"}, {"pack_id": "campaign01"}) and c.evaluate({"thread": "docks"}, {"pack_id": "campaign01"})
+		and c.evaluate({"group_size": {"==": 2}}, {"pack_id": "campaign01"}), "条件 in_group / thread / group_size")
+	# 小组战：party_from = group
+	var gp := pack.duplicate(true)
+	gp["encounters"]["fog_ambush"]["party_from"] = "group"
+	var gdef: Dictionary = BattleDef.assemble(gp, "fog_ambush", {}, b2)["def"]
+	check((gdef["party"] as Array).size() == 2, "小组战只派焦点组成员（白页者 + 老费）")
+	# ---- 线性兜底：周目 1 关闭分队 ----
+	var lp := pack.duplicate(true)
+	lp["manifest"]["progression"] = {"1": {"split": false, "links": false}, "2": {"split": true, "links": true}}
+	var r3 := _split_graph(lp)
+	var g3: StoryGraph = r3[0]
+	var fb := {}
+	for e: Variant in g3.available_edges():
+		if bool((e as Dictionary).get("via_fallback", false)):
+			fb = e
+	check(_edge_of(g3, "split").is_empty() and str(fb.get("to", "")) == "N1-1md", "未解锁分队：同一选项走线性路线（整队）")
+	g3.take_edge(fb)
+	check(not g3.party.is_split() and g3.current_id == "N1-1md", "整队进入守夜屋，不分组")
+
 # ---------------------------------------------------------------- 节点流程视图模型（双壳共用内容源，godot-dev §7）
 
 func test_story_vm() -> void:
@@ -4710,6 +4831,84 @@ func test_map_flow() -> void:
 	sc.card_option.emit(1)
 	await process_frame
 	check(not sc.is_card_open() and int(m.board.read("campaign01.inspiration", 0)) == 1, "选项结算：激励 +1，弹层收起")
+	m.queue_free()
+	await process_frame
+
+# ---------------------------------------------------------------- 分队界面流程（15 §4/§5/§3.3）
+
+func _option_index(sh: EncounterPortrait, contains: String) -> int:
+	var opts := sh.story_option_texts()
+	for i: int in opts.size():
+		if str(opts[i]).contains(contains):
+			return i
+	return -1
+
+func test_party_flow() -> void:
+	print("[party_flow]")
+	var m: Node = _new_main()
+	root.add_child(m)
+	await process_frame
+	await process_frame
+	m._on_home_navigate(&"entry")
+	await process_frame
+	(m.current_screen as ScreenEntry).pick_mode(ShellRouter.MODE_TIME)
+	(m.current_screen as ScreenEntry).start_requested.emit()
+	await process_frame
+	await process_frame
+	var prov := {"event_id": m.stream.tail(), "node_id": "N1-1mr", "pack_id": "campaign01"}
+	m.board.write("campaign01.ngplus", 1, prov) # 周目 2：联络开放（manifest.progression）
+	m.board.give_item("heal_potion", 2, prov)
+	m.graph._enter("N1-1mr")
+	m._present_node()
+	await process_frame
+	var sh := m.shell as EncounterPortrait
+	var idx := -1
+	var edges: Array = m.graph.available_edges()
+	for i: int in edges.size():
+		if str((edges[i] as Dictionary).get("type", "")) == "split":
+			idx = i
+	check(idx >= 0, "渔人巷：分头行动选项")
+	m._on_story_edge(idx)
+	await process_frame
+	await process_frame
+	check(sh.party_ui.is_dividing() and sh.party_ui.divide_box.get_node_or_null("DivideItem_heal_potion") != null,
+		"分队后弹出分装背包")
+	sh.party_ui.cycle_item("heal_potion")
+	(sh.party_ui.divide_box.find_child("DivideDone", true, false) as Button).pressed.emit()
+	await process_frame
+	check(not sh.party_ui.is_dividing() and m.graph.party.available("heal_potion") >= 0, "分装确认写板")
+	check(sh.party_bar.visible and sh.party_ui.tabs_row.get_node_or_null("Group_docks") != null
+		and sh.party_ui.tabs_row.get_node_or_null("Group_archive") != null, "组条：两个小组标签")
+	check(sh.party_ui.meanwhile.text.contains("潮汐档案馆"), "与此同时：另一组所在节点")
+	sh.party_ui.split_button.button_pressed = true
+	await process_frame
+	check(sh.party_ui.split_pane.visible and sh.party_ui.pane_title.text.contains("潮汐档案馆"), "⧉ 分屏：另一组视角窗格")
+	(sh.party_ui.tabs_row.get_node("Group_archive") as Button).pressed.emit()
+	await process_frame
+	await process_frame
+	check(m.graph.party.focus() == "archive" and m.graph.current_id == "N1-1ma", "点组标签切焦点 → 档案馆")
+	check(_option_index(sh, "✉") >= 0, "远程联络选项带 ✉ 与次数")
+	sh._on_gesture_h_swipe(1, Vector2(10, 300))
+	await process_frame
+	await process_frame
+	check(m.graph.party.focus() == "docks", "主视野横滑 = 切换小组")
+	sh.party_ui.link_button.pressed.emit()
+	await process_frame
+	check(sh.party_ui.link_sheet.visible and sh.party_ui.link_box.get_node_or_null("Link_help_archive") != null, "✉ 联络弹层：求援按钮")
+	(sh.party_ui.link_box.get_node("Link_help_archive") as Button).pressed.emit()
+	await process_frame
+	check(m.graph.party.charges("docks") == 1, "求援扣 1 次")
+	# 码头组走到汇合点 → 等待，自动切到档案馆组；档案馆组走完 → 汇合
+	m.graph.resolve_check(m.graph.current()["edges"][0], true)
+	m.graph.take_edge(m.graph.available_edges()[0])
+	m._present_node()
+	await process_frame
+	check(m.graph.party.focus() == "archive" and str(m.graph.party.group("docks")["status"]) == "waiting", "码头组到达汇合点等待")
+	m.graph.resolve_check(m.graph.current()["edges"][0], true)
+	m.graph.take_edge(m.graph.available_edges()[0])
+	m._present_node()
+	await process_frame
+	check(not m.graph.party.is_split() and m.graph.current_id == "N1-1mj" and not sh.party_bar.visible, "汇合：组条收起")
 	m.queue_free()
 	await process_frame
 

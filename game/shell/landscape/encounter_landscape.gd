@@ -54,6 +54,9 @@ var quest_chip: Label
 var flash_label: Label
 var wheel_title: Label
 var hub_popup: HubPopup
+var party_bar: PanelContainer        # 分队组条底板（15 §4.1）
+var party_ui: PartySplitUi           # 组条 / 分屏窗格 / 联络 / 分装（双壳共用组件）
+var split_spacer: Control            # 分队时故事内容下移让出组条
 var pack_open := false # 行动轮盘「背包」组展开态（11 §8.2：背包道具 / 换武器按需展开）
 var info_popup: InfoPopup
 
@@ -201,6 +204,10 @@ func _build_ui() -> void:
 	story_panel.add_theme_constant_override("separation", 10)
 	story_panel.visible = false
 	center_map.add_child(story_panel)
+	split_spacer = Control.new() # 分队时组条压在主视野顶部：故事内容整体下移让位（15 §4.2）
+	split_spacer.custom_minimum_size = Vector2(0, 70)
+	split_spacer.visible = false
+	story_panel.add_child(split_spacer)
 	story_title = Label.new()
 	story_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	story_title.add_theme_font_size_override("font_size", 22)
@@ -335,6 +342,7 @@ func _build_ui() -> void:
 		if story_cb.has("hub"):
 			story_cb["hub"].call("short_rest", cid))
 	add_child(hub_popup)
+	_build_party_split(Rect2(RATIO_LEFT + RATIO_CENTER * 0.58, 0.22, RATIO_CENTER * 0.42, 0.5), RATIO_TOP, RATIO_LEFT, RATIO_LEFT + RATIO_CENTER) # 横屏：右侧并排窗格
 	info_popup = InfoPopup.new()
 	add_child(info_popup)
 	_build_menu()
@@ -801,6 +809,7 @@ func show_story(vm: Dictionary) -> void:
 	story_panel.visible = true
 	story_title.text = str(vm["title"])
 	story_text.text = str(vm["text"])
+	_refresh_party_split()
 	wheel_title.text = Texts.s(&"TAB_ACTION")
 	_refresh_story_status()
 	_refresh_story_options()
@@ -808,6 +817,7 @@ func show_story(vm: Dictionary) -> void:
 ## 战斗布局恢复（bind 进入遭遇时调用）。
 func show_combat_layout() -> void:
 	_story = false
+	_refresh_party_split() # 战斗时组条收起（其他小组暂停，15 §4.3）
 	story_panel.visible = false
 	grid.visible = true
 	clock_chip.visible = false
@@ -1218,3 +1228,73 @@ func _sync_dice_tray_button() -> void:
 	if dice_tray_button != null:
 		dice_tray_button.text = Texts.s(&"MENU_DICE_TRAY") % str((Texts.t(&"DICE_TRAY_MODES") as Dictionary).get(
 			DiceTray.load_mode(audio_settings_path), ""))
+
+# ---------------------------------------------------------------- 队伍分合（15 §4）：组条 / 分屏 / 联络 / 分装
+
+func _build_party_split(pane: Rect2, bar_top: float, bar_left: float, bar_right: float) -> void:
+	party_bar = PanelContainer.new()
+	party_bar.name = "PartyBar"
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.06, 0.06, 0.09, 0.96)
+	sb.border_width_bottom = 1
+	sb.border_color = Color(0.85, 0.75, 0.45, 0.4)
+	sb.set_content_margin_all(4)
+	party_bar.add_theme_stylebox_override("panel", sb)
+	party_bar.anchor_left = bar_left
+	party_bar.anchor_right = bar_right
+	party_bar.anchor_top = bar_top
+	party_bar.anchor_bottom = bar_top
+	party_bar.offset_bottom = 70
+	party_ui = PartySplitUi.new()
+	party_bar.add_child(party_ui)
+	party_bar.visible = false
+	add_child(party_bar)
+	party_ui.mount(self, pane)
+	party_ui.focus_requested.connect(func(gid: String) -> void:
+		if story_cb.has("hub"):
+			story_cb["hub"].call("focus", gid))
+	party_ui.link_requested.connect(func(action: String) -> void:
+		if story_cb.has("hub"):
+			story_cb["hub"].call("link", action))
+	party_ui.pane_changed.connect(func(shown: bool) -> void:
+		# 并排：焦点故事区收窄到左侧，让出右侧窗格（15 §4.3；story_panel 在容器内，按子控件宽度收窄）
+		for c: Control in [story_title, story_text]:
+			c.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN if shown else Control.SIZE_FILL
+			c.custom_minimum_size.x = center_map.size.x * 0.56 if shown else 0.0)
+	party_ui.divided.connect(func(assign: Dictionary) -> void:
+		if story_cb.has("hub"):
+			story_cb["hub"].call("divide", JSON.stringify(assign)))
+
+func _refresh_party_split() -> void:
+	if party_ui == null:
+		return
+	party_ui.refresh(_vm.get("split", {}) if _story else {})
+	party_bar.visible = party_ui.visible
+	if split_spacer != null:
+		split_spacer.visible = party_ui.visible
+
+## 分装弹层（CampaignFlow 分队后调用）。
+func open_divide(data: Dictionary) -> void:
+	if party_ui != null:
+		party_ui.open_divide(data)
+
+## 横滑切组（15 §4.4）：故事态、已分队、手势不在操作台内。
+func _swipe_group(dir: int) -> bool:
+	var split: Dictionary = _vm.get("split", {}) if _story else {}
+	if split.is_empty():
+		return false
+	var ids: Array = []
+	var cur := -1
+	for g: Variant in split.get("groups", []):
+		var gd: Dictionary = g
+		if str(gd.get("status", "")) == "waiting" and not bool(gd.get("focused", false)):
+			continue
+		if bool(gd.get("focused", false)):
+			cur = ids.size()
+		ids.append(str(gd["id"]))
+	if ids.size() < 2 or cur < 0:
+		return false
+	var nxt := str(ids[posmod(cur + dir, ids.size())])
+	if story_cb.has("hub"):
+		story_cb["hub"].call("focus", nxt)
+	return true

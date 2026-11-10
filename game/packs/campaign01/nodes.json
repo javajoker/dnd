@@ -86,8 +86,60 @@
       "summary": "半条巷子的门牌已经褪成白纸。一位老渔妇蹲在门口补网，网眼比墨字还稀。",
       "edges": [
         { "type": "choice", "label": "帮老渔妇补网", "to": "N1-1m", "effects": [ { "inspiration": 1 } ] },
-        { "type": "choice", "label": "回到雾岸小路", "to": "N1-1m" }
+        { "type": "choice", "label": "回到雾岸小路", "to": "N1-1m" },
+        { "type": "split", "label": "分头行动：守夜屋与潮汐档案馆",
+          "groups": [
+            { "id": "docks", "members": ["player_blank"], "entry": "N1-1md" },
+            { "id": "archive", "members": ["companion_kelan", "companion_laofei"], "entry": "N1-1ma" }
+          ],
+          "rejoin": "N1-1mj", "linear_fallback": "N1-1md" }
       ]
+    },
+    {
+      "id": "N1-1md", "act": "SL-1", "type": "scene", "anchor": true,
+      "title": "守夜屋",
+      "summary": "码头尽头的守夜屋里，值夜簿摊在桌上，最后一行写到一半就褪了色。",
+      "edges": [
+        { "type": "check", "skill": "investigation", "difficulty": "easy", "roller": "player_blank",
+          "label": "读出值夜簿上残存的字", "success": "N1-1me", "failure": "N1-1me",
+          "success_effects": [ { "gold": 6 } ], "failure_effects": [ { "watch": 1 } ] }
+      ]
+    },
+    {
+      "id": "N1-1me", "act": "SL-1", "type": "scene",
+      "title": "潮闸",
+      "summary": "回去的近路被一道潮闸拦住，闸门的拉杆在另一头——档案馆那边。",
+      "edges": [
+        { "type": "choice", "label": "穿过打开的潮闸", "to": "N1-1mj",
+          "requires": { "flag.tide_gate_open": true }, "effects": [ { "gold": 15 } ] },
+        { "type": "choice", "label": "绕远路去灯下会合", "to": "N1-1mj", "effects": [ { "watch": 2 } ] }
+      ]
+    },
+    {
+      "id": "N1-1ma", "act": "SL-1", "type": "scene", "anchor": true,
+      "title": "潮汐档案馆",
+      "summary": "珂兰认得这些潮汐账册的装订——白页者还没被写进去之前，港务局就在这里记账。",
+      "edges": [
+        { "type": "check", "skill": "history", "difficulty": "medium", "roller": "companion_kelan",
+          "label": "珂兰辨认账册的年代", "success": "N1-1mb", "failure": "N1-1mb",
+          "success_effects": [ { "inspiration": 1 } ], "failure_effects": [ { "watch": 1 } ] },
+        { "type": "remote", "label": "拉下潮闸拉杆（为码头那边开门）", "target_thread": "docks", "cost": 1,
+          "effects": [ { "write": "tide_gate_open", "value": true } ] }
+      ]
+    },
+    {
+      "id": "N1-1mb", "act": "SL-1", "type": "scene",
+      "title": "泡水的书架",
+      "summary": "老费把还能读的残页一张张摊在油布上晾干。",
+      "edges": [
+        { "type": "choice", "label": "带走能读的残页，去灯下会合", "to": "N1-1mj", "effects": [ { "gold": 10 } ] }
+      ]
+    },
+    {
+      "id": "N1-1mj", "act": "SL-1", "type": "scene",
+      "title": "灯下会合",
+      "summary": "两路人在码头的灯下碰头，把各自看见的东西拼在一起。",
+      "edges": [ { "type": "choice", "label": "回到雾岸小路", "to": "N1-1m" } ]
     },
     {
       "id": "N1-1mc", "act": "SL-1", "type": "scene",

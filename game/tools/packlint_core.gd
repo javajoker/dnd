@@ -76,6 +76,9 @@ static func lint(pack: Dictionary, registry: Dictionary = {}) -> Array:
 	issues.append_array(_v12_legal_keys(pack))
 	issues.append_array(_v13_uses_consume(pack))
 	issues.append_array(_v15_texts(pack))
+	issues.append_array(_v16_split(pack))
+	issues.append_array(_v17_group_battles(pack))
+	issues.append_array(_v18_progression(pack))
 	issues.append_array(_v19_maps(pack))
 	issues.append_array(_v20_tables(pack))
 	issues.append_array(_v21_outcome_refs(pack))
@@ -181,9 +184,12 @@ static func _adjacency(pack: Dictionary) -> Dictionary:
 		var outs: Array = []
 		for edge: Variant in (nodes[nid] as Dictionary).get("edges", []):
 			var e: Dictionary = edge
-			for key: String in ["to", "success", "failure", "fallback"]:
+			for key: String in ["to", "success", "failure", "fallback", "linear_fallback"]:
 				if e.has(key) and not str(e[key]).is_empty():
 					outs.append(str(e[key]))
+			for g: Variant in e.get("groups", []): # 分队边：各支线入口可达（15 §2.1）
+				if str((g as Dictionary).get("entry", "")) != "":
+					outs.append(str((g as Dictionary)["entry"]))
 		# 地图节点（16 §1）：经地图到达地点节点——计入邻接，V1/V2 才不误报
 		var nd: Dictionary = nodes[nid]
 		if str(nd.get("type", "")) == "map":
@@ -1279,4 +1285,100 @@ static func _v21_outcome_refs(pack: Dictionary) -> Array:
 		return []
 	if issues.is_empty():
 		issues.append({"v": "V21", "level": LEVEL_PASS, "msg": "地图/事件表结果引用 %d 处齐备" % outcomes.size()})
+	return issues
+
+# ---------------------------------------------------------------- V16 分队支线完整性（docs/en/framework/15 §9）
+
+static func _v16_split(pack: Dictionary) -> Array:
+	var issues: Array = []
+	var nodes: Dictionary = pack.get("nodes", {})
+	var chars: Dictionary = pack.get("characters", {})
+	var adj := _adjacency(pack)
+	var found := 0
+	for nid: String in nodes.keys():
+		for edge: Variant in (nodes[nid] as Dictionary).get("edges", []):
+			var e: Dictionary = edge
+			if str(e.get("type", "")) != "split":
+				continue
+			found += 1
+			var gs: Array = e.get("groups", [])
+			var rejoin := str(e.get("rejoin", ""))
+			if gs.size() < 2:
+				issues.append({"v": "V16", "level": LEVEL_FAIL, "msg": "节点 %s 分队边少于两组" % nid})
+			if not nodes.has(rejoin):
+				issues.append({"v": "V16", "level": LEVEL_FAIL, "msg": "节点 %s 分队边 rejoin '%s' 不存在" % [nid, rejoin]})
+				continue
+			var seen_members := {}
+			for g: Variant in gs:
+				var gd: Dictionary = g
+				var entry := str(gd.get("entry", ""))
+				if not nodes.has(entry):
+					issues.append({"v": "V16", "level": LEVEL_FAIL, "msg": "节点 %s 小组 %s 入口 '%s' 不存在" % [nid, str(gd.get("id", "")), entry]})
+					continue
+				if (gd.get("members", []) as Array).is_empty():
+					issues.append({"v": "V16", "level": LEVEL_FAIL, "msg": "节点 %s 小组 %s 没有成员" % [nid, str(gd.get("id", ""))]})
+				for m: Variant in gd.get("members", []):
+					if not chars.has(str(m)):
+						issues.append({"v": "V16", "level": LEVEL_FAIL, "msg": "节点 %s 小组成员 '%s' 未在 characters.json 登记" % [nid, str(m)]})
+					if seen_members.has(str(m)):
+						issues.append({"v": "V16", "level": LEVEL_FAIL, "msg": "节点 %s 角色 '%s' 同时在两个小组" % [nid, str(m)]})
+					seen_members[str(m)] = true
+				if not _bfs(adj, [entry], false).has(rejoin):
+					issues.append({"v": "V16", "level": LEVEL_FAIL, "msg": "节点 %s 小组 %s 的支线到不了汇合节点 %s" % [nid, str(gd.get("id", "")), rejoin]})
+	for nid2: String in nodes.keys():
+		var only_remote := true
+		var has_edges := false
+		for edge2: Variant in (nodes[nid2] as Dictionary).get("edges", []):
+			has_edges = true
+			if str((edge2 as Dictionary).get("type", "")) != "remote":
+				only_remote = false
+			elif str((edge2 as Dictionary).get("target_thread", "")) == "":
+				issues.append({"v": "V16", "level": LEVEL_FAIL, "msg": "节点 %s 远程边缺 target_thread" % nid2})
+		if has_edges and only_remote:
+			issues.append({"v": "V16", "level": LEVEL_FAIL, "msg": "节点 %s 只有远程边（联络不可用时成死路）" % nid2})
+	if found == 0:
+		return issues
+	if issues.is_empty():
+		issues.append({"v": "V16", "level": LEVEL_PASS, "msg": "分队边 %d 条：小组 / 成员 / 支线到汇合均完整" % found})
+	return issues
+
+# ---------------------------------------------------------------- V17 小组战（15 §2.2）
+
+static func _v17_group_battles(pack: Dictionary) -> Array:
+	var issues: Array = []
+	var n := 0
+	for eid: String in (pack.get("encounters", {}) as Dictionary).keys():
+		var enc: Dictionary = pack["encounters"][eid]
+		if not enc.has("party_from"):
+			continue
+		n += 1
+		if str(enc["party_from"]) != "group":
+			issues.append({"v": "V17", "level": LEVEL_FAIL, "msg": "遭遇 %s party_from '%s' 非法（只允许 group）" % [eid, str(enc["party_from"])]})
+	if n == 0:
+		return []
+	if issues.is_empty():
+		issues.append({"v": "V17", "level": LEVEL_PASS, "msg": "小组战 %d 场声明合法" % n})
+	return issues
+
+# ---------------------------------------------------------------- V18 周目渐进兜底（15 §7）
+
+static func _v18_progression(pack: Dictionary) -> Array:
+	var issues: Array = []
+	var prog: Dictionary = (pack.get("manifest", {}) as Dictionary).get("progression", {})
+	if prog.is_empty():
+		return []
+	var gated := false
+	for tier: Variant in prog.values():
+		if not bool((tier as Dictionary).get("split", true)):
+			gated = true
+	var nodes: Dictionary = pack.get("nodes", {})
+	for nid: String in nodes.keys():
+		for edge: Variant in (nodes[nid] as Dictionary).get("edges", []):
+			var e: Dictionary = edge
+			if str(e.get("type", "")) == "split" and gated and not e.has("linear_fallback"):
+				issues.append({"v": "V18", "level": LEVEL_FAIL, "msg": "节点 %s 分队边在某周目被关闭但缺 linear_fallback" % nid})
+			if str(e.get("type", "")) == "split" and e.has("linear_fallback") and not nodes.has(str(e["linear_fallback"])):
+				issues.append({"v": "V18", "level": LEVEL_FAIL, "msg": "节点 %s linear_fallback '%s' 不存在" % [nid, str(e["linear_fallback"])]})
+	if issues.is_empty():
+		issues.append({"v": "V18", "level": LEVEL_PASS, "msg": "周目渐进：被关闭的分队边都有线性兜底"})
 	return issues

@@ -27,7 +27,7 @@ const KNOWN_FILES := {
 	"tables.json": false, # 事件表 / 事件卡（16 §4）
 }
 const NODE_TYPES := ["scene", "hub", "check", "battle", "dialog", "explore", "rest", "branch", "ending", "map", "site"]
-const EDGE_TYPES := ["choice", "check", "item", "doom_clock", "reputation"]
+const EDGE_TYPES := ["choice", "check", "item", "doom_clock", "reputation", "split", "remote"]
 ## tech/04 Schema 必填字段（结构校验：存在性；合法值归 packlint V11~V13）。
 const REQUIRED_FIELDS := {
 	"characters.json": ["id", "name", "kind", "attrs", "hp_formula", "ac_formula"], # §2

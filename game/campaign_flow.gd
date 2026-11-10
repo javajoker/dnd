@@ -58,6 +58,7 @@ func _start_campaign() -> void:
 ## 呈现当前节点：ending → 结局屏（tech/02 §9）；battle → 整备/遭遇；
 ## explore（迷宫探索序列，tech/02 §6 maze）→ 逐拍呈现；出切片范围 → 切片结算；其余 → 双壳故事态。
 func _present_node() -> void:
+	_sync_item_names()
 	var act := str(m.graph.current().get("act", ""))
 	if act != "" and not m.entitlements.enter_act(m.pack, act):
 		_show_act_lock(act) # 幕级门槛未点亮：章节锁定页（06 §3.1；tech/02 §2.2）
@@ -171,6 +172,29 @@ func _on_story_edge(idx: int) -> void:
 	else:
 		m.graph.take_edge(edge)
 	_present_node()
+	if str(edge.get("type", "")) == "split" and m.graph.party.is_split():
+		_open_divide() # 分头前先分装背包（15 §3.3）
+
+## 日志道具显示名表（BattleText 不持有包数据；故事态与战斗日志都要用，不显内部 id）。
+func _sync_item_names() -> void:
+	var inames := {}
+	for iid: String in (m.pack.get("items", {}) as Dictionary).keys():
+		inames[iid] = str((m.pack["items"][iid] as Dictionary).get("name", iid))
+	BattleText.item_names = inames
+
+## 分装弹层数据：各组 + 可用道具 + 默认分配（壳内调整后回传 divide）。
+func _open_divide() -> void:
+	var items: Array = []
+	for iid: String in (m.pack.get("items", {}) as Dictionary).keys():
+		if (m.pack["items"][iid] as Dictionary).has("use") and m.board.item_count(iid) > 0:
+			items.append({"id": iid, "name": m._item_name(iid), "count": m.board.item_count(iid)})
+	if items.is_empty() or m.shell == null:
+		return
+	var groups: Array = []
+	for g: Variant in StoryVM.split_view(m.graph, m.board, m.pack)["groups"]:
+		groups.append({"id": str((g as Dictionary)["id"]), "label": str((g as Dictionary)["label"])})
+	var dflt: Dictionary = m.graph.party.default_division()
+	m.shell.open_divide({"groups": groups, "items": items, "assign": dflt, "default": dflt})
 
 ## Hub / 营地动作（战役书 §4 N1-1；11 §7.2 短休/长休）：商店购买 / 旅店长休 / 短休 / 野外长休 / 传闻；
 ## 写板全部在 core，本层只转发与刷新。野外长休推进时钟可能触发 doom_clock 边直接改写当前节点 → 重新呈现。
@@ -188,6 +212,23 @@ func _on_hub_action(action: String, arg: String) -> void:
 			m.graph.long_rest(m.graph.rest_is_free())
 		"inspire":
 			m.graph.arm_inspiration(not m.graph.inspiration_armed)
+		"focus": # 切换焦点小组（15 §4.1）：目标组的节点可能是战斗 / 地图，走统一呈现
+			if m.graph.focus_group(arg):
+				_present_node()
+			return
+		"link": # 联络（15 §5）："help:<gid>" / "send:<iid>:<gid>" / "move:<cid>:<gid>"
+			var parts := arg.split(":")
+			match parts[0]:
+				"help":
+					m.graph.link_help(parts[1])
+				"send":
+					m.graph.party.send_item(parts[1], 1, parts[2], m.graph.current_id)
+				"move":
+					m.graph.link_move(parts[1], parts[2])
+		"divide": # 分装背包（15 §3.3）
+			var assign: Variant = JSON.parse_string(arg)
+			if assign is Dictionary:
+				m.graph.party.divide(assign, m.graph.current_id)
 		"rumor":
 			var rumors: Array = m.graph.hub_rumors()
 			var msg := StoryVM.rumor_text(rumors[0]) if not rumors.is_empty() else Texts.s(&"HUB_RUMOR_NONE")
@@ -488,10 +529,6 @@ func _begin_encounter(selection: Dictionary) -> void:
 	_encounter_snapshot = SaveSystem.make_snapshot(m.board, m.stream, m.rng, m._bindings(), m._meta()) # ☰ 恢复点
 	_encounter_tail = m.stream.tail()
 	_encounter_result = &""
-	var inames := {}
-	for iid: String in (m.pack.get("items", {}) as Dictionary).keys():
-		inames[iid] = str((m.pack["items"][iid] as Dictionary).get("name", iid))
-	BattleText.item_names = inames # 日志道具显示名（不显内部 id）
 	var sm := EncounterSM.new(m.board, m.stream, m.rng, m.pack["pack_id"])
 	var agent := AutoAgent.new()
 	_ensure_story_shell() # 复用故事壳（09 §8：一局一壳；bind 内切战斗布局）

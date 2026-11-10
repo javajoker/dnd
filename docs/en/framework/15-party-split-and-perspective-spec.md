@@ -1,6 +1,6 @@
 # 15 · Party Split, Perspective and Remote Play — Spec
 
-> Status: **design final, not yet implemented** (TASKS P5). Related: whitepaper §5 (story graph) and §7 (two forms), doc 04 (screens), doc 08 (edges), doc 09 (encounters and forms), doc 11 (rules), doc 12 (gestures), doc 16 (maps), tech/02 (pack format).
+> Status: **implemented** (TASKS P5.3, 2026-11-10) except the items listed in §11 — code: `core/graph/party_split.gd` (`PartySplit`), StoryGraph (`focus_group`, `link_help`, `link_move`, split/remote edges, rejoin barrier), `shell/ui/party_split_ui.gd` (`PartySplitUi`); demo content: campaign01 **Split up: watch-house and archive** (from Fishers' Row on the Fog Coast). Related: whitepaper §5 (story graph) and §7 (two forms), doc 04 (screens), doc 08 (edges), doc 09 (encounters and forms), doc 11 (rules), doc 12 (gestures), doc 16 (maps), tech/02 (pack format).
 
 A classic tabletop moment: *"You two take the archive, we'll check the docks — meet at the lighthouse at midnight."* This spec makes that a first-class, data-driven feature: the party can **split into groups**, each group follows its **own sub-plot**, the player **switches or splits the view** between them, and groups stay connected through **limited remote interaction and teleportation**. The same model is the foundation for **online multiplayer** later (one player per character or group).
 
@@ -226,3 +226,23 @@ Not in scope for implementation; the constraints below keep it possible and are 
 - Focus switching by tap and swipe; split view in both forms; a running battle pauses the other groups;
 - Message, help-from-afar, remote trigger, item and member teleport each cost charges, are logged, and respect gates;
 - Playthrough 1 of a pack with `progression` never splits; playthrough 2 does.
+
+## 11. As built (notes for authors) and what is not built yet
+
+**Built**
+
+- Split edges, threads, the rejoin barrier (the rejoin node is entered exactly once, by the last group), focus switching (tap a group tab or swipe the main view in portrait), per-character check rollers (group lead, or the edge's `roller`), `in_group` / `group_size` / `thread` conditions, `party_from: "group"` battles;
+- **Drift cap** is counted in **node steps**, not Doom Clock segments (manifest `party.max_drift`, default 3): a group that is that many nodes ahead of the slowest active group gets no options until the others catch up. Clock segments proved too coarse — a whole thread can pass inside one segment;
+- **Divide the pack**: after a split, a sheet assigns usable items per group (tap = give one to the next group, drag onto a group header = give it there; *Default split* hands healing out first). Only usable items are divided; story keys stay in the shared ledger. While split, a group can use only its own share (battles, item edges, the pack); items gained or used are credited to the focused group automatically;
+- **Links**: remote edges (content), help from afar, send an item, move a member between anchors (+1 Doom Clock). Charges come from manifest `party.link_charges` (default 2) and refill on a long rest. A **message** is authored as a remote edge whose effect writes a flag the other thread reads (there is no separate free-text message channel);
+- **Progression** per playthrough (`manifest.progression`), read from the NG+ playthrough counter; campaign01 declares splitting from the first run and links from the second;
+- Layouts: portrait group bar under the status band (story content moves down to make room), "Meanwhile" ticker, ⧉ split pane over the lower main view; landscape group bar over the centre, side-by-side pane (the focused story narrows to the left);
+- packlint V16 (thread integrity, members registered and unique, every thread reaches the rejoin node, no node with only remote edges), V17 (`party_from` value), V18 (gated splits have a `linear_fallback`).
+
+**Not built yet**
+
+- `"assign": "player"` (players choosing who goes where) — groups use the fixed `members` lists;
+- `lead: "any"` (starting the campaign as a companion);
+- `timeout` edges forcing an early rejoin, and `allow_recall`;
+- Simultaneous battles in split view (one battle at a time; other groups pause);
+- Multiplayer (§8 constraints are respected by the implementation: all writes go through core, commands stay isomorphic, rolls are made in core).

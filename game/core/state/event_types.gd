@@ -57,6 +57,12 @@ const LORE_UNLOCK := &"lore.unlock"  # lore 落板 global.lore（07 §2 约束�
 const CLAMPED := &"clamped"        # 写入越界被钳位
 const BOARD_DENIED := &"board.denied"  # 命名空间越权写入被拒绝
 
+# 队伍分合（docs/en/framework/15）
+const PARTY_SPLIT := &"party.split"     # 分队：{groups, rejoin, label}
+const PARTY_FOCUS := &"party.focus"     # 切换焦点小组：{group, node}
+const PARTY_REJOIN := &"party.rejoin"   # 汇合：{groups, node}
+const PARTY_LINK := &"party.link"       # 联络：{kind: help|send_item|move_member|remote, from, to, …}
+
 # 地图与事件表（docs/en/framework/16）
 const TABLE_ROLL := &"table.roll"     # 事件表掷骰：{table, die, value, mod, total, row, label, dice}
 const MAP_TRAVEL := &"map.travel"     # 区域地图一段行程：{map, from, to, legs_left, arrived, lost}

@@ -57,9 +57,15 @@ static func assemble(pack: Dictionary, encounter_id: String, selection: Dictiona
 	var party_entries: Array = enc.get("party", [])
 	if party_entries.is_empty():
 		errors.append("遭遇 %s 未声明 party（tech/02 §6：引导层不自动组队）" % encounter_id)
+	# 分队中的小组战（15 §2.2）：party_from = "group" 时只派焦点小组的成员
+	var split_party := PartySplit.new(board, pack)
+	var group_members: Array = split_party.members(split_party.focus()) \
+		if str(enc.get("party_from", "")) == "group" and split_party.is_split() else []
 	for entry: Variant in party_entries:
 		var e: Dictionary = entry
 		var ref := str(e.get("ref", ""))
+		if not group_members.is_empty() and not group_members.has(ref):
+			continue
 		if not characters.has(ref):
 			errors.append("遭遇 %s party 引用未登记角色 '%s'（characters.json）" % [encounter_id, ref])
 			continue
@@ -125,7 +131,7 @@ static func assemble(pack: Dictionary, encounter_id: String, selection: Dictiona
 	for l: Variant in enc.get("loot", []):
 		loot.append({"item": str((l as Dictionary).get("item", "")), "n": int((l as Dictionary).get("n", 1))})
 	# ---- 背包与军械（11 §8.1/§8.2）：整备外的可用道具（取用 = 动作）+ 可在战斗中换上的武器 ----
-	var pack_items := _pack_items(selection, board, items)
+	var pack_items := _pack_items(selection, board, items, pack_id)
 	var armory := _armory(pack, board)
 	var def := {"party": party, "enemies": foes, "party_advantage_rounds": adv_rounds,
 		"loot": loot, "xp": int(enc.get("xp", 0)),
@@ -142,16 +148,17 @@ static func assemble(pack: Dictionary, encounter_id: String, selection: Dictiona
 	return {"ok": errors.is_empty(), "errors": errors, "def": def}
 
 ## 背包道具 = 持有且含 use 块、未放进快取袋（整备 items）的道具；战斗中取用耗 1 动作（11 §8.2）。
-static func _pack_items(selection: Dictionary, board: Board, items: Dictionary) -> Array:
+static func _pack_items(selection: Dictionary, board: Board, items: Dictionary, pack_id: String = "") -> Array:
 	var pouch: Array = selection.get("items", [])
+	var share := PartySplit.new(board, {"pack_id": pack_id})
 	var out: Array = []
 	for iid: String in items.keys():
 		var it: Dictionary = items[iid]
-		if not it.has("use") or pouch.has(iid) or not board.has_item(iid):
+		if not it.has("use") or pouch.has(iid) or share.available(iid) <= 0:
 			continue
 		if str((it["use"] as Dictionary).get("timing", "")) == "out_of_combat":
 			continue
-		out.append({"id": iid, "name": str(it.get("name", iid)), "count": board.item_count(iid),
+		out.append({"id": iid, "name": str(it.get("name", iid)), "count": share.available(iid),
 			"use": (it["use"] as Dictionary).duplicate(true), "pouch": false})
 	return out
 
@@ -276,10 +283,11 @@ static func _build_character_unit(inst_id: String, ref: String, c: Dictionary, p
 			var item_id := str(iid)
 			if not items.has(item_id) or not (items[item_id] as Dictionary).has("use"):
 				continue
-			if not board.has_item(item_id):
+			var avail := PartySplit.new(board, {"pack_id": pack_id}).available(item_id) # 分队时只用本组那一份（15 §3.3）
+			if avail <= 0:
 				continue
 			unit_items.append({"id": item_id, "name": str((items[item_id] as Dictionary).get("name", item_id)),
-				"count": board.item_count(item_id),
+				"count": avail,
 				"use": ((items[item_id] as Dictionary)["use"] as Dictionary).duplicate(true)})
 		unit["items"] = unit_items
 	return unit

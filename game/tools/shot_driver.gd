@@ -12,7 +12,7 @@ const FLAGS := {
 	"--mode-shots": "_run_shots_mode", "--ls-shots": "_run_shots_ls", "--text-shots": "_run_shots_text",
 	"--font-shot": "_run_shot_font", "--trans-shots": "_run_shots_trans", "--lock-shot": "_run_shot_lock",
 	"--loadout-shots": "_run_shots_loadout", "--dice-shots": "_run_shots_dice",
-	"--map-shots": "_run_shots_map",
+	"--map-shots": "_run_shots_map", "--split-shots": "_run_shots_split",
 }
 const SHOT_SEED := 20260009 # 固定种子：截图路径确定（主线两次检定均为成功路）
 
@@ -632,4 +632,45 @@ func _run_shots_map() -> void:
 	await m.get_tree().create_timer(0.3).timeout
 	await _shot("/tmp/map_card_%s.png" % tag)
 	print("[shots] 地图四张：/tmp/map_{region,travel,site,card}_%s.png" % tag)
+	m.get_tree().quit()
+
+# ---------------------------------------------------------------- 分队截图（15 证据 /tmp，不提交）
+
+## `-- --split-shots`（加 --landscape 取横屏）：分装背包 → 组条 + 分屏 → 联络弹层（周目 2）。
+func _run_shots_split() -> void:
+	var land := OS.get_cmdline_user_args().has("--landscape")
+	var tag := "land" if land else "port"
+	await m.get_tree().create_timer(0.8).timeout
+	m._on_home_navigate(&"entry")
+	await m.get_tree().create_timer(0.3).timeout
+	var entry := m.current_screen as ScreenEntry
+	entry.pick_mode(ShellRouter.MODE_SPACE if land else ShellRouter.MODE_TIME)
+	entry.start_requested.emit()
+	await m.get_tree().create_timer(0.6).timeout
+	var prov := {"event_id": m.stream.tail(), "node_id": "N1-1mr", "pack_id": m._campaign_id}
+	m.board.write("%s.ngplus" % m._campaign_id, 1, prov)
+	m.board.give_item("heal_potion", 1, prov)
+	m.board.give_item("ink_flask", 1, prov)
+	m.graph._enter("N1-1mr")
+	m._present_node()
+	await m.get_tree().create_timer(0.4).timeout
+	var edges: Array = m.graph.available_edges()
+	for i: int in edges.size():
+		if str((edges[i] as Dictionary).get("type", "")) == "split":
+			m._on_story_edge(i)
+	await m.get_tree().create_timer(0.5).timeout
+	if m.shell.tutorial.is_hint_visible():
+		m.shell.tutorial._dismiss_hint()
+	await _shot("/tmp/split_divide_%s.png" % tag)
+	(m.shell.party_ui.divide_box.find_child("DivideDone", true, false) as Button).pressed.emit()
+	await m.get_tree().create_timer(0.3).timeout
+	m.shell.party_ui.split_button.button_pressed = true
+	await m.get_tree().create_timer(0.3).timeout
+	if m.shell.tutorial.is_hint_visible():
+		m.shell.tutorial._dismiss_hint()
+	await _shot("/tmp/split_view_%s.png" % tag)
+	m.shell.party_ui.link_button.pressed.emit()
+	await m.get_tree().create_timer(0.3).timeout
+	await _shot("/tmp/split_link_%s.png" % tag)
+	print("[shots] 分队三张：/tmp/split_{divide,view,link}_%s.png" % tag)
 	m.get_tree().quit()

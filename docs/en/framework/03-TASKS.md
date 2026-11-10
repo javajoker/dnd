@@ -201,11 +201,12 @@ Goal: turn the framework into a reusable D&D-style engine — new narrative game
 - [ ] Maze beats as site presets (maze beats still run on their own runner)
 
 ### 5.3 Party split
-- [ ] Groups/threads/rejoin in StoryGraph; per-character check rollers; `party_from: "group"` encounters; packlint V16–V18
-- [ ] Divide-the-pack sheet (reuses loadout v2 drag-and-drop); per-group stash invariant
-- [ ] Group strip, focus switching, split view (portrait 2 groups, landscape panes + rail); battles pause other groups
-- [ ] Links: message / help / remote trigger / item and member teleport with charges and anchors
-- [ ] `progression` per playthrough (linear first run); a demo side scenario that splits the party
+- [x] Groups/threads/rejoin in StoryGraph (rejoin node entered once); per-character check rollers; `party_from: "group"` encounters; drift cap in node steps; packlint V16–V18
+- [x] Divide-the-pack sheet (tap / drag onto a group; default split); each group uses only its own share while split
+- [x] Group bar, "Meanwhile" ticker, focus switching (tap / portrait swipe), split view (portrait pane; landscape side by side); battles pause other groups
+- [x] Links: remote edges (incl. messages as flag-writing remote edges) / help from afar / send item / move member between anchors (+1 Doom Clock); charges refill on a long rest
+- [x] `progression` per playthrough (campaign01: split from run 1, links from run 2); demo "Split up: watch-house and archive" on the Fog Coast
+- [ ] Player-chosen group assignment, companion lead (`lead: any`), timeout / recall rejoins, simultaneous battles (doc 15 §11)
 
 ### 5.4 New-game kit
 - [ ] Game manifest (`game/packs/_game/game.json`): title, packs, theme, audio map — read by main/AudioManager/theme

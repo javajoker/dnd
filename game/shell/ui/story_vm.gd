@@ -38,6 +38,10 @@ static func build(graph: StoryGraph, board: Board, pack: Dictionary) -> Dictiona
 		vm["rumors"] = rumors
 	for e: Variant in graph.available_edges():
 		(vm["edges"] as Array).append(edge_display(e, graph, pack))
+	if graph.party.is_split():
+		vm["split"] = split_view(graph, board, pack)
+		if bool((vm["split"] as Dictionary).get("blocked", false)):
+			vm["text"] = str(vm["text"]) + "\n\n" + Texts.s(&"PARTY_BLOCKED")
 	# 推进条：已访房间（visit_log）+ 未来预告（沿首条边纯数据预览，不触碰图状态）
 	var rooms: Array = graph.visit_log.duplicate()
 	var titles := {}
@@ -50,6 +54,45 @@ static func build(graph: StoryGraph, board: Board, pack: Dictionary) -> Dictiona
 	vm["room_index"] = graph.visit_log.size() - 1
 	vm["room_titles"] = titles
 	return vm
+
+## 分队视图（15 §4/§5）：组标签 / 状态 / 所在节点 / 联络可用项。
+static func split_view(graph: StoryGraph, board: Board, pack: Dictionary) -> Dictionary:
+	var party := graph.party
+	var chars: Dictionary = pack.get("characters", {})
+	var nodes: Dictionary = pack.get("nodes", {})
+	var focus := party.focus()
+	var groups: Array = []
+	var labels := {}
+	for gid: String in party.groups().keys():
+		var gd: Dictionary = party.groups()[gid]
+		var names: Array[String] = []
+		for cid: Variant in gd.get("members", []):
+			names.append(str((chars.get(str(cid), {}) as Dictionary).get("name", cid)))
+		labels[gid] = Texts.s(&"LIST_SEP").join(names)
+		var node: Dictionary = nodes.get(str(gd.get("node", "")), {})
+		groups.append({"id": gid, "label": labels[gid], "status": str(gd.get("status", "active")),
+			"focused": gid == focus, "node_title": str(node.get("title", "")),
+			"node_text": node_text(node, board, str(pack.get("pack_id", "")), pack.get("texts", {})) if not node.is_empty() else ""})
+	var here_anchor := bool((nodes.get(graph.current_id, {}) as Dictionary).get("anchor", false))
+	var others: Array = []
+	for gid2: String in party.others():
+		var g2: Dictionary = party.group(gid2)
+		if str(g2.get("status", "")) == "waiting":
+			continue
+		others.append({"id": gid2, "label": labels[gid2],
+			"anchor_ok": here_anchor and bool((nodes.get(str(g2.get("node", "")), {}) as Dictionary).get("anchor", false))})
+	var items: Array = []
+	for iid: String in (pack.get("items", {}) as Dictionary).keys():
+		if (pack["items"][iid] as Dictionary).has("use") and party.available(iid) > 0:
+			items.append({"id": iid, "name": str((pack["items"][iid] as Dictionary).get("name", iid))})
+	var members: Array = []
+	var ms := party.members(focus)
+	if ms.size() > 1:
+		for cid2: Variant in ms:
+			members.append({"id": str(cid2), "name": str((chars.get(str(cid2), {}) as Dictionary).get("name", cid2))})
+	return {"groups": groups, "blocked": party.blocked(),
+		"link": {"enabled": party.links_enabled(), "charges": party.charges(focus), "others": others,
+			"items": items, "members": members}}
 
 ## 长文本解析（tech/02 §1.1 text_ref 机制）：ref = "texts/<locale>.json#<键>"；
 ## 命中 texts 表取全文；未声明 / 键缺失一律静默回退 fallback（不报错——断链由测试层抽取完整性断言兜底）。
@@ -114,6 +157,8 @@ static func edge_display(e: Dictionary, graph: StoryGraph, pack: Dictionary) -> 
 		if graph.inspiration_armed:
 			d["label"] += Texts.s(&"STORY_ADV_TAG")
 		d["check"] = true
+	if d["type"] == "remote":
+		d["label"] = Texts.s(&"REMOTE_TAG") % [str(e.get("label", "")), int(e.get("cost", 1))]
 	if d["label"].is_empty():
 		d["label"] = Texts.s(&"STORY_CONTINUE")
 	var factions: Array = []
@@ -174,7 +219,7 @@ static func is_bookkeeping_key(key: String) -> bool:
 	return rest in ["gold", "xp_total", "level", "ngplus", "wins", "best", "run_unlocked"] or rest.begins_with("attr") \
 		or rest.begins_with("hp.") or rest.begins_with("maze.") or rest.begins_with("hd_spent.") \
 		or rest.begins_with("equip.") or rest == "loadout_last" or rest == "inspiration" \
-		or rest.begins_with("map.") or rest.begins_with("site.") or rest.begins_with("table.") or rest == "watch"
+		or rest.begins_with("party.") or rest.begins_with("map.") or rest.begins_with("site.") or rest.begins_with("table.") or rest == "watch"
 
 ## 旗标显示名：flags.json 的 name（已按语言叠加）；找不到时退回键名（不上屏内部键是目标，缺名属数据缺陷）。
 static func flag_display(key: String, pack: Dictionary) -> String:

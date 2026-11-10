@@ -28,6 +28,7 @@ var _quest_ns: Dictionary = {} # quest_id -> 来源包命名空间（settle 写�
 # ---- graft 支线挂接（tech/02 §2.6，M4）：pack = 合并视图；_host_pack = 宿主原包（卸载还原用）----
 var _host_pack: Dictionary = {}
 var _grafts: Dictionary = {} # arc pack_id -> arc pack
+var party: PartySplit # 队伍分合（docs/en/framework/15）：小组 / 焦点 / 汇合 / 背包分装 / 联络
 
 func _init(p_board: Board, p_rng: Rng, p_pack: Dictionary) -> void:
 	board = p_board
@@ -35,6 +36,7 @@ func _init(p_board: Board, p_rng: Rng, p_pack: Dictionary) -> void:
 	pack = p_pack
 	pack_id = str(pack.get("pack_id", ""))
 	cond = Conditions.new(board)
+	party = PartySplit.new(board, pack)
 	_index_clock_edges()
 
 # ---------------------------------------------------------------- graft 支线挂接（tech/02 §2.6）
@@ -102,6 +104,8 @@ func is_at_ending() -> bool:
 ## item 边：持有 → 主路；未持有且有 fallback → 以 {to: fallback} 变体出现；无 fallback 则不显形（§4.3）。
 func available_edges() -> Array:
 	var out: Array = []
+	if party.blocked():
+		return out # 推进过远：先去推进其他小组（15 §2.4）
 	for edge: Variant in current().get("edges", []):
 		var e: Dictionary = edge
 		var ctx := {"pack_id": _edge_ns(e)} # 注入边 requires 归支线命名空间（§2.6）；普通边归当前节点来源包
@@ -109,8 +113,20 @@ func available_edges() -> Array:
 			"choice", "reputation":
 				if _requires_ok(e, ctx):
 					out.append(e)
+			"split":
+				if party.split_enabled() and not party.is_split() and _requires_ok(e, ctx):
+					out.append(e)
+				elif e.has("linear_fallback") and _requires_ok(e, ctx):
+					# 本周目未解锁分队（15 §7）：整队走线性路线
+					out.append({"type": "choice", "label": str(e.get("label", "")), "to": str(e["linear_fallback"]),
+						"effects": (e.get("effects", []) as Array).duplicate(true), "via_fallback": true})
+			"remote":
+				var tg := str(e.get("target_thread", ""))
+				if party.is_split() and party.links_enabled() and party.groups().has(tg) and tg != party.focus() \
+						and party.charges(party.focus()) >= int(e.get("cost", 1)) and _requires_ok(e, ctx):
+					out.append(e)
 			"item":
-				if board.has_item(str(e.get("item", ""))) and _requires_ok(e, ctx):
+				if party.available(str(e.get("item", ""))) > 0 and _requires_ok(e, ctx):
 					out.append(e)
 				elif e.has("fallback"):
 					var fb := e.duplicate(true)
@@ -126,6 +142,13 @@ func available_edges() -> Array:
 ## 走一条非检定边：先结算离开节点的 on_complete，再边效果，再触发器扫描，最后进入目标。
 ## 边效果命名空间：graft 注入边携带 _ns（效果归支线包，§2.6）；普通边归所属节点来源包。
 func take_edge(edge: Dictionary) -> void:
+	match str(edge.get("type", "")):
+		"split":
+			_do_split(edge)
+			return
+		"remote":
+			_do_remote(edge)
+			return
 	_scan_choice_quests(edge) # choice 触发的事件在离点前按所选边登记（tech/02 §5 trigger.choice）
 	_leave_current()
 	_apply(edge.get("effects", []), current_id, _edge_ns(edge))
@@ -140,6 +163,59 @@ func travel_to(node_id: String) -> void:
 		return
 	_leave_current()
 	_enter(node_id)
+
+# ---------------------------------------------------------------- 队伍分合（15）
+
+## 分队边：离开当前节点、结算边效果、建组，焦点进入第一组的支线入口。
+func _do_split(edge: Dictionary) -> void:
+	_leave_current()
+	_apply(edge.get("effects", []), current_id, _edge_ns(edge))
+	var first := party.begin(edge, current_id)
+	_scan_triggers()
+	_enter(str(party.group(first).get("node", "")))
+
+## 远程触发（15 §5.1）：不移动；扣联络次数、结算效果（作用于另一支线可见的共享世界）。
+func _do_remote(edge: Dictionary) -> void:
+	if not party.spend(party.focus(), int(edge.get("cost", 1)), current_id):
+		return
+	_apply(edge.get("effects", []), current_id, _edge_ns(edge))
+	board.stream.emit(EventTypes.PARTY_LINK, {"kind": "remote", "from": party.focus(),
+		"to": str(edge.get("target_thread", "")), "label": str(edge.get("label", ""))}, &"graph", current_id)
+	_scan_triggers()
+
+## 切换焦点小组（15 §4.1）：保存当前组位置；目标组首次获得焦点时进入其入口节点。返回是否切换成功。
+func focus_group(gid: String) -> bool:
+	if not party.is_split() or gid == "" or not party.groups().has(gid) or gid == party.focus():
+		return false
+	if str(party.group(gid).get("status", "")) == "waiting":
+		return false
+	var nid := str(party.group(gid).get("node", ""))
+	var first := not bool(party.group(gid).get("entered", false))
+	party.set_focus(gid, current_id)
+	board.stream.emit(EventTypes.PARTY_FOCUS, {"group": gid, "node": nid}, &"graph", nid)
+	if first:
+		_enter(nid)
+	else:
+		current_id = nid
+	return true
+
+## 远方求援（15 §5.1）：目标组下一次检定优势，扣 1 次。
+func link_help(target: String) -> bool:
+	if not party.is_split() or not party.groups().has(target) or target == party.focus():
+		return false
+	if not party.spend(party.focus(), 1, current_id):
+		return false
+	party.add_help(target, current_id)
+	board.stream.emit(EventTypes.PARTY_LINK, {"kind": "help", "from": party.focus(), "to": target}, &"graph", current_id)
+	return true
+
+## 换人（15 §5.2）：锚点之间，2 次 + 时间钟 +1。
+func link_move(cid: String, target: String) -> String:
+	var r := party.move_member(cid, target, current_id)
+	if r == "":
+		_apply([{"clock": 1}], current_id)
+		_scan_triggers()
+	return r
 
 ## 外部写时钟后复查时间边（地图行程推进时辰 → 时间钟，16 §2.2）。返回当前节点是否因触发而改变。
 func rescan() -> bool:
@@ -176,15 +252,29 @@ func player_proficiencies() -> Array:
 
 ## 检定修正 = 属性修正 + 熟练 +2（11 §2；a_or_b 双技能取高，LightV1.skill_mod）。
 func check_mod(skill: String) -> int:
+	var lead := party.lead()
+	if lead != "":
+		return char_check_mod(lead, skill) # 分队时由焦点小组领队掷（15 §2.2）
 	return LightV1.skill_mod(player_attrs(), player_proficiencies(), skill)
+
+## 任一角色的检定修正：模板属性（玩家模板叠加成长）+ 熟练（11 §2）。
+func char_check_mod(cid: String, skill: String) -> int:
+	var c: Dictionary = (pack.get("characters", {}) as Dictionary).get(cid, {})
+	if c.is_empty():
+		return LightV1.skill_mod(player_attrs(), player_proficiencies(), skill)
+	if str(c.get("kind", "")) == "player_template":
+		return LightV1.skill_mod(player_attrs(), player_proficiencies(), skill)
+	return LightV1.skill_mod(c.get("attrs", {}), c.get("proficiencies", []), skill)
 
 ## 检定边真实掷骰：d20+修正 vs DC（11 §3），产出 check.roll（kind=story_check）后按成败走边（§4.2）。
 ## key/extreme 分级按 09 §6：内容包 key:true / hard 且 pivot 标记 → 关键；nat20/nat1 恒追加极端档。
 func roll_check(edge: Dictionary) -> Dictionary:
 	var skill := str(edge.get("skill", ""))
 	var dc := LightV1.dc_for(str(edge.get("difficulty", "medium")))
-	var mod := check_mod(skill)
+	var mod := char_check_mod(str(edge["roller"]), skill) if edge.has("roller") else check_mod(skill)
 	var mode := LightV1.ADV_NORMAL
+	if party.is_split() and party.consume_help(party.focus(), current_id):
+		mode = LightV1.ADV_ADVANTAGE # 远方求援（15 §5.1）
 	if inspiration_armed and inspiration() > 0:
 		mode = LightV1.ADV_ADVANTAGE # 花费激励：本次检定优势（11 §3.2）
 		board.write(_insp_key(), 0, _hub_prov())
@@ -410,6 +500,7 @@ func short_rest(cid: String) -> Dictionary:
 ## 长休：全队 HP 全满 + 生命骰清零花费；at_inn=false（野外营地）推进末日时钟 +1，
 ## 时钟写板后复查 doom_clock 触发（可能直接把剧情推到触发节点，调用方需重新呈现）。
 func long_rest(at_inn: bool) -> Dictionary:
+	party.restore_charges(current_id) # 联络次数随长休恢复（15 §5）
 	var restored := {}
 	for cid: String in party_ids():
 		var mx := max_hp_of(cid)
@@ -504,6 +595,21 @@ func _enter(node_id: String) -> void:
 	if not (pack["nodes"] as Dictionary).has(node_id):
 		push_error("StoryGraph: 进入不存在的节点 '%s'" % node_id)
 		return
+	if party.is_split():
+		if node_id == party.rejoin_node():
+			# 汇合屏障（15 §2.3）：先到的组等待；最后一组到达才真正进入汇合节点（on_enter 只结算一次）
+			var gid := party.focus()
+			party.set_node(gid, node_id, true)
+			if not party.all_waiting_except_focus():
+				party.set_status(gid, "waiting", node_id)
+				board.stream.emit(EventTypes.LOG, {"msg_key": "MSG_PARTY_WAITING", "args": {"node": str(
+					(pack["nodes"][node_id] as Dictionary).get("title", node_id))}, "toast": true}, &"graph", node_id)
+				current_id = node_id
+				focus_group(party.next_active())
+				return
+			party.merge(node_id)
+		else:
+			party.set_node(party.focus(), node_id, true)
 	current_id = node_id
 	visit_log.append(node_id)
 	board.stream.emit(EventTypes.NODE_ENTER,

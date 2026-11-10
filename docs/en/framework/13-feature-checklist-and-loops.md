@@ -155,10 +155,10 @@ Note: the Godot gesture layer implements all of 12 §1's recognition parameters 
 
 | Feature | Key points | Spec | Prototype | Godot |
 |---|---|---|---|---|
-| Party split / rejoin | Split edge, threads per group, rejoin barrier, divide the pack, shared clock with drift cap | doc 15 §2–§3 | ⬜ | ⬜ |
-| Perspective switching | Group strip, swipe/tap focus, "Meanwhile" ticker, split view (portrait 2 groups; landscape panes + rail) | doc 15 §4 | ⬜ | ⬜ |
-| Links | Message, help from afar, remote trigger, item/member teleport with charges and anchors | doc 15 §5 | ⬜ | ⬜ |
-| Progression per playthrough | Linear first run → split → links / companion leads | doc 15 §7 | ⬜ | ⬜ |
+| Party split / rejoin | Split edge, threads per group, rejoin barrier, divide the pack, shared clock with drift cap | doc 15 §2–§3 | ⬜ | ✅ |
+| Perspective switching | Group strip, swipe/tap focus, "Meanwhile" ticker, split view (portrait pane; landscape side by side) | doc 15 §4 | ⬜ | ✅ |
+| Links | Message, help from afar, remote trigger, item/member teleport with charges and anchors | doc 15 §5 | ⬜ | ✅ |
+| Progression per playthrough | Linear first run → split → links / companion leads | doc 15 §7 | ⬜ | ◐ (split / links tiers; companion lead not built) |
 | Region map | Point-crawl travel, pace, navigation, event rolls, watches → Doom Clock, fog/reveal | doc 16 §2 | ⬜ | ✅ (Fog Coast) |
 | Site map | Areas, features, doors (locked/stuck/secret), wandering table; compact map + room card (portrait) / fogged map (landscape) | doc 16 §3 | ⬜ | ✅ (Old Lighthouse) |
 | Event tables and cards | d4–d100 tables with modifiers, nested and `once` rows; choice-and-roll event cards | doc 16 §4 | ⬜ | ✅ |
