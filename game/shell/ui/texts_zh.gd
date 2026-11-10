@@ -522,3 +522,13 @@ const DESC_DIE := "伤害骰 %s"
 const DESC_HP := "HP 上限 %+d"
 const DESC_SEP := " · "
 const LOADOUT_PARTY_CARD := "%s\nHP %d/%d"
+
+# ---- 日志可读化（不显内部代码）----
+const REVIVE_REASONS := {"post_battle": "战后", "first_aid": "急救", "stabilized": "稳住伤势"}
+const RESULT_NAMES := {"victory": "胜利", "defeat": "败北", "retreat": "撤退", "objective_failed": "目标失败"}
+const REJECT_GENERIC := "现在做不到"
+const REJECT_REASONS := {"action_used": "本回合动作已用", "bonus_used": "附赠动作已用",
+	"move_used": "本回合已移动", "interact_used": "本回合已摆弄过物品",
+	"skill_depleted": "次数已尽", "bad_target": "目标不合法", "no_item": "背包里没有",
+	"no_skill": "技能未备战", "not_your_turn": "还没轮到这名角色", "none_free": "在别人手里",
+	"not_user": "用不了", "already_equipped": "已在手中", "no_retreat_edge": "无路可退"}

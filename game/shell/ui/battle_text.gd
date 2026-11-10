@@ -3,6 +3,9 @@
 class_name BattleText
 extends RefCounted
 
+## 道具 id → 显示名（引导层载包后注入；日志不显内部 id）。
+static var item_names: Dictionary = {}
+
 static func state_name(st: StringName) -> String:
 	return str((Texts.t(&"STATE_NAMES") as Dictionary).get(String(st), str(st)))
 
@@ -48,7 +51,11 @@ static func event_log_text(ev: Dictionary, name_of: Callable) -> String:
 		EventTypes.STATE_ENTERED:
 			return Texts.s(&"LOG_STATE_ENTER") % state_name(StringName(p["state"]))
 		EventTypes.COMBAT_START:
-			return Texts.s(&"LOG_COMBAT_START") % " → ".join(p["order"])
+			var units: Dictionary = p.get("units", {})
+			var names: Array[String] = []
+			for uid: Variant in p["order"]:
+				names.append(str((units.get(str(uid), {}) as Dictionary).get("name", name_of.call(str(uid)))))
+			return Texts.s(&"LOG_COMBAT_START") % " → ".join(names)
 		EventTypes.BATTLE_ATTACK:
 			return attack_text(p) + src_tag(p)
 		EventTypes.CHECK_ROLL:
@@ -76,15 +83,15 @@ static func event_log_text(ev: Dictionary, name_of: Callable) -> String:
 		EventTypes.BATTLE_DEAD:
 			return Texts.s(&"LOG_DIED") % str(p["name"])
 		EventTypes.BATTLE_REVIVE:
-			return Texts.s(&"LOG_REVIVED") % [p["name"], p["reason"]]
+			return Texts.s(&"LOG_REVIVED") % [p["name"], str((Texts.t(&"REVIVE_REASONS") as Dictionary).get(str(p["reason"]), ""))]
 		EventTypes.COMMAND_REJECTED:
-			return Texts.s(&"LOG_CMD_REJECTED") % str(p["reason"])
+			return Texts.s(&"LOG_CMD_REJECTED") % str((Texts.t(&"REJECT_REASONS") as Dictionary).get(str(p["reason"]), Texts.s(&"REJECT_GENERIC")))
 		EventTypes.COMBAT_END:
-			return Texts.s(&"LOG_COMBAT_END") % str(p["result"])
+			return Texts.s(&"LOG_COMBAT_END") % str((Texts.t(&"RESULT_NAMES") as Dictionary).get(str(p["result"]), str(p["result"])))
 		EventTypes.LOG:
 			return Texts.msg(p)
 		EventTypes.ITEM_GAIN:
-			return Texts.s(&"LOG_ITEM_GAIN") % [p["item_id"], int(p["count"])]
+			return Texts.s(&"LOG_ITEM_GAIN") % [str(item_names.get(str(p["item_id"]), p["item_id"])), int(p["count"])]
 		EventTypes.XP_GAIN:
 			return Texts.s(&"LOG_XP") % int(p["amount"])
 	return ""

@@ -474,6 +474,10 @@ func _begin_encounter(selection: Dictionary) -> void:
 	_encounter_snapshot = SaveSystem.make_snapshot(m.board, m.stream, m.rng, m._bindings(), m._meta()) # ☰ 恢复点
 	_encounter_tail = m.stream.tail()
 	_encounter_result = &""
+	var inames := {}
+	for iid: String in (m.pack.get("items", {}) as Dictionary).keys():
+		inames[iid] = str((m.pack["items"][iid] as Dictionary).get("name", iid))
+	BattleText.item_names = inames # 日志道具显示名（不显内部 id）
 	var sm := EncounterSM.new(m.board, m.stream, m.rng, m.pack["pack_id"])
 	var agent := AutoAgent.new()
 	_ensure_story_shell() # 复用故事壳（09 §8：一局一壳；bind 内切战斗布局）

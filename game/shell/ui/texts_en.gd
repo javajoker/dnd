@@ -451,3 +451,13 @@ const DESC_DIE := "Damage die %s"
 const DESC_HP := "Max HP %+d"
 const DESC_SEP := " · "
 const LOADOUT_PARTY_CARD := "%s\nHP %d/%d"
+
+# ---- 日志可读化（不显内部代码）----
+const REVIVE_REASONS := {"post_battle": "after the battle", "first_aid": "first aid", "stabilized": "stabilized"}
+const RESULT_NAMES := {"victory": "Victory", "defeat": "Defeat", "retreat": "Retreat", "objective_failed": "Objective failed"}
+const REJECT_GENERIC := "not possible right now"
+const REJECT_REASONS := {"action_used": "action already used this turn", "bonus_used": "bonus action already used",
+	"move_used": "already moved this turn", "interact_used": "already handled an item this turn",
+	"skill_depleted": "no uses left", "bad_target": "not a valid target", "no_item": "not in your pack",
+	"no_skill": "skill not prepared", "not_your_turn": "not this character's turn", "none_free": "someone else is holding it",
+	"not_user": "can't use that", "already_equipped": "already in hand", "no_retreat_edge": "there's no way out"}
