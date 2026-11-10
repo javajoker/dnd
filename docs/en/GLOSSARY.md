@@ -2,7 +2,7 @@
 
 > Every English document under `docs/en/` uses these renderings. When translating new docs or writing
 > English game text, use this table so names stay consistent across docs, code comments and content packs.
-> The Chinese originals under `docs/` remain the design source of truth; `docs/en/` is a maintained mirror.
+> `docs/en/` is the design source of truth. This table maps the Chinese terms still found in the archived docs (`archive/zh-CN/`), code comments and the zh-CN game text to their canonical English names.
 
 ## Framework / technical terms
 

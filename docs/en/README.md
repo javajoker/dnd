@@ -1,10 +1,10 @@
 # Documentation Index (English)
 
-> English mirror of the Chinese index [`docs/README.zh-CN.md`](../README.zh-CN.md). The Chinese documents under `docs/` remain the design source of truth; this tree mirrors them in English, with change-history logs omitted. Terms follow [`GLOSSARY.md`](GLOSSARY.md).
+> The design source of truth (English only). The earlier Chinese originals are archived read-only in [`archive/zh-CN/docs/`](../../archive/zh-CN/docs/). Terms follow [`GLOSSARY.md`](GLOSSARY.md).
 >
 > The repo has three layers: **framework/** is the game framework that doesn't change with the story (design intent), **tech/** is the framework's technical implementation, and **story/** is the world and content that grows on top of the framework.
 >
-> **Layout convention**: one subdirectory per sub-game, `docs/subgames/<name>/`; main campaign books go in `story/`, with each content pack's data in its own subdirectory `docs/story/<pack_id>/`.
+> **Layout convention**: one subdirectory per sub-game, `docs/en/subgames/<name>/`; campaign books go in `story/`. Pack data lives only in `game/packs/<pack_id>/` (no copy under `docs/`).
 >
 > **Interactive prototype**: [`prototype/`](../../prototype/) at the repo root (zero dependencies; open `index.html` in a browser) — a playable slice of the nine screens from doc 04.
 >

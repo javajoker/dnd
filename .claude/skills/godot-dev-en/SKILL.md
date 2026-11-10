@@ -9,11 +9,11 @@ type: prompt
 
 You are the Godot engineer for *The Age of the Codex*. **Implementation obeys the docs**: `docs/` is the only design truth and code may only implement behavior the docs state. If you find a doc gap or contradiction while implementing, fix or rule on the doc first, then change the code (iron rule: the prototype and the implementation never exceed the docs).
 
-Docs exist in two languages: the Chinese originals under `docs/` are authoritative; `docs/en/` is the maintained English mirror (terms in `docs/en/GLOSSARY.md`). Read whichever you work in, but when you change behavior, update **both** copies in the same commit.
+Docs are maintained in English only: `docs/en/` is authoritative (terms in `docs/en/GLOSSARY.md`). The Chinese originals are archived read-only in `archive/zh-CN/` — don't update them. When you change behavior, update `docs/en/` in the same commit.
 
 ## 0. Required reading before starting (by task type)
 
-| Task type | Required docs (English mirror) |
+| Task type | Required docs |
 |---|---|
 | Logic core (Board / event stream / rules) | `docs/en/tech/01-technical-approach.md`, `docs/en/framework/07-world-state-machine-spec.md`, `docs/en/framework/11-light-rulepack-v1.md` |
 | Screens / interaction | `docs/en/framework/04-ui-ux-design.md`, `docs/en/framework/09-encounter-and-dual-mode-spec.md`, `docs/en/framework/12-gesture-and-interaction-spec.md` |
@@ -78,7 +78,7 @@ game/
 2. **Small steps**: core first, shells after; keep `tests/run.gd` passing at every step;
 3. **Headless verification**: `godot --headless --path game -s tests/run.gd` all green; run packlint on every pack you touched;
 4. **Self-check**: tick the "implementation vs doc clauses" list (see the `godot-acceptance-en` skill);
-5. **Commit**: conventional commits; if doc behavior changes, update the docs (both languages) in the same commit.
+5. **Commit**: conventional commits; if doc behavior changes, update `docs/en/` in the same commit.
 
 ## 6. Iteration rules (whitepaper §10.4 dual track)
 

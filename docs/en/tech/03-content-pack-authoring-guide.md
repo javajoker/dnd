@@ -106,7 +106,7 @@ Using *Ashenport Fragments* as the example:
 - **Sub-games (pack_type=subgame)**: self-contained packs (the four resource tables travel with the pack, as in arena);
   a pure-puzzle sub-game = explore nodes + maze beats (`retry_on_fail`/`hint` puzzle-room semantics, tech/02 §6);
   `subgame.clear_as_win: true` counts reaching the ending node as 1 win (the record rule for combat-free sub-games, §2.5).
-- The two-copy discipline is unchanged: the authoring source (docs/story/&lt;arc&gt;/, docs/subgames/&lt;name&gt;/pack/) and the runtime copy (game/packs/&lt;id&gt;/) must match file for file.
+- Single copy: pack data lives only in `game/packs/<id>/` (the old authoring copies under `docs/story/` and `docs/subgames/` are archived in `archive/zh-CN/docs/` and no longer maintained).
 
 ## 7. Text and localization
 

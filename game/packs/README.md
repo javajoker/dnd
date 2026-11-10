@@ -1,6 +1,6 @@
 # game/packs — runtime content-pack copies
 
-> 中文版：[`README.zh-CN.md`](README.zh-CN.md). Format contract: `docs/tech/02-内容包格式规范.md` §1 (English: `docs/en/tech/02-content-pack-format-spec.md`).
+> Format contract: `docs/en/tech/02-content-pack-format-spec.md` §1. These folders are the only copy of the pack data.
 
 ## Sync relationship
 

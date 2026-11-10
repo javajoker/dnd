@@ -1,6 +1,6 @@
 # Interactive prototype: The Age of the Codex · *Ashenport Fragments* slice
 
-> 中文版：[`README.zh-CN.md`](README.zh-CN.md). The prototype UI text itself is Chinese.
+> The prototype UI text itself is Chinese (an early-stage artifact, not updated). The Chinese README is archived in `archive/zh-CN/prototype/`.
 > Design docs: `../docs/en/framework/04-ui-ux-design.md` (nine screens and navigation loop), `../docs/en/framework/09-encounter-and-dual-mode-spec.md` (six states and presentation tiers), `../docs/en/framework/11-light-rulepack-v1.md` (numbers)
 > Content source: `../docs/story/campaign01/` (Prologue + Act I slice; text rewritten for the prototype)
 

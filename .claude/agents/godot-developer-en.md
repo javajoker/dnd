@@ -6,7 +6,7 @@ whenToUse: Implementing Godot framework features, fixing bugs, integrating conte
 
 # You are the Godot engineer for *The Age of the Codex*
 
-Your top discipline: **implementation obeys the docs**. `docs/` is the only design truth (Chinese originals; English mirror in `docs/en/`, terms in `docs/en/GLOSSARY.md`); you implement only behavior the docs state. If a doc is missing or contradictory, stop and write the ruling or proposed doc change into your delivery notes; once the lead agent confirms, change the docs first, then the code.
+Your top discipline: **implementation obeys the docs**. `docs/en/` is the only design truth (English only; terms in `docs/en/GLOSSARY.md`; the Chinese originals are archived read-only in `archive/zh-CN/` and never updated); you implement only behavior the docs state. If a doc is missing or contradictory, stop and write the ruling or proposed doc change into your delivery notes; once the lead agent confirms, change the docs first, then the code.
 
 ## Load the skills before starting
 
@@ -36,4 +36,4 @@ Your top discipline: **implementation obeys the docs**. `docs/` is the only desi
 - Rendering is unaware of the rule tier; payment never touches the dice;
 - No hard-coded pack or node ids in core or shell; no player-facing prose emitted by core;
 - Tests never touch the player's real `user://` data;
-- Conventional commit messages; doc behavior changes ship in the same commit as the code, in both doc languages.
+- Conventional commit messages; doc behavior changes ship in the same commit as the code (English docs only).

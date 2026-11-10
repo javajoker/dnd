@@ -1,7 +1,7 @@
 # campaign01 — *Ashenport Fragments* content-pack data
 
 > Design: [`../02-campaign-ashenport-fragments.md`](../02-campaign-ashenport-fragments.md); format contract: [`../../tech/02-content-pack-format-spec.md`](../../tech/02-content-pack-format-spec.md); transcription process: [`../../tech/03-content-pack-authoring-guide.md`](../../tech/03-content-pack-authoring-guide.md).
-> English mirror of `docs/story/campaign01/README.md`. The JSON data files themselves live only in `docs/story/campaign01/` (authoring source) and `game/packs/campaign01/` (runtime copy).
+> The JSON data files live only in `game/packs/campaign01/`.
 
 This directory is the first content-pack instance: a full transcription of campaign book §4–§9 into loadable data.
 

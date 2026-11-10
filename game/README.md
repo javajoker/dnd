@@ -1,9 +1,8 @@
 # game/ — The Age of the Codex · Godot project
 
-> 中文版：[`README.zh-CN.md`](README.zh-CN.md).
 > Workflow and iron rules: `.claude/skills/godot-dev/SKILL.md` (English: `.claude/skills/godot-dev-en/SKILL.md`) — read before every task
 > Acceptance audit: `.claude/skills/godot-acceptance/SKILL.md` (English: `godot-acceptance-en`)
-> Design truth: `../docs/` (framework design / tech contracts / story content); English mirror in `../docs/en/`
+> Design truth: `../docs/en/` (framework design / tech contracts / story content). Chinese originals are archived in `../archive/zh-CN/`; code comments that cite `docs/framework/…` Chinese paths refer to the same section numbers in `docs/en/framework/`.
 
 ## Environment
 

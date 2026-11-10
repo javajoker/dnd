@@ -1,11 +1,8 @@
 # Documentation
 
-> 中文版：[`README.zh-CN.md`](README.zh-CN.md)（中文文档为设计真相源）
+The design documents are maintained **in English only**: [`en/README.md`](en/README.md) is the full index (framework, tech, story, sub-games, store), and terms follow [`en/GLOSSARY.md`](en/GLOSSARY.md). Any behavior change updates these documents in the same commit.
 
-The design documents exist in two languages:
-
-- **English** — [`en/README.md`](en/README.md): the full English index (framework, tech, story, sub-games, store). Terms follow [`en/GLOSSARY.md`](en/GLOSSARY.md).
-- **Chinese** — [`README.zh-CN.md`](README.zh-CN.md): the original documents. They are the design source of truth; any behavior change updates both languages in the same commit.
+The earlier Chinese originals are archived, read-only, under [`../archive/zh-CN/docs/`](../archive/zh-CN/docs/). They are kept for reference and are not updated; where they differ from `en/`, `en/` wins.
 
 ## Where to start
 
@@ -20,8 +17,10 @@ The design documents exist in two languages:
 
 ## Layout
 
-- `framework/` — the game framework that doesn't change with the story (design intent)
-- `tech/` — how the framework is implemented
-- `story/` — world and campaign content; pack data lives in `story/<pack_id>/`
-- `subgames/` — one folder per sub-game, pack data in `subgames/<name>/pack/`
-- `en/` — the English mirror of all of the above, plus English-only store documents
+- `en/framework/` — the game framework that doesn't change with the story (design intent)
+- `en/tech/` — how the framework is implemented
+- `en/story/` — world and campaign content
+- `en/subgames/` — one folder per sub-game
+- `en/store/` — store listing, privacy and billing documents
+
+Pack data lives in the game itself, under [`../game/packs/`](../game/packs/README.md); that is the only copy.

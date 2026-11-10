@@ -118,7 +118,7 @@ The framework has built rule depth and the business model in as extension axes (
 - [x] Content-pack version declaration and compatibility rules — tech/02 §11 (three-way version decoupling) + SaveSystem migration chain
 - [x] Content-pack go-live checklist — tech/02 §12 V1–V14 automated validation (packlint runs on all four packs with 0 FAIL)
 - [x] Sub-game design template — tech/02 §2.5 sub-game declaration block + two instances (arena: combat / riddle_maze: pure puzzle; zero core changes asserted)
-- [x] Sub-game doc layout convention: one subdirectory per sub-game at `docs/subgames/<name>/`, updated as needed
+- [x] Sub-game doc layout convention: one subdirectory per sub-game at `docs/en/subgames/<name>/`, updated as needed
 - [x] First sub-game concept design — Arena Gauntlet (`../subgames/arena/01-concept.md`, live); the second sub-game, Riddle Maze, is live too
 
 ---

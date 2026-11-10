@@ -73,4 +73,4 @@ Verdict: pass / conditional pass / fail
 - Gap fixes: implement per the docs;
 - Overreach: **default to adding it to the docs** (precedent agreed with the user: crits, attribute points); if that's not possible, delete the implementation;
 - A failed audit may not be merged; a conditional pass must list the open items in the commit message;
-- When a checklist claim is found to be false, correct the checklist (both languages) in the same change.
+- When a checklist claim is found to be false, correct the checklist (`docs/en/`) in the same change.

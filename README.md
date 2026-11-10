@@ -1,7 +1,5 @@
 # Age of the Codex: Ashenport Fragments
 
-> 中文版：[`README.zh-CN.md`](README.zh-CN.md)
-
 A tabletop-style d20 RPG for phones, built in Godot 4.7. You are one of the Unwritten in a world that is a fading book: roll the Fatedie, and every success or failure branches the story. The engine is a framework for content packs — campaigns, side arcs and sub-games are data, not code.
 
 The game is bilingual (English by default; Chinese when the phone is set to Chinese or the player picks it). The English mobile release is portrait-first, with the Prologue and Act I free and a one-time unlock for the full campaign.
@@ -11,9 +9,10 @@ The game is bilingual (English by default; Chinese when the phone is set to Chin
 | Folder | What it is |
 |---|---|
 | [`game/`](game/README.md) | The Godot project: logic core, two rendering shells, content packs, tools, tests |
-| [`docs/`](docs/README.md) | Design docs (Chinese originals + English mirror in `docs/en/`) |
+| [`docs/`](docs/README.md) | Design docs (English; the maintained source of truth) |
 | [`prototype/`](prototype/README.md) | Zero-dependency browser prototype of the nine screens |
-| `.claude/` | Engineering agent and skills (`godot-dev(-en)`, `godot-acceptance(-en)`, `godot-developer(-en)`) |
+| `.claude/` | Engineering agent and skills (`godot-dev-en`, `godot-acceptance-en`, `godot-developer-en`) |
+| [`archive/zh-CN/`](archive/zh-CN/) | Archived Chinese docs, READMEs and agent/skills (read-only, no longer updated) |
 
 ## Quick start
 
