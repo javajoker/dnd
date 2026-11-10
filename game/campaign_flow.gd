@@ -180,6 +180,8 @@ func _on_hub_action(action: String, arg: String) -> void:
 			m.graph.short_rest(arg)
 		"long_rest":
 			m.graph.long_rest(m.graph.rest_is_free())
+		"inspire":
+			m.graph.arm_inspiration(not m.graph.inspiration_armed)
 		"rumor":
 			var rumors: Array = m.graph.hub_rumors()
 			var msg := StoryVM.rumor_text(rumors[0]) if not rumors.is_empty() else Texts.s(&"HUB_RUMOR_NONE")

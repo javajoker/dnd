@@ -79,7 +79,13 @@ func _run_shots_m2n() -> void:
 		return
 	await _shot("/tmp/m2n_scene.png") # N0-1 scene
 	m._on_story_edge(0) # → N0-2 检定房
+	m.board.write("%s.inspiration" % m._campaign_id, 1,
+		{"event_id": m.stream.tail(), "node_id": m.graph.current_id, "pack_id": m._campaign_id}) # 激励入口演示（11 §3.2）
+	m.campaign._present_node()
 	await m.get_tree().create_timer(0.3).timeout
+	if (m.shell as EncounterPortrait).tutorial.is_hint_visible():
+		(m.shell as EncounterPortrait).tutorial._dismiss_hint() # 截图看操作台本体
+	await m.get_tree().create_timer(0.2).timeout
 	await _shot("/tmp/m2n_check.png")
 	m._on_story_edge(0) # 掷检定（截图种子成功路）
 	await m.get_tree().create_timer(1.2).timeout # 快掷落定 + 节点呈现

@@ -29,6 +29,8 @@ static func build(graph: StoryGraph, board: Board, pack: Dictionary) -> Dictiona
 	vm["stock"] = graph.hub_stock()
 	vm["camp"] = graph.camp_available()       # 野外营地入口（短休/长休/补给）
 	vm["rest_free"] = graph.rest_is_free()    # 旅店 / 安全落脚点长休不耗时钟
+	vm["inspiration"] = graph.inspiration()   # 激励（11 §3.2）：持有数 0/1
+	vm["inspired"] = graph.inspiration_armed  # 已举起：下一次检定优势
 	if str(node.get("type", "")) == "hub":
 		var rumors: Array = []
 		for r: Variant in graph.hub_rumors():
@@ -109,6 +111,8 @@ static func edge_display(e: Dictionary, graph: StoryGraph, pack: Dictionary) -> 
 		d["label"] = Texts.s(&"FMT_CHECK_LABEL") % [Texts.s(&"STORY_CHECK"),
 			str(Texts.t(&"SKILL_NAMES").get(skill, skill)), str(Texts.t(&"DIFF_NAMES").get(diff, diff)),
 			LightV1.dc_for(diff), graph.check_mod(skill)]
+		if graph.inspiration_armed:
+			d["label"] += Texts.s(&"STORY_ADV_TAG")
 		d["check"] = true
 	if d["label"].is_empty():
 		d["label"] = Texts.s(&"STORY_CONTINUE")
@@ -169,7 +173,7 @@ static func is_bookkeeping_key(key: String) -> bool:
 	var rest := key.get_slice(".", 1) if key.count(".") == 1 else key.substr(key.find(".") + 1)
 	return rest in ["gold", "xp_total", "level", "ngplus", "wins", "best", "run_unlocked"] or rest.begins_with("attr") \
 		or rest.begins_with("hp.") or rest.begins_with("maze.") or rest.begins_with("hd_spent.") \
-		or rest.begins_with("equip.") or rest == "loadout_last"
+		or rest.begins_with("equip.") or rest == "loadout_last" or rest == "inspiration"
 
 ## 旗标显示名：flags.json 的 name（已按语言叠加）；找不到时退回键名（不上屏内部键是目标，缺名属数据缺陷）。
 static func flag_display(key: String, pack: Dictionary) -> String:

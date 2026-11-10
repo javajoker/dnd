@@ -115,6 +115,12 @@ func apply_effect(effect: Dictionary, ctx: Dictionary = {}) -> void:
 				continue
 			var gk := "%s.gold" % pack_id
 			_board.write(gk, maxi(int(_board.read(gk, 0)) + int(effect[k]), 0), prov)
+		elif k == "inspiration":
+			# 激励（11 §3.2）：包命名空间簿记 <ns>.inspiration，0~1 钳位（最多持有一枚）
+			if pack_id.is_empty():
+				continue
+			var ik := "%s.inspiration" % pack_id
+			_board.write(ik, clampi(int(_board.read(ik, 0)) + int(effect[k]), 0, 1), prov)
 		elif k == "lore":
 			# 落板 global.lore（Set<lore_id>，07 §2 约束；全局白名单任何包可写，07 §3），
 			# Board 写板即产 lore.unlock 事件并带溯源（tech/02 §4.6）。

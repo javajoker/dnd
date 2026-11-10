@@ -50,6 +50,13 @@ Three difficulty tiers: easy DC 8 / medium DC 12 / hard DC 16
 - Applies to checks, attacks and saving throws;
 - **Sources are declared by content packs** (environment / teamwork / effects / flags); the rule pack doesn't hard-code a list. Examples: the "witnessed_revocation" flag → the whole party has attack advantage on the first round of the relevant encounter; "Ink Shield" → attackers have disadvantage while it lasts.
 
+### 3.2 Inspiration
+
+- You hold at most **one** Inspiration (bookkeeping key `<ns>.inspiration`, never read out);
+- **Gain it**: roll a **natural 1** on a story check (failure still writes your story — a small reward for failing, in the spirit of "failure is a branch"); or from a content effect `{ "inspiration": 1 }` (for example, a well-played dialogue option);
+- **Use it**: when a check option is on screen and you hold Inspiration, the console shows a "✦ Inspiration" chip; raise it and the next story check rolls with **advantage** and spends it (the check button is tagged "advantage"); you can lower it again;
+- It applies to story checks only (in-combat advantage sources are still declared by content, §3.1).
+
 ## 4. Action economy (three parts)
 
 Each turn: **move (≤6 squares) + action ×1 + bonus action ×1**, in any order.

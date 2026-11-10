@@ -461,3 +461,11 @@ const REJECT_REASONS := {"action_used": "action already used this turn", "bonus_
 	"skill_depleted": "no uses left", "bad_target": "not a valid target", "no_item": "not in your pack",
 	"no_skill": "skill not prepared", "not_your_turn": "not this character's turn", "none_free": "someone else is holding it",
 	"not_user": "can't use that", "already_equipped": "already in hand", "no_retreat_edge": "there's no way out"}
+
+# ---- Inspiration (11 §3.2) ----
+const STORY_INSPIRE_OFF := "✦ Inspiration: use it (advantage on the next check)"
+const STORY_INSPIRE_ON := "✦ Inspired (tap to hold it back)"
+const STORY_ADV_TAG := " · advantage"
+const MSG_INSPIRATION_GAIN := "A natural 1 — even failure writes your story. You gain Inspiration ✦."
+const MSG_INSPIRATION_SPENT := "You call on your Inspiration ✦: this check rolls with advantage."
+const STORY_CLOCK_NEXT_SHORT := "→ %d ⚠"

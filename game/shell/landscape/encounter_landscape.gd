@@ -825,6 +825,14 @@ func _refresh_story_options() -> void:
 				story_cb["edge"].call(i))
 		wheel_box.add_child(b)
 		idx += 1
+	var has_check := false
+	for e2: Variant in _vm.get("edges", []):
+		has_check = has_check or bool((e2 as Dictionary).get("check", false))
+	if has_check and int(_vm.get("inspiration", 0)) > 0: # 激励（11 §3.2）：检定前举起 = 优势
+		_add_story_chip(Texts.s(&"STORY_INSPIRE_ON") if bool(_vm.get("inspired", false)) else Texts.s(&"STORY_INSPIRE_OFF"),
+			func() -> void:
+				if story_cb.has("hub"):
+					story_cb["hub"].call("inspire", ""))
 	if str(_vm.get("type", "")) == "hub": # hub 三设施（战役书 §4 N1-1）
 		_add_story_chip(Texts.s(&"HUB_SHOP"), func() -> void: hub_popup.open(
 			int(_vm.get("gold", 0)), _vm.get("stock", []), _vm.get("party", []), HubPopup.MODE_HUB))

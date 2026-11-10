@@ -731,7 +731,9 @@ func _refresh_story_status() -> void:
 	clock_chip.text = Texts.s(&"STORY_CLOCK") % int(_vm.get("clock", 0))
 	var fc: Dictionary = _vm.get("forecast", {})
 	if not fc.is_empty():
-		clock_chip.text += " " + Texts.s(&"STORY_CLOCK_NEXT") % [str(fc.get("name", "")), int(fc.get("at", 0))]
+		# 竖屏状态带窄：只给"下一格在第几格"，事件名在点按弹层里（04 §3.1；避免名字被截成省略号）
+		clock_chip.text += " " + Texts.s(&"STORY_CLOCK_NEXT_SHORT") % int(fc.get("at", 0))
+		clock_chip.tooltip_text = Texts.s(&"STORY_CLOCK_NEXT") % [str(fc.get("name", "")), int(fc.get("at", 0))]
 	quest_chip.text = Texts.s(&"STORY_QUEST_BADGE") % int(_vm.get("quest_badge", 0))
 	for child: Node in party_chips.get_children():
 		child.queue_free()
@@ -748,6 +750,14 @@ func _refresh_story_options() -> void:
 			if story_cb.has("edge"):
 				story_cb["edge"].call(i))
 		idx += 1
+	var has_check := false
+	for e2: Variant in _vm.get("edges", []):
+		has_check = has_check or bool((e2 as Dictionary).get("check", false))
+	if has_check and int(_vm.get("inspiration", 0)) > 0: # 激励（11 §3.2）：检定前举起 = 优势
+		_add_chip(Texts.s(&"STORY_INSPIRE_ON") if bool(_vm.get("inspired", false)) else Texts.s(&"STORY_INSPIRE_OFF"),
+			false, func() -> void:
+				if story_cb.has("hub"):
+					story_cb["hub"].call("inspire", ""))
 	if str(_vm.get("type", "")) == "hub": # hub 三设施（战役书 §4 N1-1）
 		_add_chip(Texts.s(&"HUB_SHOP"), false, func() -> void: hub_popup.open(
 			int(_vm.get("gold", 0)), _vm.get("stock", []), _vm.get("party", []), HubPopup.MODE_HUB))

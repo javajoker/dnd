@@ -316,6 +316,7 @@ Effects (usable in `effects` / `on_enter` / settlement):
 | `alignment` | alignment slide |
 | `give_item` / `remove_item` | item change |
 | `xp` | experience |
+| `inspiration` | Inspiration change (11 §3.2; `<ns>.inspiration` bookkeeping, clamped 0–1) |
 | `gold` | gold change in this pack's namespace (`<ns>.gold` counter, 07 §2 currency clause; negative deducts, clamps at 0; same precedent as campaign01.gold / arena.gold; not in the flags.json ledger) |
 | `bond.<npc>` | Bond change |
 | `lore` | unlock a Compendium entry (writes to the `global.lore` set and emits a `lore.unlock` event, doc 07 §2) |

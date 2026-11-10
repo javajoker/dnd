@@ -35,7 +35,7 @@ static func load_entitlement_registry(path: String = ENTITLEMENT_REGISTRY_PATH) 
 		if e is Dictionary and not str((e as Dictionary).get("id", "")).is_empty():
 			out.append(str((e as Dictionary)["id"]))
 	return {"ok": true, "error": "", "entitlements": out}
-const EFFECT_KEYS := ["write", "value", "clock", "alignment", "give_item", "remove_item", "xp", "gold", "lore"]
+const EFFECT_KEYS := ["write", "value", "clock", "alignment", "give_item", "remove_item", "xp", "gold", "lore", "inspiration"]
 const COND_KEYS := ["clock", "alignment", "bond_max", "all", "any"]
 const EFFECT_PREFIXES := ["rep.", "bond.", "clock."]
 const COND_PREFIXES := ["flag.", "rep.", "item.", "bond.", "clock."]

@@ -169,20 +169,47 @@ func roll_check(edge: Dictionary) -> Dictionary:
 	var skill := str(edge.get("skill", ""))
 	var dc := LightV1.dc_for(str(edge.get("difficulty", "medium")))
 	var mod := check_mod(skill)
-	var res := LightV1.check(rng, mod, dc)
+	var mode := LightV1.ADV_NORMAL
+	if inspiration_armed and inspiration() > 0:
+		mode = LightV1.ADV_ADVANTAGE # 花费激励：本次检定优势（11 §3.2）
+		board.write(_insp_key(), 0, _hub_prov())
+		board.stream.emit(EventTypes.LOG, {"msg_key": "MSG_INSPIRATION_SPENT", "toast": true}, &"graph", current_id)
+	inspiration_armed = false
+	var res := LightV1.check(rng, mod, dc, mode)
 	var success := bool(res["success"])
 	var key := bool(edge.get("key", false)) \
 		or (str(edge.get("difficulty", "")) == "hard" and bool(edge.get("pivot", false)))
 	var extreme := bool(res["nat20"]) or bool(res["nat1"])
 	board.stream.emit(EventTypes.CHECK_ROLL, {"roller": "pc", "kind": "story_check",
 		"skill": skill, "rolls": res["rolls"], "keep": res["keep"], "mod": mod,
-		"total": res["total"], "dc": dc, "success": success, "key": key, "extreme": extreme},
-		&"graph", current_id)
+		"total": res["total"], "dc": dc, "success": success, "key": key, "extreme": extreme,
+		"mode": String(mode)}, &"graph", current_id)
+	if bool(res["nat1"]) and inspiration() < 1:
+		# 失败也是故事：天然 1 换来一枚激励（11 §3.2 失败即分支的正反馈）
+		board.write(_insp_key(), 1, _hub_prov())
+		board.stream.emit(EventTypes.LOG, {"msg_key": "MSG_INSPIRATION_GAIN", "toast": true}, &"graph", current_id)
 	resolve_check(edge, success)
 	res["success"] = success
 	res["key"] = key
 	res["extreme"] = extreme
 	return res
+
+# ---------------------------------------------------------------- 激励（11 §3.2：d20 核心规则的 Inspiration）
+# 最多持有一枚（<ns>.inspiration 簿记）；故事检定掷出天然 1 或内容效果 inspiration 获得；
+# 玩家在检定前"举起"激励（arm），下一次故事检定以优势掷骰并消耗。
+
+var inspiration_armed := false
+
+func _insp_key() -> String:
+	return "%s.inspiration" % pack_id
+
+func inspiration() -> int:
+	return clampi(int(board.read(_insp_key(), 0)), 0, 1)
+
+## 举起 / 放下激励；未持有时无法举起。返回当前是否举起。
+func arm_inspiration(on: bool) -> bool:
+	inspiration_armed = on and inspiration() > 0
+	return inspiration_armed
 
 func _player_template() -> Dictionary:
 	for cid: String in (pack.get("characters", {}) as Dictionary).keys():

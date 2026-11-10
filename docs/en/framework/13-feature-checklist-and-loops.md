@@ -88,6 +88,7 @@ Note: the Godot gesture layer implements all of 12 §1's recognition parameters 
 | Death saves best of three | Key check, full screen | ✅ | ✅ |
 | Saving throws (AoE) | save = {attr, dc, half}, boss area skills | ✅ | ✅ |
 | Critical hits | nat 20 doubles damage dice | ✅ | ✅ |
+| Inspiration | Gained on a natural 1 in a story check or from a content effect (max one); raise the "✦ Inspiration" chip → advantage on the next check | ✅ (none) | ✅ |
 | Auto-play | Rolls for you / strategy chain / 1×–2× pacing / take over any time / auto-stop at end / events tagged `auto` | ✅ | ✅ |
 | Retreat | Failure is a branch (no loot or XP; companions dragged out) | ✅ | ✅ |
 | Escort battle | Keep an NPC alive for N rounds; failure costs time | ✅ (none) | ✅ |

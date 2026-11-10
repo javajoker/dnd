@@ -81,6 +81,7 @@ func _init() -> void:
 	test_story_runtime()
 	test_camp_rest()
 	test_equipment()
+	test_inspiration()
 	test_story_vm()
 	test_text_ref()
 	test_subgame_arena()
@@ -3484,6 +3485,37 @@ func test_equipment() -> void:
 	check(thrown.size() == 1 and atk.size() == 1, "投掷 = item.use(thrown) + 攻击检定事件")
 	check(str((thrown[0]["payload"] as Dictionary).get("name", "")) == "墨瓶", "道具事件携带显示名（日志不显内部 id）")
 
+# ---------------------------------------------------------------- 激励（11 §3.2：d20 核心规则 Inspiration）
+
+func test_inspiration() -> void:
+	print("[inspiration]")
+	var pack := _load_campaign01()
+	var s := EventStream.new()
+	var b := Board.new(s)
+	var g := StoryGraph.new(b, Rng.new(1), pack)
+	g.start()
+	check(g.inspiration() == 0 and not g.arm_inspiration(true), "未持有激励：无法举起")
+	Conditions.new(b).apply_effects([{"inspiration": 1}, {"inspiration": 1}],
+		{"pack_id": "campaign01", "node_id": "N0-1", "event_id": 0, "source": "graph"})
+	check(g.inspiration() == 1, "效果 inspiration 获得激励，最多一枚（钳位）")
+	g._enter("N0-2")
+	var edge: Dictionary = (pack["nodes"]["N0-2"]["edges"] as Array)[0]
+	check(g.arm_inspiration(true), "举起激励")
+	check(str(StoryVM.edge_display(edge, g, pack)["label"]).contains("优势"), "检定按钮标注优势")
+	g.roll_check(edge)
+	var ev: Dictionary = s.query_by_type(EventTypes.CHECK_ROLL)[-1]
+	check(str((ev["payload"] as Dictionary)["mode"]) == "advantage" and ((ev["payload"] as Dictionary)["rolls"] as Array).size() == 2
+		and g.inspiration() == 0 and not g.inspiration_armed, "花费激励：优势掷骰（2d20 取高）并消耗")
+	var gained := false
+	for i: int in 200:
+		g._enter("N0-2")
+		g.roll_check(edge)
+		var p: Dictionary = s.query_by_type(EventTypes.CHECK_ROLL)[-1]["payload"]
+		if int(p["keep"]) == 1:
+			gained = g.inspiration() == 1
+			break
+	check(gained, "故事检定天然 1：获得一枚激励（失败也有回报）")
+
 # ---------------------------------------------------------------- 节点流程视图模型（双壳共用内容源，godot-dev §7）
 
 func test_story_vm() -> void:
@@ -5356,7 +5388,8 @@ func test_main_flow() -> void:
 	check(sh.pip_state(0) == EncounterPortrait.PIP_CURRENT and sh.pip_state(1) == EncounterPortrait.PIP_FUTURE,
 		"推进条 pip 同步 story 节点（04 §④.2：当前脉动/未来剪影）")
 	check(sh.clock_chip.visible and sh.clock_chip.text.contains("时钟 0 格")
-		and sh.clock_chip.text.contains("墨雨夜袭 2格"), "状态栏带：时钟总览格 + 时间边预告（04 §3.1）")
+		and sh.clock_chip.text.contains("→ 2 格") and sh.clock_chip.tooltip_text.contains("墨雨夜袭 2格"),
+		"状态栏带：时钟总览格 + 下一格提示（竖屏紧凑；事件名在提示/弹层）（04 §3.1）")
 	var party_shown := ""
 	for child: Node in sh.party_chips.get_children():
 		# 芯片结构 = HBox[头像? + Label]（14 #7 art_ref 头像芯片，tech/05 §8）：取 Label 后代文本

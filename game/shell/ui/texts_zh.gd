@@ -532,3 +532,11 @@ const REJECT_REASONS := {"action_used": "本回合动作已用", "bonus_used": "
 	"skill_depleted": "次数已尽", "bad_target": "目标不合法", "no_item": "背包里没有",
 	"no_skill": "技能未备战", "not_your_turn": "还没轮到这名角色", "none_free": "在别人手里",
 	"not_user": "用不了", "already_equipped": "已在手中", "no_retreat_edge": "无路可退"}
+
+# ---- 激励（11 §3.2）----
+const STORY_INSPIRE_OFF := "✦ 激励：举起（下一次检定优势）"
+const STORY_INSPIRE_ON := "✦ 激励已举起（点按放下）"
+const STORY_ADV_TAG := " · 优势"
+const MSG_INSPIRATION_GAIN := "天然 1——失败也写进了你的故事。获得一枚激励 ✦。"
+const MSG_INSPIRATION_SPENT := "你举起激励 ✦：这次检定以优势掷骰。"
+const STORY_CLOCK_NEXT_SHORT := "→ %d 格 ⚠"
