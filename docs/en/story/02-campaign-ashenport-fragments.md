@@ -15,7 +15,7 @@
 | Rule pack | Light rule pack v1 (3 attributes / three difficulty tiers / three-part action economy) |
 | Recommended level | 1–4 |
 | Estimated length | 6–9 hours (including one side-chain replay) |
-| Mode declaration | **Dual-mode (player's choice)**; exceptions: the Prologue and Act III are **forced Portrait · Temporal** (narrative reason: fragments and remembrance, see world §8) |
+| Mode declaration | **Dual-mode (player's choice)**; exception: Act III is **forced Portrait · Temporal** (narrative reason: fragments and remembrance, see world §8); the Prologue follows the player's chosen form (choosing landscape starts in landscape from the very first scene) |
 | Ending types | 4 (E1 Re-inked / E2 Free Ash / E3 A New Page / E4 The Fading Takes the Harbor) |
 | Node budget | 35 nodes (Prologue 4 + Act I 8 + Act II 12 + Act III 7 + Finale 4) |
 
@@ -27,7 +27,7 @@ You wake to the sound of the tide in Ashenport with no codex page in your arms. 
 
 ```
 Prologue "Tidewake" ──→ Act I "The Faded Street" ──→ Act II "Three Pens" ──→ Act III "The Revoked Quarter" ──→ Finale "The Harbor's Last Page"
- (forced portrait)       (dual-mode)                 (dual-mode)              (forced portrait)                  (dual-mode)
+ (dual-mode)             (dual-mode)                 (dual-mode)              (forced portrait)                  (dual-mode)
   tutorial, 4 nodes       investigation + 3 factions  faction side-chains      room-sequence remembrance          boss + choice + ending
 ```
 
@@ -35,7 +35,7 @@ Prologue "Tidewake" ──→ Act I "The Faded Street" ──→ Act II "Three P
 
 Edge-type tags: `[C]` choice edge, `[K]` check edge (success/failure paths), `[I]` item edge, `[T]` time edge, `[R]` reputation/alignment edge
 
-### SL-0 Prologue "Tidewake" (forced portrait, tutorial)
+### SL-0 Prologue "Tidewake" (dual-mode, tutorial)
 
 ```
 N0-1 Tidewake (cutscene)

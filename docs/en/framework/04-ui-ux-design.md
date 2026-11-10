@@ -169,7 +169,7 @@ A Portrait · Temporal campaign is built from a **room sequence**; each room is 
 A portrait screen is too narrow for a wide battlefield; three mechanisms combine to solve it:
 
 1. **Vertical battlefield**: battlefields are designed as long strips (corridors, boardwalks, canyons), enemies above and the party below, naturally fitting a vertical composition;
-2. **Smart camera**: by default follows a local view around the acting unit (about 5×7 cells visible), panning smoothly when the turn focus changes; pinch at any time to zoom out to an overview, springing back on release;
+2. **Smart camera (fit first, then follow)**: while the battlefield fits, it stays centred and the camera does not move on turn changes (both sides always visible); only when pinch-zoomed so the battlefield exceeds the view does it follow the acting unit, stopping at the battlefield edges so no blank space shows past the border; battlefield content is clipped to the main view and never covers the status band or console;
 3. **45° pseudo-3D**: compresses the depth direction, fitting 2–3 more usable rows than a pure top-down view while keeping units feeling three-dimensional.
 
 Constraint: portrait campaign level design must respect an **on-screen unit cap** (≤8 suggested; exact value to be validated in prototypes); large-scale battles should be declared as Landscape · Spatial at design time — one of the bases for a pack's mode declaration.

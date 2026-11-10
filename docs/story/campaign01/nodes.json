@@ -1,6 +1,6 @@
 {
   "acts": [
-    { "id": "SL-0", "title": "潮醒", "mode": "forced_time", "role": "教学" },
+    { "id": "SL-0", "title": "潮醒", "mode": "choice", "role": "教学" },
     { "id": "SL-1", "title": "褪色的街", "mode": "choice", "role": "调查+三方接触" },
     { "id": "SL-2", "title": "三支笔", "mode": "choice", "role": "三方支线择路", "entitlement": { "requires": ["entitlement.campaign01_full"] } },
     { "id": "SL-3", "title": "撤销区", "mode": "forced_time", "role": "房间序列追忆", "entitlement": { "requires": ["entitlement.campaign01_full"] } },

@@ -17,7 +17,6 @@ const FOCUS_TIME := 0.35  # 回合焦点切换平滑推移时长
 const PUNCH_SCALE := 1.12 # 关键推拉推近倍率（暴击/Boss 登场）
 const PUNCH_IN := 0.18    # 推近时长
 const PUNCH_OUT := 0.22   # 拉回时长（推近+拉回 0.40s ≤0.5s，14 #8）
-const PAN_LIMIT := 0.30   # 单轴平移上限 = 可视区对应边长比例（防拽空，竖屏 lane 防出画）
 const RESUME_TIME := 0.30 # 手动缩放回合末回弹跟随时长
 
 var target: Control = null # 镜头施加节点（竖屏 lane 内容层 / 横屏战术格）
@@ -136,11 +135,9 @@ func _do_focus(uid: String) -> void:
 		return
 	stats["focus"] += 1
 	var view := _view()
-	var delta := view.get_center() - _anchor(uid)
+	var delta := framing_delta(view, content_rect(), _anchor(uid))
 	if axis_lock_x:
 		delta.x = 0.0
-	delta.x = clampf(delta.x, -view.size.x * PAN_LIMIT, view.size.x * PAN_LIMIT)
-	delta.y = clampf(delta.y, -view.size.y * PAN_LIMIT, view.size.y * PAN_LIMIT)
 	last_focus = {"uid": uid, "pan": delta}
 	if delta.length() < 0.5:
 		return
@@ -151,6 +148,28 @@ func _do_focus(uid: String) -> void:
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 ## 关键推拉：以事件单位为轴心推近再拉回（总量 ≤0.5s；只缩放，不震屏——14 #4 震屏唯一源 JuiceLayer）。
+## 战场内容的全局矩形（含缩放）。
+func content_rect() -> Rect2:
+	if target == null or not is_instance_valid(target):
+		return Rect2()
+	return target.get_global_transform() * Rect2(Vector2.ZERO, target.size)
+
+## 取景（先容纳、后跟随）：每轴——战场放得下就居中、不随回合移动（敌我全在画内）；
+## 放不下（捏合放大后）才跟随行动单位，且推到战场边缘为止，绝不露出边界外的空白。
+static func framing_delta(view: Rect2, content: Rect2, anchor: Vector2) -> Vector2:
+	var d := Vector2.ZERO
+	for axis: int in [0, 1]:
+		var v0 := view.position[axis]
+		var v1 := view.end[axis]
+		var c0 := content.position[axis]
+		var c1 := content.end[axis]
+		if c1 - c0 <= v1 - v0 + 0.5:
+			d[axis] = (v0 + v1) * 0.5 - (c0 + c1) * 0.5 # 放得下：居中
+		else:
+			var want := (v0 + v1) * 0.5 - anchor[axis] # 放不下：对准行动单位……
+			d[axis] = clampf(want, v1 - c1, v0 - c0)  # ……但内容边缘不进入可视区
+	return d
+
 func _do_punch(uid: String) -> void:
 	if manual:
 		stats["yield"] += 1

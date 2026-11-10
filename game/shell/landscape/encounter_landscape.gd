@@ -179,6 +179,7 @@ func _build_ui() -> void:
 	wheel_v.add_child(wheel_box)
 	# 中央 60%：战术格地图
 	center_map = PanelContainer.new()
+	center_map.clip_contents = true # 镜头平移/缩放的战术格裁在中央区内，不压到左栏行动轮盘
 	center_map.name = "CenterMap"
 	add_child(center_map)
 	_set_rect(center_map, RATIO_LEFT, RATIO_TOP, RATIO_LEFT + RATIO_CENTER, 1.0 - RATIO_BOTTOM)

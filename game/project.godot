@@ -11,15 +11,15 @@ config_version=5
 [application]
 
 config/name="Age of the Codex: Ashenport Fragments"
-run/main_scene="res://main.tscn"
-config/features=PackedStringArray("4.7", "Mobile")
 config/name_localized={
 "en": "Age of the Codex: Ashenport Fragments",
 "zh_CN": "抄本纪元 · 烬港残页"
 }
-config/quit_on_go_back=false
+run/main_scene="res://main.tscn"
 config/use_custom_user_dir=true
 config/custom_user_dir_name="age-of-the-codex"
+config/quit_on_go_back=false
+config/features=PackedStringArray("4.7", "Mobile")
 
 [display]
 
@@ -29,14 +29,14 @@ window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/handheld/orientation=1
 
-[rendering]
-
-renderer/rendering_method="mobile"
-environment/defaults/default_clear_color=Color(0.07, 0.07, 0.09, 1)
-
 [game]
 
 market="global"
 market.cn_store="cn"
 features/landscape=true
 features/landscape.mobile=false
+
+[rendering]
+
+renderer/rendering_method="mobile"
+environment/defaults/default_clear_color=Color(0.07, 0.07, 0.09, 1)

@@ -1204,9 +1204,12 @@ func test_shell_router() -> void:
 	var r3 := ShellRouter.resolve(pres, PackedStringArray(["--mode=time"]), "SL-1")
 	check(r3["mode"] == ShellRouter.MODE_TIME, "choice + --mode=time → 竖屏")
 	var r4 := ShellRouter.resolve(pres, PackedStringArray(["--mode=space"]), "SL-0")
-	check(r4["mode"] == ShellRouter.MODE_TIME and bool(r4["forced"]),
-		"forced 幕 SL-0 强制竖屏（启动参数不生效，tech/02 §2.1）")
-	var notice := str(r4["notice"])
+	check(r4["mode"] == ShellRouter.MODE_SPACE and not bool(r4["forced"]),
+		"序章 SL-0 随玩家所选形态（选横屏即从序章起横屏）")
+	var r4b := ShellRouter.resolve(pres, PackedStringArray(["--mode=space"]), "SL-3")
+	check(r4b["mode"] == ShellRouter.MODE_TIME and bool(r4b["forced"]),
+		"forced 幕 SL-3 强制竖屏（启动参数不生效，tech/02 §2.1）")
+	var notice := str(r4b["notice"])
 	check(notice != "" and not notice.contains("锁定") and not notice.contains("模式"),
 		"强制幕叙事化提示（09 §3：包装文案禁止系统腔）")
 	var r5 := ShellRouter.resolve(pres, PackedStringArray([]), "SL-3")
@@ -4621,8 +4624,8 @@ func test_act3_forced_mode() -> void:
 	await process_frame
 	await process_frame
 	# SL-0 强制竖屏：横屏玩家开局即竖屏壳（manifest presentation.forced）
-	check(m.shell is EncounterPortrait and m.graph.current_id == "N0-1",
-		"SL-0 强制竖屏：横屏玩家开局切竖屏壳（tech/02 §2.1 forced）")
+	check(m.shell is EncounterLandscape and m.graph.current_id == "N0-1",
+		"选横屏：从序章起即横屏壳（序章不再强制竖屏）")
 	m._on_story_edge(0) # → N0-2
 	await process_frame
 	m._on_story_edge(0) # 掷检定
@@ -4631,9 +4634,7 @@ func test_act3_forced_mode() -> void:
 	await process_frame
 	m._on_story_edge(0) # → N1-1（SL-1：恢复横屏）
 	await process_frame
-	check(m.shell is EncounterLandscape, "SL-1 起切回横屏（forced 幕外随玩家所选形态，tech/02 §2.1）")
-	check((m.shell as EncounterLandscape).flash_label.text.contains("全局的视野"),
-		"解锁提示叙事化呈现（09 §3：包装文案禁止系统腔）")
+	check(m.shell is EncounterLandscape, "SL-1 保持横屏（随玩家所选形态，tech/02 §2.1）")
 	# N2-C → N3-1：横屏玩家强制切竖屏壳 + 模式锁定演出
 	m.graph._enter("N2-C") # 传送幕二收束点（SL-2 随玩家所选形态）
 	m._present_node()
@@ -4679,8 +4680,8 @@ func test_mode_boundary() -> void:
 	(m.current_screen as ScreenEntry).start_requested.emit()
 	await process_frame
 	await process_frame
-	check(m.window_orientation == ShellRouter.MODE_TIME and m.shell is EncounterPortrait,
-		"SL-0 强制竖屏：横屏玩家开局窗口与壳均竖屏（presentation.forced，tech/02 §2.1）")
+	check(m.window_orientation == ShellRouter.MODE_SPACE and m.shell is EncounterLandscape,
+		"选横屏：开局窗口与壳均横屏（序章随所选形态）")
 	m._on_story_edge(0) # N0-1 → N0-2
 	await process_frame
 	m._on_story_edge(0) # 掷检定
@@ -6861,6 +6862,14 @@ func test_art_pipeline() -> void:
 
 func test_transition_camera() -> void:
 	print("[transition_camera]")
+	# ---- 取景：先容纳、后跟随（回合切换不把敌人推出画面、不露边界外空白）----
+	var view := Rect2(0, 0, 400, 300)
+	var d_fit := BattleCamera.framing_delta(view, Rect2(20, 10, 360, 280), Vector2(50, 280))
+	check(d_fit == Vector2.ZERO, "战场放得下：居中不动，不跟随行动单位（敌我全在画内）")
+	var d_big := BattleCamera.framing_delta(view, Rect2(0, 0, 800, 600), Vector2(780, 590))
+	check(d_big == Vector2(-400, -300), "战场放不下：跟随但停在战场边缘（不露边界外空白）")
+	var d_mid := BattleCamera.framing_delta(view, Rect2(0, 0, 800, 600), Vector2(400, 300))
+	check(d_mid == Vector2(-200, -150), "战场放不下：行动单位居中")
 	# ---- 转场器参数冻结（14 #8；04 §10「各界面转场动画时长规范见 14 清单 #8」）----
 	check(UiTransition.FADE_OUT >= 0.2 and UiTransition.FADE_OUT <= 0.3,
 		"转场淡出时长 0.2~0.3s 档（14 #8 冻结）")
