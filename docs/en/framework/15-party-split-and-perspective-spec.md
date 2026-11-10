@@ -46,7 +46,7 @@ Invariants:
 
 - Thread nodes are ordinary nodes; three extra conditions are available in the condition DSL:
   - `in_group: "<char_id>"` — the focused group contains that character (unique scenes for a character);
-  - `group_size: {"lte": 1}` — "alone" scenes;
+  - `group_size: {"<=": 1}` — "alone" scenes;
   - `thread: "<group_id>"` — the node belongs to that thread (validator uses it to keep threads separate).
 - **Per-character checks**: inside a thread, a check edge is rolled by the group's **lead** (the first member, or a `roller` declared on the edge). Its modifier comes from that character's attributes and proficiencies (doc 11 §2) — so Kelan's thread genuinely plays like Kelan.
 - Battles inside a thread take **only that group's members** (`party_from: "group"` on the encounter). Content must tune them for the smaller party (V8 checks unit caps per group size).

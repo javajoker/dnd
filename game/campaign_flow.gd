@@ -20,9 +20,12 @@ var _maze: MazeRunner = null      # 进行中的探索序列核（core 渐进执
 var _maze_outcome := ""           # 上一拍结果摘要（拼进下一拍文本）
 var _settle_lines: Array[String] = [] # 结算汇总缓存（卷轴往返 / 加点刷新复用）
 var _settle_celebrated := false # 本场胜利演出已播（04 §④.8：加点/卷轴往返重绑不重播）
+var _map_battle := false # 本场遭遇由地图/事件表触发（16 §4）：胜负都回地图，不走节点出边
+var maps: MapFlow        # 地图与场所流程（docs/en/framework/16）
 
 func _init(main: Node) -> void:
 	m = main
+	maps = MapFlow.new(main, self)
 
 func _on_mode_chosen(mode: StringName) -> void:
 	# 模式选择 = 一次分支，写入状态板（09 §3）；全局白名单键（07 §3 v1.1）
@@ -66,6 +69,9 @@ func _present_node() -> void:
 		_end_slice()
 		return
 	var ntype := str(m.graph.current().get("type", ""))
+	if ntype == "map" or ntype == "site":
+		maps.present() # 区域地图 / 场所（16 §2/§3）
+		return
 	if ntype == "battle":
 		_enter_encounter()
 		return
@@ -192,6 +198,10 @@ func _on_hub_action(action: String, arg: String) -> void:
 		return
 	if m.current_screen is ScreenSettle: # 结算屏营地（战斗之间）：只刷新弹层
 		(m.current_screen as ScreenSettle).sync_camp(_camp_data())
+		return
+	if m.current_screen is ScreenMap: # 地图上扎营（16 §2.2）
+		(m.current_screen as ScreenMap).sync_camp(_camp_data())
+		maps.refresh()
 		return
 	var vm := StoryVM.build(m.graph, m.board, m.pack)
 	_story_show(vm)
@@ -335,9 +345,11 @@ func _on_maze_advance() -> void:
 	await m.get_tree().create_timer(0.8).timeout
 	_show_maze_beat()
 
-func _enter_encounter() -> void:
+## enc_override：地图/事件表触发的遭遇 id（16 §4；节点仍是地图节点，胜负都回地图）。
+func _enter_encounter(enc_override: String = "") -> void:
 	var node: Dictionary = m.graph.current()
-	_encounter_id = str(node.get("encounter", m.graph.current_id))
+	_map_battle = enc_override != ""
+	_encounter_id = enc_override if _map_battle else str(node.get("encounter", m.graph.current_id))
 	_battle_title = str(node.get("title", _encounter_id))
 	m._set_window_orientation(_story_mode()) # 整备同战役形态（09 §8）：壳未建时窗口先就位（如「继续」直达战斗节点）
 	var cfg := Loadout.resolve_config(m.pack, _encounter_id)
@@ -538,6 +550,13 @@ func _on_save_quit() -> void:
 func _show_settle_deferred() -> void:
 	await m.get_tree().create_timer(1.2).timeout
 	_in_encounter = false
+	if _map_battle:
+		# 地图遭遇（16 §4）：不走节点出边；HP 已持久（≥1），结算后"继续"回地图
+		if _encounter_result == &"victory":
+			_battles_won += 1
+		m._save("settle")
+		_show_settle()
+		return
 	if _encounter_result == &"victory":
 		_battles_won += 1
 		var edges: Array = m.graph.available_edges()
@@ -617,8 +636,8 @@ func _bind_settle() -> void:
 		"result": String(_encounter_result), "lines": _settle_lines,
 		"saved": true, "attr_points": Growth.attr_points(m.board),
 		"attrs": Growth.attrs_map(m.board),
-		"has_next": _encounter_result == &"victory", # 下一遭遇出口（04 §⑨：胜利结算三出口）
-		"can_camp": _encounter_result == &"victory", # 战斗之间扎营：短休/长休/补给（11 §7.2）
+		"has_next": _encounter_result == &"victory" or _map_battle, # 下一遭遇出口（地图遭遇恒回地图）
+		"can_camp": _encounter_result == &"victory" or _map_battle, # 战斗之间扎营：短休/长休/补给（11 §7.2）
 		"celebrate": not _settle_celebrated}) # 胜利演出每场首播（04 §④.8；加点刷新重绑不重播）
 	_settle_celebrated = true
 	screen.allocate.connect(_on_settle_allocate)

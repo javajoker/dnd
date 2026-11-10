@@ -115,6 +115,27 @@ func apply_effect(effect: Dictionary, ctx: Dictionary = {}) -> void:
 				continue
 			var gk := "%s.gold" % pack_id
 			_board.write(gk, maxi(int(_board.read(gk, 0)) + int(effect[k]), 0), prov)
+		elif k == "reveal":
+			# 地图揭示（16 §2.1）：值 "<map_id>.<location_id>"，并入 <ns>.map.<map>.seen 集合
+			var parts := str(effect[k]).split(".", false, 1)
+			if pack_id.is_empty() or parts.size() != 2:
+				continue
+			var sk := "%s.map.%s.seen" % [pack_id, parts[0]]
+			var seen: Array = (_board.read(sk, []) as Array).duplicate() if _board.read(sk, []) is Array else []
+			if not seen.has(parts[1]):
+				seen.append(parts[1])
+				_board.write(sk, seen, prov)
+		elif k == "watch":
+			# 行程时辰（16 §2.2）：<ns>.watch 累计，满 watches_per_segment（ctx，缺省 4）推进时间钟 +1
+			if pack_id.is_empty():
+				continue
+			var wk := "%s.watch" % pack_id
+			var per := maxi(int(ctx.get("watches_per_segment", 4)), 1)
+			var w := int(_board.read(wk, 0)) + int(effect[k])
+			while w >= per:
+				w -= per
+				_board.write("global.doom_clock", _board.get_doom_clock() + 1, prov)
+			_board.write(wk, w, prov)
 		elif k == "inspiration":
 			# 激励（11 §3.2）：包命名空间簿记 <ns>.inspiration，0~1 钳位（最多持有一枚）
 			if pack_id.is_empty():

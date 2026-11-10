@@ -132,6 +132,21 @@ func take_edge(edge: Dictionary) -> void:
 	_scan_triggers()
 	_enter(str(edge.get("to", "")))
 
+## 地图抵达（docs/en/framework/16 §1：地图是故事图之上的空间导航）：离开当前节点并进入地点节点。
+## 不是边——地点节点经地图到达；packlint 把地图节点 → 地点节点计入邻接（V2 可达）。
+func travel_to(node_id: String) -> void:
+	if not (pack["nodes"] as Dictionary).has(node_id):
+		push_error("StoryGraph.travel_to: 不存在的节点 '%s'" % node_id)
+		return
+	_leave_current()
+	_enter(node_id)
+
+## 外部写时钟后复查时间边（地图行程推进时辰 → 时间钟，16 §2.2）。返回当前节点是否因触发而改变。
+func rescan() -> bool:
+	var before := current_id
+	_scan_triggers()
+	return current_id != before
+
 ## 检定边成败双路结算（§4.2：差异体现在 success/failure 目标与效果）。
 func resolve_check(edge: Dictionary, success: bool) -> void:
 	_leave_current()

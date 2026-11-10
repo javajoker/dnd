@@ -69,7 +69,42 @@
           "effects": [ { "give_item": "half_tide_table" } ] },
         { "type": "choice", "label": "购买补给药水（商店，价格 15 占位）", "to": "N1-2",
           "effects": [ { "give_item": "heal_potion" } ] },
-        { "type": "choice", "label": "前往褪色现场", "to": "N1-2" }
+        { "type": "choice", "label": "前往褪色现场", "to": "N1-2" },
+        { "type": "choice", "label": "沿雾岸探索（耗时）", "to": "N1-1m" }
+      ]
+    },
+    {
+      "id": "N1-1m", "act": "SL-1", "type": "map",
+      "title": "雾岸小路",
+      "summary": "广场以东，海雾贴着礁石爬上岸。路线、步调、每一段路都要掷骰——每走一段，时间就流逝一些。",
+      "map": "fog_coast",
+      "edges": [ { "type": "choice", "label": "回广场", "to": "N1-1" } ]
+    },
+    {
+      "id": "N1-1mr", "act": "SL-1", "type": "scene",
+      "title": "渔人巷",
+      "summary": "半条巷子的门牌已经褪成白纸。一位老渔妇蹲在门口补网，网眼比墨字还稀。",
+      "edges": [
+        { "type": "choice", "label": "帮老渔妇补网", "to": "N1-1m", "effects": [ { "inspiration": 1 } ] },
+        { "type": "choice", "label": "回到雾岸小路", "to": "N1-1m" }
+      ]
+    },
+    {
+      "id": "N1-1mc", "act": "SL-1", "type": "scene",
+      "title": "沉钟礼拜堂",
+      "summary": "钟楼半截沉在潮里，退潮时能看见钟口下压着的供奉匣。",
+      "edges": [
+        { "type": "choice", "label": "从钟下取出供奉匣", "to": "N1-1m", "effects": [ { "gold": 12 } ] },
+        { "type": "choice", "label": "回到雾岸小路", "to": "N1-1m" }
+      ]
+    },
+    {
+      "id": "N1-1ms", "act": "SL-1", "type": "scene",
+      "title": "盐沼",
+      "summary": "灯塔重新亮起后，雾里显出一片盐沼。盐晶在灯光下像没写完的字。",
+      "edges": [
+        { "type": "choice", "label": "采集盐晶", "to": "N1-1m", "effects": [ { "gold": 20 } ] },
+        { "type": "choice", "label": "回到雾岸小路", "to": "N1-1m" }
       ]
     },
     {

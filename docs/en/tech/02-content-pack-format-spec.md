@@ -24,8 +24,8 @@
 ├── enemies.json       # enemy table (optional; same doc §1)
 ├── endings.json       # ending types (campaign packs only) (§9)
 ├── lore.json          # Compendium Lore entries (§10)
-├── maps.json          # region maps and site maps (optional; doc 16 §6) — planned, P5
-├── tables.json        # event tables (optional; doc 16 §4) — planned, P5
+├── maps.json          # region maps and site maps: { "regions": [], "sites": [] } (optional; doc 16 §6)
+├── tables.json        # event tables and event cards: { "tables": [], "cards": [] } (optional; doc 16 §4)
 └── texts/             # externalised long text (text_ref, see §1.1; reserved for i18n — the locale is the file name)
     └── zh-CN.json
 ```
@@ -75,7 +75,7 @@ Rules: file names are fixed and case-sensitive; the validator warns on unknown f
 | locales | string[] | no | Languages this pack promises (including the source); when declared, V15 checks text completeness for each |
 | progression | object | no (campaigns) | Framework features unlocked per playthrough: `{ "1": {"split": false, "links": false, "lead": "player"}, … }` (doc 15 §7) — planned, P5 |
 | party | object | no | Party-split settings: `{ "max_drift": 1, "link_charges": 2, "max_items": 2 }` (doc 15 §2.4/§5) — planned, P5 |
-| travel | object | no | Map travel settings: `{ "watches_per_segment": 4, "default_die": "d6" }` (doc 16 §6) — planned, P5 |
+| travel | object | no | Map travel settings: `{ "watches_per_segment": 4, "default_die": "d6" }` (doc 16 §6) |
 
 ### 2.1 presentation (campaign-mode declaration, whitepaper §7.1)
 
@@ -232,7 +232,7 @@ Rules: file names are fixed and case-sensitive; the validator warns on unknown f
 |---|---|---|---|
 | id | string | ✅ | unique within the pack; reuses the campaign-book numbering (N0-1 / R3 / N2S-2 …) for easy cross-reference |
 | act | string | ✅ | the arc (act) ID it belongs to; must exist in acts |
-| type | enum | ✅ | `scene` (cutscene) / `hub` / `check` / `battle` / `dialog` / `explore` / `rest` / `branch` / `ending`; planned (P5): `map` (enter a region map, doc 16), `site` (enter a site map), `rejoin` (party-split convergence, doc 15 §2.3) |
+| type | enum | ✅ | `scene` (cutscene) / `hub` / `check` / `battle` / `dialog` / `explore` / `rest` / `branch` / `ending`; `map` (enter a region map: `"map": "<id>"`, doc 16) and `site` (enter a site map: `"site": "<id>"`); planned (P5.3): `rejoin` (party-split convergence, doc 15 §2.3) |
 | title / summary | string | ✅ | display text; `summary` is also the fallback when full text is missing and the summary for lists/recaps |
 | text_ref | string | no | external long-text reference (§1.1): `"texts/<locale>.json#node.<id>.text"`; resolution text_variants → text_ref → summary |
 | encounter | string | conditional | the encounter ID in encounters.json (required for battle / maze / rest nodes) |
@@ -333,7 +333,7 @@ Effects (usable in `effects` / `on_enter` / settlement):
 | `split` | doc 15 §2.1 | Divide the party into groups, each entering its own thread; `rejoin` node; `linear_fallback` when splitting isn't unlocked |
 | `remote` | doc 15 §5.1 | An action in one thread that affects another thread (`target_thread`), costing link charges |
 
-New conditions (doc 15 §2.2): `in_group`, `group_size`, `thread`. New effects (doc 16 §6): `reveal`, `watch`, `table`. Existing effect `inspiration` (doc 11 §3.2).
+Planned conditions (doc 15 §2.2): `in_group`, `group_size`, `thread`. Map effects (doc 16 §6, implemented): `reveal` (`"<map>.<location>"`), `watch` (watches toward the Doom Clock); nested rolls use a table row's `"outcome": {"table": …}`. Existing effect `inspiration` (doc 11 §3.2).
 
 ## 5. events.json (L3 quests/events)
 
@@ -447,5 +447,5 @@ Optional field `art_ref` (tech/05 §6): reference to the entry's illustration (`
 | V11–V13 | Resource references / legal values / use counts | See `04-resources-and-effects-system.md` §6 |
 | V14 | Graft | Arc packs: the `graft.into` target pack loads, `graft.node` exists in it, the injected edge type is legal and `to` points to a node in this pack, an `item` edge's item is registered in the merged view; namespace independence — this pack's node/event/encounter/item/lore ids don't collide with the target pack. Arc-pack lint runs graph traversal (V1–V3) and resource references (V11) on the **merged view** (host + graft injection); flags / clocks / budget / entitlements are checked per this pack |
 | V16–V18 | Party split (planned, P5) | Thread integrity, group-battle unit caps, progression fallbacks (doc 15 §9) |
-| V19–V21 | Maps and tables (planned, P5) | Map connectivity, table die coverage, outcome references (doc 16 §7) |
+| V19–V21 | Maps and tables | Map connectivity, table die coverage, outcome references (doc 16 §7) |
 | V15 | Text completeness | For every language in manifest `locales`: every text key (with non-empty source text) exists and is non-empty in `texts/<locale>.json`; the source language's text_ref keys must exist. To list untranslated keys: `tools/text_extract.gd` |

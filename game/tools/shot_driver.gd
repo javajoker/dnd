@@ -12,6 +12,7 @@ const FLAGS := {
 	"--mode-shots": "_run_shots_mode", "--ls-shots": "_run_shots_ls", "--text-shots": "_run_shots_text",
 	"--font-shot": "_run_shot_font", "--trans-shots": "_run_shots_trans", "--lock-shot": "_run_shot_lock",
 	"--loadout-shots": "_run_shots_loadout", "--dice-shots": "_run_shots_dice",
+	"--map-shots": "_run_shots_map",
 }
 const SHOT_SEED := 20260009 # 固定种子：截图路径确定（主线两次检定均为成功路）
 
@@ -589,4 +590,46 @@ func _run_shots_dice() -> void:
 	await m.get_tree().create_timer(0.15).timeout
 	await _shot("/tmp/dice_tray_battle.png")
 	print("[shots] 托盘：/tmp/dice_tray_battle.png played=", sh.dice_tray.played, " glyph=", sh.dice_glyph.die)
+	m.get_tree().quit()
+
+# ---------------------------------------------------------------- 地图截图（16 证据 /tmp，不提交）
+
+## `-- --map-shots`（加 --landscape 取横屏）：区域地图 → 选点出发一段 → 灯塔场所 → 事件卡。
+func _run_shots_map() -> void:
+	var land := OS.get_cmdline_user_args().has("--landscape")
+	var tag := "land" if land else "port"
+	await m.get_tree().create_timer(0.8).timeout
+	m._on_home_navigate(&"entry")
+	await m.get_tree().create_timer(0.3).timeout
+	var entry := m.current_screen as ScreenEntry
+	entry.pick_mode(ShellRouter.MODE_SPACE if land else ShellRouter.MODE_TIME)
+	entry.start_requested.emit()
+	await m.get_tree().create_timer(0.6).timeout
+	var prov := {"event_id": m.stream.tail(), "node_id": "N1-1m", "pack_id": m._campaign_id}
+	m.board.write("%s.map.fog_coast.visited" % m._campaign_id, ["plaza", "row"], prov)
+	m.graph._enter("N1-1m")
+	m._present_node()
+	await m.get_tree().create_timer(0.5).timeout
+	var sc := m.current_screen as ScreenMap
+	sc.location_tapped.emit("chapel")
+	await m.get_tree().create_timer(0.3).timeout
+	await _shot("/tmp/map_region_%s.png" % tag)
+	sc.travel_pressed.emit()
+	await m.get_tree().create_timer(0.7).timeout
+	await _shot("/tmp/map_travel_%s.png" % tag)
+	await m.get_tree().create_timer(1.5).timeout
+	m.board.write("%s.map.fog_coast.pos" % m._campaign_id, "lighthouse", prov)
+	m.board.write("%s.map.fog_coast.journey" % m._campaign_id, {}, prov)
+	m.graph._enter("N1-1m")
+	m._present_node()
+	await m.get_tree().create_timer(0.4).timeout
+	sc = m.current_screen as ScreenMap
+	sc.travel_pressed.emit()
+	await m.get_tree().create_timer(0.4).timeout
+	await _shot("/tmp/map_site_%s.png" % tag)
+	m.campaign.maps._card = "courier_satchel"
+	m.campaign.maps.refresh()
+	await m.get_tree().create_timer(0.3).timeout
+	await _shot("/tmp/map_card_%s.png" % tag)
+	print("[shots] 地图四张：/tmp/map_{region,travel,site,card}_%s.png" % tag)
 	m.get_tree().quit()

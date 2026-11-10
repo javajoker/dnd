@@ -57,5 +57,11 @@ const LORE_UNLOCK := &"lore.unlock"  # lore 落板 global.lore（07 §2 约束�
 const CLAMPED := &"clamped"        # 写入越界被钳位
 const BOARD_DENIED := &"board.denied"  # 命名空间越权写入被拒绝
 
+# 地图与事件表（docs/en/framework/16）
+const TABLE_ROLL := &"table.roll"     # 事件表掷骰：{table, die, value, mod, total, row, label, dice}
+const MAP_TRAVEL := &"map.travel"     # 区域地图一段行程：{map, from, to, legs_left, arrived, lost}
+const SITE_ENTER := &"site.enter"     # 场所进入区域：{site, area, first}
+const FEATURE_USE := &"feature.use"   # 场所可交互物：{site, area, feature, success?}
+
 # 通用日志
 const LOG := &"log"

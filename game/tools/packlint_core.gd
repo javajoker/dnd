@@ -35,7 +35,7 @@ static func load_entitlement_registry(path: String = ENTITLEMENT_REGISTRY_PATH) 
 		if e is Dictionary and not str((e as Dictionary).get("id", "")).is_empty():
 			out.append(str((e as Dictionary)["id"]))
 	return {"ok": true, "error": "", "entitlements": out}
-const EFFECT_KEYS := ["write", "value", "clock", "alignment", "give_item", "remove_item", "xp", "gold", "lore", "inspiration"]
+const EFFECT_KEYS := ["write", "value", "clock", "alignment", "give_item", "remove_item", "xp", "gold", "lore", "inspiration", "reveal", "watch"]
 const COND_KEYS := ["clock", "alignment", "bond_max", "all", "any"]
 const EFFECT_PREFIXES := ["rep.", "bond.", "clock."]
 const COND_PREFIXES := ["flag.", "rep.", "item.", "bond.", "clock."]
@@ -76,6 +76,9 @@ static func lint(pack: Dictionary, registry: Dictionary = {}) -> Array:
 	issues.append_array(_v12_legal_keys(pack))
 	issues.append_array(_v13_uses_consume(pack))
 	issues.append_array(_v15_texts(pack))
+	issues.append_array(_v19_maps(pack))
+	issues.append_array(_v20_tables(pack))
+	issues.append_array(_v21_outcome_refs(pack))
 	return issues
 
 static func has_failures(issues: Array) -> bool:
@@ -181,6 +184,13 @@ static func _adjacency(pack: Dictionary) -> Dictionary:
 			for key: String in ["to", "success", "failure", "fallback"]:
 				if e.has(key) and not str(e[key]).is_empty():
 					outs.append(str(e[key]))
+		# 地图节点（16 §1）：经地图到达地点节点——计入邻接，V1/V2 才不误报
+		var nd: Dictionary = nodes[nid]
+		if str(nd.get("type", "")) == "map":
+			for l: Variant in ((pack.get("maps", {}) as Dictionary).get(str(nd.get("map", "")), {}) as Dictionary).get("locations", []):
+				var ln := str((l as Dictionary).get("node", ""))
+				if ln != "":
+					outs.append(ln)
 		adj[nid] = outs
 	return adj
 
@@ -1086,3 +1096,187 @@ static func _v15_texts(pack: Dictionary) -> Array:
 				loc, missing.size(), required.size(), ", ".join(missing.slice(0, 5))]})
 	return issues
 
+# ---------------------------------------------------------------- V19 地图连通（docs/en/framework/16 §7）
+
+static func _v19_maps(pack: Dictionary) -> Array:
+	var issues: Array = []
+	var nodes: Dictionary = pack.get("nodes", {})
+	var maps: Dictionary = pack.get("maps", {})
+	var sites: Dictionary = pack.get("sites", {})
+	var tables: Dictionary = pack.get("tables", {})
+	if maps.is_empty() and sites.is_empty():
+		return []
+	for nid: String in nodes.keys():
+		var n: Dictionary = nodes[nid]
+		if str(n.get("type", "")) == "map" and not maps.has(str(n.get("map", ""))):
+			issues.append({"v": "V19", "level": LEVEL_FAIL, "msg": "map 节点 %s 引用未登记地图 '%s'" % [nid, str(n.get("map", ""))]})
+		if str(n.get("type", "")) == "site" and not sites.has(str(n.get("site", ""))):
+			issues.append({"v": "V19", "level": LEVEL_FAIL, "msg": "site 节点 %s 引用未登记场所 '%s'" % [nid, str(n.get("site", ""))]})
+	for mid: String in maps.keys():
+		var m: Dictionary = maps[mid]
+		var locs := {}
+		for l: Variant in m.get("locations", []):
+			var d: Dictionary = l
+			locs[str(d.get("id", ""))] = d
+			if d.has("node") and not nodes.has(str(d["node"])):
+				issues.append({"v": "V19", "level": LEVEL_FAIL, "msg": "地图 %s 地点 %s 的 node '%s' 不存在" % [mid, str(d["id"]), str(d["node"])]})
+			if d.has("site") and not sites.has(str(d["site"])):
+				issues.append({"v": "V19", "level": LEVEL_FAIL, "msg": "地图 %s 地点 %s 的 site '%s' 未登记" % [mid, str(d["id"]), str(d["site"])]})
+			if not d.has("node") and not d.has("site"):
+				issues.append({"v": "V19", "level": LEVEL_FAIL, "msg": "地图 %s 地点 %s 既无 node 也无 site（抵达无落点）" % [mid, str(d["id"])]})
+		if not locs.has(str(m.get("start", ""))):
+			issues.append({"v": "V19", "level": LEVEL_FAIL, "msg": "地图 %s 的 start '%s' 不是地点" % [mid, str(m.get("start", ""))]})
+			continue
+		var adj := {}
+		for r: Variant in m.get("routes", []):
+			var rd: Dictionary = r
+			var a := str(rd.get("from", ""))
+			var b := str(rd.get("to", ""))
+			if not locs.has(a) or not locs.has(b):
+				issues.append({"v": "V19", "level": LEVEL_FAIL, "msg": "地图 %s 路线 %s→%s 端点不存在" % [mid, a, b]})
+				continue
+			if rd.has("table") and not tables.has(str(rd["table"])):
+				issues.append({"v": "V19", "level": LEVEL_FAIL, "msg": "地图 %s 路线 %s→%s 引用未登记表 '%s'" % [mid, a, b, str(rd["table"])]})
+			adj[a] = (adj.get(a, []) as Array) + [b]
+			adj[b] = (adj.get(b, []) as Array) + [a]
+		for terrain: Variant in (m.get("tables", {}) as Dictionary).keys():
+			if not tables.has(str(m["tables"][terrain])):
+				issues.append({"v": "V19", "level": LEVEL_FAIL, "msg": "地图 %s 地形 %s 引用未登记表 '%s'" % [mid, str(terrain), str(m["tables"][terrain])]})
+		var reach := {str(m["start"]): true}
+		var queue: Array = [str(m["start"])]
+		while not queue.is_empty():
+			var cur: String = queue.pop_front()
+			for nb: Variant in adj.get(cur, []):
+				if not reach.has(nb):
+					reach[nb] = true
+					queue.append(nb)
+		for lid: String in locs.keys():
+			if not reach.has(lid):
+				issues.append({"v": "V19", "level": LEVEL_FAIL, "msg": "地图 %s 地点 %s 从 start 不可达" % [mid, lid]})
+	for sid: String in sites.keys():
+		var st: Dictionary = sites[sid]
+		var areas := {}
+		for a: Variant in st.get("areas", []):
+			areas[str((a as Dictionary).get("id", ""))] = a
+		if not areas.has(str(st.get("start", ""))):
+			issues.append({"v": "V19", "level": LEVEL_FAIL, "msg": "场所 %s 的 start 不是区域" % sid})
+			continue
+		var has_out := false
+		var sreach := {str(st["start"]): true}
+		var q2: Array = [str(st["start"])]
+		while not q2.is_empty():
+			var cur2: String = q2.pop_front()
+			for e: Variant in (areas[cur2] as Dictionary).get("exits", []):
+				var to := str((e as Dictionary).get("to", ""))
+				if to == SiteMap.EXIT_TO_MAP:
+					has_out = true
+					continue
+				if not areas.has(to):
+					issues.append({"v": "V19", "level": LEVEL_FAIL, "msg": "场所 %s 区域 %s 出口指向不存在的区域 '%s'" % [sid, cur2, to]})
+					continue
+				var key := str((e as Dictionary).get("key", ""))
+				if key != "" and not (pack.get("items", {}) as Dictionary).has(key):
+					issues.append({"v": "V19", "level": LEVEL_FAIL, "msg": "场所 %s 门钥匙 '%s' 未在 items.json 登记" % [sid, key]})
+				if not sreach.has(to):
+					sreach[to] = true
+					q2.append(to)
+		for aid: String in areas.keys():
+			if not sreach.has(aid):
+				issues.append({"v": "V19", "level": LEVEL_FAIL, "msg": "场所 %s 区域 %s 不可达（孤立区域）" % [sid, aid]})
+		if not has_out:
+			issues.append({"v": "V19", "level": LEVEL_FAIL, "msg": "场所 %s 没有回到地图的出口（@map）" % sid})
+	if issues.is_empty():
+		issues.append({"v": "V19", "level": LEVEL_PASS, "msg": "地图 %d 张 / 场所 %d 处：连通、落点与引用齐备" % [maps.size(), sites.size()]})
+	return issues
+
+# ---------------------------------------------------------------- V20 事件表覆盖（16 §4.1）
+
+static func _v20_tables(pack: Dictionary) -> Array:
+	var issues: Array = []
+	var tables: Dictionary = pack.get("tables", {})
+	if tables.is_empty():
+		return []
+	for tid: String in tables.keys():
+		var t: Dictionary = tables[tid]
+		var sides := EventTables.die_sides(str(t.get("die", "")))
+		if not [4, 6, 8, 10, 12, 20, 100].has(sides):
+			issues.append({"v": "V20", "level": LEVEL_FAIL, "msg": "表 %s 骰型 '%s' 非法（d4/d6/d8/d10/d12/d20/d100）" % [tid, str(t.get("die", ""))]})
+			continue
+		var hits := {}
+		for row: Variant in t.get("rows", []):
+			var rr := EventTables.parse_range(str((row as Dictionary).get("range", "")))
+			for v: int in range(int(rr[0]), int(rr[1]) + 1):
+				hits[v] = int(hits.get(v, 0)) + 1
+			if (row as Dictionary).has("instead") and EventTables.row_for(t, int(EventTables.parse_range(str(row["instead"]))[0])) < 0:
+				issues.append({"v": "V20", "level": LEVEL_FAIL, "msg": "表 %s 的 instead '%s' 不落在任何行" % [tid, str(row["instead"])]})
+		for v2: int in range(1, sides + 1):
+			if int(hits.get(v2, 0)) != 1:
+				issues.append({"v": "V20", "level": LEVEL_FAIL, "msg": "表 %s 点数 %d 覆盖 %d 次（须恰好一次）" % [tid, v2, int(hits.get(v2, 0))]})
+				break
+	# 嵌套循环检测
+	for tid2: String in tables.keys():
+		var seen := {tid2: true}
+		var frontier: Array = [tid2]
+		var cyc := false
+		while not frontier.is_empty() and not cyc:
+			var cur: String = frontier.pop_front()
+			for row2: Variant in (tables.get(cur, {}) as Dictionary).get("rows", []):
+				var nt := str(((row2 as Dictionary).get("outcome", {}) as Dictionary).get("table", ""))
+				if nt == "":
+					continue
+				if nt == tid2:
+					cyc = true
+				elif not seen.has(nt):
+					seen[nt] = true
+					frontier.append(nt)
+		if cyc:
+			issues.append({"v": "V20", "level": LEVEL_FAIL, "msg": "表 %s 嵌套成环（结果再掷回自身）" % tid2})
+	if issues.is_empty():
+		issues.append({"v": "V20", "level": LEVEL_PASS, "msg": "事件表 %d 张：骰面恰好全覆盖、无嵌套环" % tables.size()})
+	return issues
+
+# ---------------------------------------------------------------- V21 结果引用（16 §7）
+
+static func _v21_outcome_refs(pack: Dictionary) -> Array:
+	var issues: Array = []
+	var outcomes: Array = [] # [where, outcome]
+	for tid: String in (pack.get("tables", {}) as Dictionary).keys():
+		for row: Variant in (pack["tables"][tid] as Dictionary).get("rows", []):
+			outcomes.append(["表 %s 行 %s" % [tid, str((row as Dictionary).get("range", ""))], (row as Dictionary).get("outcome", {})])
+	for cid: String in (pack.get("cards", {}) as Dictionary).keys():
+		for opt: Variant in (pack["cards"][cid] as Dictionary).get("options", []):
+			outcomes.append(["事件卡 %s 选项 %s" % [cid, str((opt as Dictionary).get("label", ""))], opt])
+	for sid: String in (pack.get("sites", {}) as Dictionary).keys():
+		for a: Variant in (pack["sites"][sid] as Dictionary).get("areas", []):
+			var ad: Dictionary = a
+			for f: Variant in ad.get("features", []):
+				outcomes.append(["场所 %s 区域 %s 交互 %s" % [sid, str(ad.get("id", "")), str((f as Dictionary).get("id", ""))], f])
+			if ad.has("encounter"):
+				outcomes.append(["场所 %s 区域 %s" % [sid, str(ad.get("id", ""))], {"encounter": ad["encounter"]}])
+			var oe: Dictionary = ad.get("on_enter", {})
+			if oe.has("table"):
+				outcomes.append(["场所 %s 区域 %s on_enter" % [sid, str(ad.get("id", ""))], {"table": oe["table"]}])
+		if (pack["sites"][sid] as Dictionary).has("wandering_table"):
+			outcomes.append(["场所 %s wandering" % sid, {"table": pack["sites"][sid]["wandering_table"]}])
+	for pair: Array in outcomes:
+		var o: Dictionary = pair[1]
+		if o.has("encounter") and not (pack.get("encounters", {}) as Dictionary).has(str(o["encounter"])):
+			issues.append({"v": "V21", "level": LEVEL_FAIL, "msg": "%s 引用未登记遭遇 '%s'" % [pair[0], str(o["encounter"])]})
+		if o.has("card") and not (pack.get("cards", {}) as Dictionary).has(str(o["card"])):
+			issues.append({"v": "V21", "level": LEVEL_FAIL, "msg": "%s 引用未登记事件卡 '%s'" % [pair[0], str(o["card"])]})
+		if o.has("node") and not (pack.get("nodes", {}) as Dictionary).has(str(o["node"])):
+			issues.append({"v": "V21", "level": LEVEL_FAIL, "msg": "%s 引用不存在的节点 '%s'" % [pair[0], str(o["node"])]})
+		if o.has("table") and not (pack.get("tables", {}) as Dictionary).has(str(o["table"])):
+			issues.append({"v": "V21", "level": LEVEL_FAIL, "msg": "%s 引用未登记表 '%s'" % [pair[0], str(o["table"])]})
+		for key: String in ["effects", "success", "failure"]:
+			for fx: Variant in o.get(key, []):
+				for k: Variant in (fx as Dictionary).keys():
+					if not _effect_key_legal(str(k)):
+						issues.append({"v": "V21", "level": LEVEL_FAIL, "msg": "%s 效果键 '%s' 未登记" % [pair[0], str(k)]})
+					if str(k) == "give_item" and not (pack.get("items", {}) as Dictionary).has(str(fx[k])):
+						issues.append({"v": "V21", "level": LEVEL_FAIL, "msg": "%s 给予未登记道具 '%s'" % [pair[0], str(fx[k])]})
+	if outcomes.is_empty():
+		return []
+	if issues.is_empty():
+		issues.append({"v": "V21", "level": LEVEL_PASS, "msg": "地图/事件表结果引用 %d 处齐备" % outcomes.size()})
+	return issues

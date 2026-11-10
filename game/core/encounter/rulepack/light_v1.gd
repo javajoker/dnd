@@ -204,6 +204,12 @@ static func expr_dice(expr: String, rolls: Array) -> Array:
 		out.append({"die": "d%d" % sides, "value": int(r)})
 	return out
 
+## d100 呈现拆分（17 §2）：十位 d10（面值 1~10，10 显示 00）+ 个位 d10；两枚相加 = r。
+static func d100_dice(r: int) -> Array:
+	var v := clampi(r, 1, 100)
+	var tens := (v - 1) / 10
+	return [{"die": "d10", "value": tens if tens > 0 else 10, "tens": true}, {"die": "d10", "value": ((v - 1) % 10) + 1}]
+
 # ---------------------------------------------------------------- tech/04 §2 资源公式求值
 
 ## hp/ac 公式白名单变量（tech/04 §2：attrs/level；熟练值预留，v1 未注册）。

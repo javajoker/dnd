@@ -52,6 +52,10 @@ Tutorial duties: the console's three tabs and always-visible dice strip, quick d
 
 ```
 N1-1 Free City Plaza (Hub: rest / shop / rumors)
+  ├─→ N1-1m The Fog Coast (optional region-map detour, doc 16; costs watches → Doom Clock):
+  │     Fishers' Row (Inspiration) · Sunken Bell Chapel (gold) · Old Lighthouse site (stuck door,
+  │     locked lamp room, secret storeroom; relighting the lamp reveals the Salt Marsh) · Salt Marsh (gold);
+  │     road tables, fog tables (ink-fog ambush, a drowned courier card, tideline finds); back to N1-1
   └─→ N1-2 Investigate the faded site [K · Investigation · medium]
         ├─ success → locate N1-3 directly
         └─ failure → N1-2b Stray into the cordoned alley (small battle) → N1-3 (late: Doom Clock +1 segment)

@@ -23,8 +23,10 @@ const KNOWN_FILES := {
 	"enemies.json": false,
 	"endings.json": false,
 	"lore.json": false,
+	"maps.json": false,   # 区域地图 / 场所（docs/en/framework/16 §6）
+	"tables.json": false, # 事件表 / 事件卡（16 §4）
 }
-const NODE_TYPES := ["scene", "hub", "check", "battle", "dialog", "explore", "rest", "branch", "ending"]
+const NODE_TYPES := ["scene", "hub", "check", "battle", "dialog", "explore", "rest", "branch", "ending", "map", "site"]
 const EDGE_TYPES := ["choice", "check", "item", "doom_clock", "reputation"]
 ## tech/04 Schema 必填字段（结构校验：存在性；合法值归 packlint V11~V13）。
 const REQUIRED_FIELDS := {
@@ -143,6 +145,19 @@ static func load_pack(dir_path: String) -> Dictionary:
 	pack["flags"] = tables.get("flags.json", [])
 	pack["endings"] = tables.get("endings.json", [])
 	pack["lore"] = tables.get("lore.json", [])
+	# 地图与事件表（16 §6）：maps.json = {regions[], sites[]}；tables.json = {tables[], cards[]}；按 id 索引
+	var maps_doc: Dictionary = tables.get("maps.json", {})
+	var tables_doc: Dictionary = tables.get("tables.json", {})
+	for pair: Array in [["maps", maps_doc.get("regions", [])], ["sites", maps_doc.get("sites", [])],
+			["tables", tables_doc.get("tables", [])], ["cards", tables_doc.get("cards", [])]]:
+		var idx := {}
+		for entry: Variant in pair[1]:
+			var eid := str((entry as Dictionary).get("id", ""))
+			if eid.is_empty() or idx.has(eid):
+				errors.append("%s 条目缺 id 或重复：'%s'（16 §6）" % [pair[0], eid])
+				continue
+			idx[eid] = entry
+		pack[pair[0]] = idx
 
 	# texts/ 长文本外置（§1.1：texts/<locale>.json = 扁平键值表；可缺省；解析失败即加载错误）
 	var texts := {}
@@ -198,7 +213,8 @@ const OPS_TEXTS_DIR := "res://packs/_ops/texts"
 ## 参与成键的表：表名 → 条目定位（"dict" = 以 id 为键的字典表，"list" = 带 id 的数组表）。
 const TEXT_TABLES := {"acts": "list", "nodes": "dict", "events": "list", "encounters": "dict",
 	"items": "dict", "flags": "list", "endings": "list", "lore": "list", "characters": "dict",
-	"skills": "dict", "effects": "dict", "enemies": "dict"}
+	"skills": "dict", "effects": "dict", "enemies": "dict",
+	"maps": "dict", "sites": "dict", "tables": "dict", "cards": "dict"}
 
 ## 包内全部显示文本键 → 原文（V15 完整性检查与文本抽取的唯一口径）。
 static func text_entries(pack: Dictionary) -> Dictionary:

@@ -679,5 +679,27 @@
     "xp": 300,
     "gold": 60,
     "note": "最终 Boss：墨潮化身（挂 N4-1b 强攻节点；印戒免战走 N4-1 门节点 item 边）；推荐横屏；手下留情 → 敌方攻击修正 -2（战役书 §5 税吏证词，tech/02 §6 enemy_weaken）；墨核第 3 枚（战役书 §8 共 3 枚）；winrate 58.5% ∈ 难 50~65"
+  },
+  {
+    "id": "fog_ambush",
+    "type": "battle",
+    "mode": "inherit",
+    "difficulty": "easy",
+    "max_units": 7,
+    "node": "N1-1m",
+    "party": [
+      { "id": "pc", "ref": "player_blank" },
+      { "id": "kelan", "ref": "companion_kelan" },
+      { "id": "laofei", "ref": "companion_laofei" }
+    ],
+    "enemies": [
+      { "id": "imp1", "ref": "ink_imp" },
+      { "id": "imp2", "ref": "ink_imp" },
+      { "id": "imp3", "ref": "ink_imp" },
+      { "id": "swarm1", "ref": "ink_swarm" }
+    ],
+    "xp": 40,
+    "gold": 8,
+    "note": "雾岸随机遭遇（事件表 fog_wild 第 1 行 / 灯塔噪声表）：三只幼体 + 墨魈群（同 N1-2b 定稿阵容），易"
   }
 ]

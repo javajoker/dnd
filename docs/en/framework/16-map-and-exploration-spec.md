@@ -1,6 +1,6 @@
 # 16 · Maps, Travel and Event Tables — Spec
 
-> Status: **design final, not yet implemented** (TASKS P5). Related: whitepaper §5/§7, doc 04 (screens), doc 08 (edges), doc 09 (forms), doc 11 (rules), doc 15 (party split), doc 17 (dice), tech/02 (pack format).
+> Status: **implemented** (TASKS P5.2, 2026-11-10) — code: `core/explore/` (`EventTables`, `RegionMap`, `SiteMap`), `map_flow.gd` (`MapFlow`), `shell/ui/screen_map.gd` (`ScreenMap`); demo content: campaign01 **The Fog Coast** (optional detour from the Free City Plaza hub). Not yet built: maze beats as site presets (§3.2; maze beats keep working as before) and key-tier table presentation (tables use the dice tray). Related: whitepaper §5/§7, doc 04 (screens), doc 08 (edges), doc 09 (forms), doc 11 (rules), doc 15 (party split), doc 17 (dice), tech/02 (pack format).
 
 The tabletop loop this spec delivers: **look at the map → choose where to go and how → roll → something happens because of the roll → the world (and the map) changes.** It generalises today's exploration pieces — the hub, the room progress bar, the maze beats (`encounters.json` `maze`) and the Doom Clock — into one map system that any content pack can use.
 
@@ -93,7 +93,7 @@ Landscape site map:
 │ d20  last roll …        Clock 4 → 5 ⚠        Log ▸          │
 └────────────────────────────────────────────────────────────┘
 ```
-Portrait site map = the room sequence (doc 04 §④.2): progress bar of areas, door previews (🔒 locked, ⇄ two-way, ? unexplored), the area's features as console options.
+Portrait site map (as built): a compact area map above the room card — entered rooms filled, rooms seen through a door shown dashed with "?", the current room outlined in gold — and the room's features and doors as buttons in the thumb zone (with check tags such as "Athletics · Medium · DC 12"). It reads as a room sequence while keeping the layout of the place visible; the room progress bar of doc 04 §④.2 remains the presentation for maze beats.
 
 ### 3.1 Area
 
@@ -133,7 +133,7 @@ Today's maze beats (check / loot / ambush) become **area presets**: a beat seque
     { "range": "7",   "label": "Drowned courier",     "outcome": { "event": "courier_satchel" } },
     { "range": "8",   "label": "Roll on rare finds",  "outcome": { "table": "rare_finds" } }
   ],
-  "modifiers": [ { "when": { "pace": "careful" }, "add": 1 }, { "when": { "clock": { "gte": 6 } }, "add": -2 } ] }
+  "modifiers": [ { "when": { "pace": "careful" }, "add": 1 }, { "when": { "clock": { ">=": 6 } }, "add": -2 } ] }
 ```
 
 - `die`: d4 / d6 / d8 / d10 / d12 / d20 / d100 (doc 17); `range` covers every face exactly once (validator);
@@ -186,7 +186,7 @@ All bookkeeping keys, written with provenance; the History Scroll shows the roll
 ## 6. Content format (tech/02 additions)
 
 - `maps.json`: region maps `{id, name, art_ref?, locations[], routes[], start}` and sites `{id, name, form_hint?, areas[], start, wandering_table?}`;
-- `tables.json`: event tables (§4.1); `events.json` gains event cards (§4.2) alongside L3 quests;
+- `tables.json`: `{ "tables": [ … §4.1 … ], "cards": [ … §4.2 … ] }` — event tables and event cards live together (cards are not L3 quests, so they stay out of `events.json`);
 - New node type `map` (enters a region map) and `site` (enters a site map); new effects `reveal`, `watch`, `table`;
 - Manifest `travel`: `{ "watches_per_segment": 4, "default_die": "d6" }`.
 
@@ -203,6 +203,15 @@ All bookkeeping keys, written with provenance; the History Scroll shows the roll
 - Long-press a location, route or door = info card (danger, known table, last visit);
 - Every roll is visible: the die type, the modifiers and the table row it hit are shown in the log ("d8: 2 +1 (careful) = 3 → Lost in the fog");
 - Map screens keep the hot-zone rule (doc 12 §6): confirm buttons in the lower thumb arc; the map itself is a free pan/zoom surface.
+
+## 8.1 As built (notes for authors)
+
+- **Travel is one leg per press** ("Travel" / "Continue the journey"): each leg adds a watch, rolls navigation on wild/fog terrain (careful = advantage, fast = disadvantage; failure = the leg is lost) and rolls the route's table (`route.table`, else `map.tables[terrain]`); 4 watches advance the Doom Clock and re-check time edges;
+- An encounter or event card interrupts the journey; the journey is kept on the Board and continues on the next press. A battle from a map returns to the map whatever the result (HP persists, minimum 1);
+- Arriving next to a location reveals it unless it is `secret`; `hidden` routes are only revealed through `reveal` effects;
+- Locations need a `node` (story node entered on arrival; give it an edge back to the map node) or a `site`; tapping "Enter: <here>" with no destination re-enters the current location;
+- Sites: features are one-shot by default (`"once": false` to allow repeats); a `stuck` door's failed force rolls the site's `wandering_table`; a `locked` door opens with its `key` item or a `pick` check; `secret` doors appear after a feature with `reveal_exit` succeeds; `"to": "@map"` leaves the site;
+- Map nodes count their locations' nodes as reachable for packlint V1/V2.
 
 ## 9. Acceptance (summary)
 

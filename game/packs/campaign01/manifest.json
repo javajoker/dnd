@@ -12,6 +12,7 @@
     "recommend": { "N4-1": "space" }
   },
   "namespace": "campaign01",
+  "travel": { "watches_per_segment": 4, "default_die": "d6" },
   "source_locale": "zh-CN",
   "locales": ["zh-CN", "en"],
   "loadout": { "enabled": true, "item_slots": 2, "skill_slots": 2, "respec": false,

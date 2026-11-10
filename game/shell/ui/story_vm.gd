@@ -173,7 +173,8 @@ static func is_bookkeeping_key(key: String) -> bool:
 	var rest := key.get_slice(".", 1) if key.count(".") == 1 else key.substr(key.find(".") + 1)
 	return rest in ["gold", "xp_total", "level", "ngplus", "wins", "best", "run_unlocked"] or rest.begins_with("attr") \
 		or rest.begins_with("hp.") or rest.begins_with("maze.") or rest.begins_with("hd_spent.") \
-		or rest.begins_with("equip.") or rest == "loadout_last" or rest == "inspiration"
+		or rest.begins_with("equip.") or rest == "loadout_last" or rest == "inspiration" \
+		or rest.begins_with("map.") or rest.begins_with("site.") or rest.begins_with("table.") or rest == "watch"
 
 ## 旗标显示名：flags.json 的 name（已按语言叠加）；找不到时退回键名（不上屏内部键是目标，缺名属数据缺陷）。
 static func flag_display(key: String, pack: Dictionary) -> String:

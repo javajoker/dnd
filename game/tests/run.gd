@@ -82,6 +82,7 @@ func _init() -> void:
 	test_camp_rest()
 	test_equipment()
 	test_inspiration()
+	test_maps_core()
 	test_story_vm()
 	test_text_ref()
 	test_subgame_arena()
@@ -115,6 +116,7 @@ func _async_shell_tests() -> void:
 	await test_act2_hybrid_flow()
 	await test_camp_flow()
 	await test_loadout_v2()
+	await test_map_flow()
 	await test_act3_forced_mode()
 	await test_mode_boundary()
 	await test_loadout_settle_landscape()
@@ -381,9 +383,9 @@ func test_pack_loader() -> void:
 	var pack: Dictionary = res["pack"]
 	check(pack["pack_id"] == "campaign01", "pack_id 解析")
 	check(str(pack["manifest"]["namespace"]) == "campaign01", "命名空间注册 = pack_id（tech/02 §2 防呆）")
-	check((pack["nodes"] as Dictionary).size() == 45, "节点表 45 节点（幕三接入补 R4-r2 派生节点）")
+	check((pack["nodes"] as Dictionary).size() == 49, "节点表 49 节点（含雾岸地图节点 + 3 个地点节点，16）")
 	check((pack["acts"] as Array).size() == 5, "五幕 acts")
-	check((pack["encounters"] as Dictionary).size() == 17, "遭遇表 17 场（幕三接入补 R4-r2 第二场）")
+	check((pack["encounters"] as Dictionary).size() == 18, "遭遇表 18 场（含雾岸随机遭遇 fog_ambush）")
 	check((pack["items"] as Dictionary).size() == 12, "道具表 12 件（含 4 件装备 + 墨瓶，11 §8.1/§8.2）")
 	check((pack["characters"] as Dictionary).size() == 3, "角色表 3 条（玩家模板+珂兰+老费，tech/04 §2）")
 	check((pack["skills"] as Dictionary).size() == 6, "技能表 6 条（tech/04 §3）")
@@ -3596,6 +3598,116 @@ func test_inspiration() -> void:
 			break
 	check(gained, "故事检定天然 1：获得一枚激励（失败也有回报）")
 
+# ---------------------------------------------------------------- 地图 / 事件表 / 场所（docs/en/framework/16）
+
+func test_maps_core() -> void:
+	print("[maps_core]")
+	var pack := _load_campaign01()
+	check((pack["maps"] as Dictionary).has("fog_coast") and (pack["sites"] as Dictionary).has("lighthouse")
+		and (pack["tables"] as Dictionary).size() == 4 and (pack["cards"] as Dictionary).has("courier_satchel"),
+		"maps.json / tables.json 加载：地图、场所、4 张表、事件卡")
+	var s := EventStream.new()
+	var b := Board.new(s)
+	var tables := EventTables.new(b, s, Rng.new(5), pack)
+	check(EventTables.die_sides("d8") == 8 and EventTables.die_sides("d100") == 100
+		and EventTables.parse_range("2-3") == [2, 3] and EventTables.parse_range("7") == [7, 7], "骰型 / 区间解析")
+	var fw: Dictionary = pack["tables"]["fog_wild"]
+	check(EventTables.row_for(fw, 1) == 0 and EventTables.row_for(fw, 5) == 2 and EventTables.row_for(fw, 8) == 4, "点数落行")
+	check(tables._modifier(fw, {"pace": "careful"}) == 1 and tables._modifier(fw, {"pace": "fast"}) == 0, "步调修正：谨慎 +1")
+	b.write("global.doom_clock", 6, {"event_id": 0, "node_id": "x", "pack_id": "campaign01"})
+	check(tables._modifier(fw, {"pace": "careful"}) == -1, "状态修正：时间钟 ≥6 时 -2（世界越褪色，路越凶）")
+	# once 行：第一次给墨瓶，之后落到 instead 行
+	var finds_used := 0
+	var gave_flask := 0
+	for i: int in 60:
+		var r := tables.roll("tideline_finds")
+		if int((r["rolls"][0] as Dictionary)["value"]) == 6:
+			finds_used += 1
+			if str(r["label"]) == "一只没开封的墨瓶":
+				gave_flask += 1
+	check(finds_used >= 2 and gave_flask == 1, "once 行只发生一次，之后改落 instead 行（%d 次掷出 6）" % finds_used)
+	check(s.query_by_type(EventTypes.TABLE_ROLL).all(func(ev: Dictionary) -> bool:
+		return ((ev["payload"] as Dictionary)["dice"] as Array).size() == 1), "table.roll 带 dice 清单（17 §5）")
+	b.write("global.doom_clock", 0, {"event_id": 0, "node_id": "x", "pack_id": "campaign01"}) # 去掉 -2 修正，8 点可达
+	var nested := false
+	for i: int in 80:
+		var r2 := tables.roll("fog_wild")
+		if (r2["rolls"] as Array).size() == 2:
+			nested = str((r2["rolls"][1] as Dictionary)["table"]) == "tideline_finds"
+			break
+	check(nested, "嵌套表：潮线拾遗 → 再掷 tideline_finds")
+	# 结算：效果 / 检定 / 遭遇 / 事件卡
+	var gold0 := int(b.read("campaign01.gold", 0))
+	check(str(tables.resolve({"effects": [{"gold": 5}]}, Callable())["kind"]) == "effects"
+		and int(b.read("campaign01.gold", 0)) == gold0 + 5, "结果：效果落板")
+	check(str(tables.resolve({"encounter": "fog_ambush"}, Callable())["kind"]) == "encounter"
+		and str(tables.resolve({"card": "courier_satchel"}, Callable())["card"]) == "courier_satchel", "结果：遭遇 / 事件卡分派")
+	var chk := tables.resolve({"check": {"skill": "perception", "difficulty": "easy"}, "failure": [{"watch": 1}]},
+		func(_s: String) -> int: return 0)
+	check(str(chk["kind"]) == "check" and s.query_by_type(EventTypes.CHECK_ROLL)[-1]["payload"]["kind"] == "table_check",
+		"结果：检定（d20 事件 table_check）")
+	var insp := tables.choose_card_option("courier_satchel", 1, Callable())
+	check(str(insp["kind"]) == "effects" and int(b.read("campaign01.inspiration", 0)) == 1, "事件卡选项：为死者说一句话 → 激励")
+	# ---- 区域地图 ----
+	var s2 := EventStream.new()
+	var b2 := Board.new(s2)
+	var rm := RegionMap.new(b2, s2, Rng.new(8), pack, "fog_coast")
+	check(rm.pos() == "plaza" and not rm.seen().has("marsh") and rm.seen().size() == 4, "起点广场；盐沼隐藏（迷雾）")
+	check(rm.routes_from("plaza").size() == 2 and rm.route_between("plaza", "lighthouse").is_empty(), "可见路线：广场 → 渔人巷 / 礼拜堂")
+	check(RegionMap.effective_legs(2, "fast") == 1 and RegionMap.effective_legs(2, "careful") == 3
+		and RegionMap.effective_legs(1, "fast") == 1, "步调段数：急行每 2 段省 1、谨慎每 2 段多 1")
+	check(rm.start_journey("lighthouse", "normal") == "no_route", "无路可达拒绝出发")
+	check(rm.start_journey("row", "normal") == "", "出发前往渔人巷")
+	var st := rm.step(func(_s: String) -> int: return 0)
+	check(bool(st["arrived"]) and rm.pos() == "row" and rm.visited().has("row") and int(b2.read("campaign01.watch", 0)) == 1,
+		"一段路 = 1 时辰；抵达写位置与已访")
+	check(s2.query_by_type(EventTypes.TABLE_ROLL).size() == 1 and s2.query_by_type(EventTypes.MAP_TRAVEL).size() == 1,
+		"每段掷路线事件表（road → coast_road）+ map.travel 事件")
+	# 荒野：导航检定；4 时辰 → 时间钟 +1
+	var clock0 := b2.get_doom_clock()
+	rm.start_journey("lighthouse", "normal")
+	var guard := 0
+	var nav := false
+	while not rm.journey().is_empty() and guard < 12:
+		guard += 1
+		rm.step(func(_s: String) -> int: return 2)
+		nav = nav or s2.query_by_type(EventTypes.CHECK_ROLL).any(func(ev: Dictionary) -> bool:
+			return str((ev["payload"] as Dictionary)["kind"]) == "navigation")
+	check(rm.pos() == "lighthouse" and nav, "荒野路线有导航检定，最终抵达灯塔")
+	check(b2.get_doom_clock() >= clock0 + 1 and int(b2.read("campaign01.watch", 0)) < 4, "满 4 时辰推进时间钟 +1（时间即地理）")
+	Conditions.new(b2).apply_effects([{"reveal": "fog_coast.marsh"}], {"pack_id": "campaign01", "node_id": "x", "event_id": 0})
+	check(rm.seen().has("marsh") and not rm.route_between("lighthouse", "marsh").is_empty(), "reveal 效果揭示盐沼与雾中路线")
+	# ---- 场所 ----
+	var s3 := EventStream.new()
+	var b3 := Board.new(s3)
+	var sm := SiteMap.new(b3, s3, Rng.new(4), pack, "lighthouse")
+	sm.enter("hall", Callable())
+	var ex: Array = sm.exits()
+	check(ex.size() == 2 and str((ex[0] as Dictionary)["state"]) == "map" and str((ex[1] as Dictionary)["state"]) == "stuck",
+		"门厅：回地图出口 + 卡死的门")
+	var forced := false
+	for i: int in 12:
+		var g := sm.go("keeper", func(_s: String) -> int: return 5)
+		if bool(g.get("moved", false)):
+			forced = true
+			break
+	check(forced and sm.current() == "keeper", "撞开卡死的门进入守灯人的房间")
+	check(not sm.exits().any(func(e: Dictionary) -> bool: return str(e["to"]) == "stores"), "密门未揭示时不显示")
+	var wall_ok := false
+	for i: int in 1:
+		var r3 := sm.use_feature("wall", func(_s: String) -> int: return 20)
+		wall_ok = bool(r3.get("success", false))
+	check(wall_ok and sm.exits().any(func(e: Dictionary) -> bool: return str(e["to"]) == "stores"),
+		"敲墙（检定成功）→ 揭示暗格储藏间的密门")
+	check(not sm.features().any(func(f: Dictionary) -> bool: return str(f["id"]) == "wall"), "一次性交互物用过即隐去")
+	var lamp: Dictionary = sm.go("lamp", func(_s: String) -> int: return 20)
+	check(bool(lamp.get("moved", false)) and sm.current() == "lamp", "撬锁检定成功进入灯室")
+	sm.use_feature("relight", Callable())
+	check((b3.read("campaign01.map.fog_coast.seen", []) as Array).has("marsh") and int(b3.read("campaign01.inspiration", 0)) == 1,
+		"重新点亮灯塔：揭示盐沼 + 激励")
+	check(s3.query_by_type(EventTypes.SITE_ENTER).size() == 3 and s3.query_by_type(EventTypes.FEATURE_USE).size() == 2,
+		"site.enter / feature.use 事件可追溯")
+
 # ---------------------------------------------------------------- 节点流程视图模型（双壳共用内容源，godot-dev §7）
 
 func test_story_vm() -> void:
@@ -4529,6 +4641,76 @@ func test_loadout_v2() -> void:
 		and (sel[0]["skills_by_char"] as Dictionary)["player_blank"] == ["inklance", "inkbolt"],
 		"确认上报：逐角色装备 + 逐角色备战技能")
 	lo.queue_free()
+	await process_frame
+
+# ---------------------------------------------------------------- 地图流程（16）：广场 → 雾岸 → 渔人巷 → 灯塔场所 → 回地图
+
+func test_map_flow() -> void:
+	print("[map_flow]")
+	var m: Node = _new_main()
+	root.add_child(m)
+	await process_frame
+	await process_frame
+	m._on_home_navigate(&"entry")
+	await process_frame
+	(m.current_screen as ScreenEntry).pick_mode(ShellRouter.MODE_TIME)
+	(m.current_screen as ScreenEntry).start_requested.emit()
+	await process_frame
+	await process_frame
+	m.graph._enter("N1-1")
+	m._present_node()
+	await process_frame
+	var hub_edges: Array = m.graph.available_edges()
+	var coast := -1
+	for i: int in hub_edges.size():
+		if str((hub_edges[i] as Dictionary).get("to", "")) == "N1-1m":
+			coast = i
+	check(coast >= 0, "广场新增出边：沿雾岸探索")
+	m._on_story_edge(coast)
+	await process_frame
+	await process_frame
+	check(m.current_screen is ScreenMap and m.graph.current_id == "N1-1m", "map 节点 → ⑩ 区域地图屏")
+	var sc := m.current_screen as ScreenMap
+	check(sc.location_button("plaza") != null and sc.location_button("row") != null and sc.location_button("marsh") == null,
+		"地图：已知地点有按钮，隐藏的盐沼不显示")
+	sc.location_tapped.emit("row")
+	await process_frame
+	check(sc.travel_button.text == TextsZh.MAP_TRAVEL and not sc.travel_button.disabled, "选中渔人巷：出发按钮可用")
+	sc.travel_pressed.emit()
+	await create_timer(1.3).timeout
+	check(m.graph.current_id == "N1-1mr" or m.campaign._in_encounter or (m.current_screen is ScreenMap and (m.current_screen as ScreenMap).is_card_open()),
+		"一段路后抵达渔人巷（或被路上事件打断）")
+	if m.graph.current_id == "N1-1mr":
+		m._on_story_edge(1) # 回到雾岸小路
+		await process_frame
+		await process_frame
+		check(m.current_screen is ScreenMap, "地点节点出边回到地图")
+	# 直达灯塔场所（流程测试：位置写板后在原地"进入"）
+	var prov := {"event_id": m.stream.tail(), "node_id": "N1-1m", "pack_id": "campaign01"}
+	m.board.write("campaign01.map.fog_coast.pos", "lighthouse", prov)
+	m.board.write("campaign01.map.fog_coast.journey", {}, prov)
+	m.graph._enter("N1-1m")
+	m._present_node()
+	await process_frame
+	sc = m.current_screen as ScreenMap
+	sc.travel_pressed.emit() # 原地进入：旧灯塔 → 场所
+	await process_frame
+	await process_frame
+	check(m.campaign.maps.site != null and str(m.campaign.maps.site.current()) == "hall", "进入旧灯塔场所：门厅")
+	check(sc.actions_box.get_node_or_null("Exit__map") != null and sc.actions_box.get_node_or_null("Exit_keeper") != null,
+		"场所操作：回地图出口 + 卡死的门")
+	sc.exit_pressed.emit("@map")
+	await process_frame
+	check(m.campaign.maps.site == null and m.current_screen is ScreenMap, "离开场所回到区域地图")
+	# 事件卡弹层
+	m.campaign.maps._card = "courier_satchel"
+	m.campaign.maps.refresh()
+	await process_frame
+	check(sc.is_card_open() and sc.card_options.get_child_count() == 3, "事件卡半屏弹层：三个选项")
+	sc.card_option.emit(1)
+	await process_frame
+	check(not sc.is_card_open() and int(m.board.read("campaign01.inspiration", 0)) == 1, "选项结算：激励 +1，弹层收起")
+	m.queue_free()
 	await process_frame
 
 # ---------------------------------------------------------------- 锁定态与购买流程（06 §3.1/§6；04 §3.3；tech/02 §2.2 硬门槛）

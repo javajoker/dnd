@@ -92,6 +92,19 @@ static func event_log_text(ev: Dictionary, name_of: Callable) -> String:
 			return Texts.msg(p)
 		EventTypes.ITEM_GAIN:
 			return Texts.s(&"LOG_ITEM_GAIN") % [str(item_names.get(str(p["item_id"]), p["item_id"])), int(p["count"])]
+		EventTypes.TABLE_ROLL:
+			return Texts.s(&"TABLE_ROLL_FMT") % [str(p.get("die", "")), int(p.get("value", 0)), int(p.get("mod", 0)),
+				int(p.get("total", 0)), str(p.get("label", ""))]
+		EventTypes.MAP_TRAVEL:
+			if bool(p.get("arrived", false)):
+				return Texts.s(&"MAP_ARRIVED") % str(p.get("to_name", ""))
+			return Texts.s(&"LOG_MAP_TRAVEL") % [str(p.get("to_name", "")), int(p.get("legs_left", 0))] \
+				+ (" " + Texts.s(&"MAP_LOST") if bool(p.get("lost", false)) else "")
+		EventTypes.SITE_ENTER:
+			return Texts.s(&"LOG_SITE_ENTER") % str(p.get("name", ""))
+		EventTypes.FEATURE_USE:
+			return Texts.s(&"LOG_FEATURE") % [str(p.get("label", "")),
+				Texts.s(&"RESULT_SUCCESS") if bool(p.get("success", false)) else Texts.s(&"RESULT_FAIL")]
 		EventTypes.XP_GAIN:
 			return Texts.s(&"LOG_XP") % int(p["amount"])
 	return ""

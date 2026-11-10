@@ -62,6 +62,10 @@ static func dice_for_event(ev: Dictionary, mode: String) -> Array:
 		EventTypes.CHECK_ROLL:
 			if str(p.get("kind", "")) == "save" and mode == MODE_ON:
 				return p.get("damage_dice", [])
+		EventTypes.TABLE_ROLL:
+			# 事件表（16 §4）：全部档显示；仅暴击档只显示 key 表
+			if mode == MODE_ON or bool(p.get("key", false)):
+				return p.get("dice", [])
 		EventTypes.LOG:
 			if mode == MODE_ON and p.has("dice"):
 				return p["dice"] # 短休生命骰等

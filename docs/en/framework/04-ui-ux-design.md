@@ -288,7 +288,7 @@ Rule: any new screen (including sub-game screens) must pass the "entrance / exit
 
 ### ⑩/⑪ Maps and ⑫ split view (summary)
 
-- **⑩ Region map** and **⑪ Site map** layouts for both forms are specified in doc 16 §2.3 and §3 (portrait: vertical map + destination card + pace + Travel/Camp in the thumb arc; landscape: pan/zoom map + location card column; site maps are a room sequence in portrait and a fogged area map in landscape).
+- **⑩ Region map** and **⑪ Site map** (implemented: `ScreenMap`) layouts for both forms are specified in doc 16 §2.3 and §3 (portrait: vertical map + destination card + pace + Travel/Camp in the thumb arc; landscape: pan/zoom map + location card column; site maps are a room sequence in portrait and a fogged area map in landscape).
 - **Split party**: the group strip, "Meanwhile" ticker, focus switching and split view (portrait stacked 45/55 for two groups; landscape side-by-side 60/40 + group rail) are specified in doc 15 §4.
 - The **dice strip** shows the right die shape for every roll, with a tray for multi-dice rolls (doc 17 §3) — implemented; ☰ has **Damage dice: On / Crits only / Off**.
 

@@ -194,10 +194,11 @@ Goal: turn the framework into a reusable D&D-style engine — new narrative game
 - [x] Fixed: 3D dice meshes were wound counter-clockwise, so Godot culled the outer faces and showed the interior (hidden before by the near-black d20 body); number labels now alpha-discard
 
 ### 5.2 Maps and tables
-- [ ] `tables.json` loader + roller (modifiers, nested, `once`), event cards, `table.roll` events; packlint V20–V21
-- [ ] Region map: data, travel loop, pace, navigation, watches → clock, fog/reveal; ⑩ screen in both forms; packlint V19
-- [ ] Site map: areas/features/doors; portrait room sequence + landscape fogged map from the same data; maze beats as presets
-- [ ] campaign01 or arc_tide: a small region map (≥5 locations) and one site to prove the loop
+- [x] `tables.json` loader + roller (modifiers, nested, `once`/`instead`), event cards, `table.roll` events with dice; packlint V20–V21
+- [x] Region map: data, one-leg-per-press travel, pace, navigation checks, watches → Doom Clock (+ time-edge rescan), fog/reveal; ⑩ screen in both forms with tap and drag-the-token; packlint V19
+- [x] Site map: areas/features/doors (stuck / locked + pick / secret + reveal), wandering table, on-enter tables, area encounters; same data in both forms (portrait compact area map + room card; landscape fogged map + side panel)
+- [x] campaign01 "The Fog Coast": optional detour from the plaza hub — 5 locations (1 hidden), the Old Lighthouse site (4 rooms), 4 tables, 1 event card, a random ambush tuned into the easy band (88.5%)
+- [ ] Maze beats as site presets (maze beats still run on their own runner)
 
 ### 5.3 Party split
 - [ ] Groups/threads/rejoin in StoryGraph; per-character check rollers; `party_from: "group"` encounters; packlint V16–V18

@@ -1,0 +1,193 @@
+{
+  "tables": [
+    {
+      "id": "coast_road",
+      "die": "d6",
+      "rows": [
+        {
+          "range": "1-4",
+          "label": "平静的海岸路",
+          "outcome": {}
+        },
+        {
+          "range": "5",
+          "label": "渔人遗落的钱袋",
+          "outcome": {
+            "effects": [
+              {
+                "gold": 5
+              }
+            ]
+          }
+        },
+        {
+          "range": "6",
+          "label": "溺亡的信使",
+          "outcome": {
+            "card": "courier_satchel"
+          }
+        }
+      ]
+    },
+    {
+      "id": "fog_wild",
+      "die": "d8",
+      "rows": [
+        {
+          "range": "1",
+          "label": "墨雾伏击",
+          "outcome": {
+            "encounter": "fog_ambush"
+          }
+        },
+        {
+          "range": "2-3",
+          "label": "雾中迷途",
+          "outcome": {
+            "check": {
+              "skill": "perception",
+              "difficulty": "medium"
+            },
+            "failure": [
+              {
+                "watch": 1
+              }
+            ]
+          }
+        },
+        {
+          "range": "4-6",
+          "label": "雾里无事",
+          "outcome": {}
+        },
+        {
+          "range": "7",
+          "label": "溺亡的信使",
+          "outcome": {
+            "card": "courier_satchel"
+          }
+        },
+        {
+          "range": "8",
+          "label": "潮线拾遗",
+          "outcome": {
+            "table": "tideline_finds"
+          }
+        }
+      ],
+      "modifiers": [
+        {
+          "when": {
+            "pace": "careful"
+          },
+          "add": 1
+        },
+        {
+          "when": {
+            "clock": {
+              ">=": 6
+            }
+          },
+          "add": -2
+        }
+      ]
+    },
+    {
+      "id": "tideline_finds",
+      "die": "d6",
+      "rows": [
+        {
+          "range": "1-3",
+          "label": "一瓶补给药水",
+          "outcome": {
+            "effects": [
+              {
+                "give_item": "heal_potion"
+              }
+            ]
+          }
+        },
+        {
+          "range": "4-5",
+          "label": "几枚旧币",
+          "outcome": {
+            "effects": [
+              {
+                "gold": 8
+              }
+            ]
+          }
+        },
+        {
+          "range": "6",
+          "label": "一只没开封的墨瓶",
+          "once": true,
+          "instead": "4",
+          "outcome": {
+            "effects": [
+              {
+                "give_item": "ink_flask"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "lighthouse_noise",
+      "die": "d6",
+      "rows": [
+        {
+          "range": "1-2",
+          "label": "响动招来了墨魈",
+          "outcome": {
+            "encounter": "fog_ambush"
+          }
+        },
+        {
+          "range": "3-6",
+          "label": "只有海浪回应",
+          "outcome": {}
+        }
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "id": "courier_satchel",
+      "title": "溺亡的信使",
+      "text": "盐硬的靴子，一只挎包被海草缠住。信封上的地址已经褪成白纸。",
+      "options": [
+        {
+          "label": "搜查挎包",
+          "check": {
+            "skill": "investigation",
+            "difficulty": "easy"
+          },
+          "success": [
+            {
+              "gold": 10
+            }
+          ],
+          "failure": [
+            {
+              "watch": 1
+            }
+          ]
+        },
+        {
+          "label": "为死者说一句话",
+          "effects": [
+            {
+              "inspiration": 1
+            }
+          ]
+        },
+        {
+          "label": "离开",
+          "effects": []
+        }
+      ]
+    }
+  ]
+}
