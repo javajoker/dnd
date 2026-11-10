@@ -7423,6 +7423,11 @@ func test_mobile_platform() -> void:
 			and str(cfg.get_value(sec, "exclude_filter", "")).contains("tools/*") \
 			and str(cfg.get_value(sec, "exclude_filter", "")).contains("tests/*")
 	check(ok_filters, "每个导出预设包含 *.json、排除 tools/ 与 tests/")
+	var opts_ok := true
+	for sec2: String in cfg.get_sections():
+		if not sec2.ends_with(".options"):
+			opts_ok = opts_ok and cfg.has_section(sec2 + ".options") and not cfg.get_section_keys(sec2 + ".options").is_empty()
+	check(opts_ok, "每个导出预设都有非空 .options 段（空段会被丢弃，编辑器报 nonexistent section）")
 	check(str(ProjectSettings.get_setting("display/window/handheld/orientation", 0)) == "1",
 		"手持设备方向 = 竖屏（v1 竖屏优先）")
 
