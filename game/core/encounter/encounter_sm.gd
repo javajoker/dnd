@@ -57,6 +57,7 @@ var _retreat_allowed := false
 var _party_adv_rounds := 0        # 优势来源由内容包声明（11 §3.1 示例：见证撤销 → 首回合全队优势）
 var _loot: Array = []
 var _xp := 0
+var _gold := 0
 var _over := false
 var _result: StringName = &""
 var _last_actor: String = ""
@@ -114,6 +115,7 @@ func begin_combat(def: Dictionary) -> bool:
 	_party_adv_rounds = int(def.get("party_advantage_rounds", 0))
 	_loot = (def.get("loot", []) as Array).duplicate(true)
 	_xp = int(def.get("xp", 0))
+	_gold = int(def.get("gold", 0))
 	# 护送目标声明（tech/02 §6 escort 块；胜负条件 = 11 §5 目标达成）
 	var esc: Dictionary = def.get("escort", {})
 	_escort_unit_id = str(esc.get("unit_id", ""))
@@ -697,6 +699,12 @@ func _finish(result: StringName) -> void:
 		if _xp > 0:
 			# 遭遇经验 = xp 效果同一通道：写 global.growth.xp 并自动结算升级（tech/04 §8 规则1/2）
 			Growth.new(board).grant_xp(_xp, prov)
+		if _gold > 0:
+			# 战利金（11 §7.3）：包命名空间计数簿记 <pack>.gold（07 §2 货币条款），同 gold 效果口径
+			var gk := "%s.gold" % pack_id
+			board.write(gk, int(board.read(gk, 0)) + _gold, prov)
+			stream.emit(EventTypes.LOG, {"msg_key": "MSG_GOLD_GAIN", "args": {"amount": _gold},
+				"gold": _gold}, &"core", node_id)
 	elif result == &"objective_failed":
 		# 护送目标失败：无战利品/经验，按声明写板罚时等代价（08 §2 失败即分支；
 		# 效果 DSL 同一通道，tech/02 §4.6）——之后仍走节点唯一出边（由引导层推进）

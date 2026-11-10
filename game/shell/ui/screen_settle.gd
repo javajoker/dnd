@@ -13,6 +13,8 @@ signal allocate(attr: String)
 signal go_home
 signal go_history
 signal go_next
+signal go_camp ## 战斗之间扎营（11 §7.2）：引导层回填营地数据 → open_camp
+signal camp_action(action: String, arg: String) ## 营地弹层动作（buy / short_rest / long_rest）
 
 var form: StringName = ShellRouter.MODE_TIME # 战役形态（09 §8；04 §④.8）：time=竖屏居中，space=横屏双区
 
@@ -24,6 +26,8 @@ var keep_label: Label
 var next_button: Button # 下一遭遇（仅胜利结算显示，04 §⑨）
 var home_button: Button
 var history_button: Button
+var camp_button: Button # 扎营（仅胜利结算显示：战斗之间回血/补给，11 §7.2）
+var camp_popup: HubPopup
 
 # 横屏专版容器（04 §④.8；竖屏形态恒为 null，作布局形态探针）
 var readout_zone: VBoxContainer # 左：逐项念板列表
@@ -59,6 +63,11 @@ func _build() -> void:
 		_build_landscape()
 	else:
 		_build_portrait()
+	camp_popup = HubPopup.new() # 与故事壳同一弹层组件（04 §3.3 双壳共用）
+	camp_popup.buy_requested.connect(func(iid: String) -> void: camp_action.emit("buy", iid))
+	camp_popup.short_rest_requested.connect(func(cid: String) -> void: camp_action.emit("short_rest", cid))
+	camp_popup.rest_requested.connect(func() -> void: camp_action.emit("long_rest", ""))
+	add_child(camp_popup)
 
 func _make_common_widgets() -> void:
 	# 两形态共用控件：同实例挂不同父容器（数据/信号路径唯一，不复制逻辑）
@@ -83,6 +92,11 @@ func _make_common_widgets() -> void:
 	history_button = Button.new()
 	history_button.text = Texts.s(&"SETTLE_HISTORY")
 	history_button.pressed.connect(func() -> void: go_history.emit())
+	camp_button = Button.new()
+	camp_button.name = "CampButton"
+	camp_button.text = Texts.s(&"CAMP")
+	camp_button.visible = false
+	camp_button.pressed.connect(func() -> void: go_camp.emit())
 
 ## 竖屏：居中纵列（§④.8：竖屏布局不变）。
 func _build_portrait() -> void:
@@ -101,6 +115,7 @@ func _build_portrait() -> void:
 	v.add_child(attr_label)
 	v.add_child(attr_box)
 	v.add_child(keep_label)
+	v.add_child(camp_button)
 	v.add_child(next_button)
 	v.add_child(home_button)
 	v.add_child(history_button)
@@ -138,6 +153,8 @@ func _build_landscape() -> void:
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	side_zone.add_child(spacer)
+	camp_button.custom_minimum_size = Vector2(200, 56)
+	side_zone.add_child(camp_button)
 	next_button.custom_minimum_size = Vector2(200, 56)
 	side_zone.add_child(next_button)
 	home_button.custom_minimum_size = Vector2(200, 56)
@@ -159,6 +176,7 @@ func _build_landscape() -> void:
 ## summary = {title, result, lines[], saved, attr_points, attrs{}, has_next?, celebrate?}。
 func bind(summary: Dictionary) -> void:
 	next_button.visible = bool(summary.get("has_next", false)) # 下一遭遇出口：仅胜利结算（04 §⑨）
+	camp_button.visible = bool(summary.get("can_camp", false))
 	var result_name: String = {"victory": Texts.s(&"SETTLE_VICTORY"), "defeat": Texts.s(&"SETTLE_DEFEAT"),
 		"retreat": Texts.s(&"SETTLE_RETREAT"), "slice": Texts.s(&"SETTLE_SLICE")}.get(
 			str(summary.get("result", "")), str(summary.get("result", "")))
@@ -231,3 +249,14 @@ func _refresh_attrs(points: int, attrs: Dictionary) -> void:
 ## 布局形态探针（04 §④.8：横屏双区）。
 func is_landscape_layout() -> bool:
 	return readout_zone != null
+
+## 打开营地弹层（data = {gold, stock, party, rest_free}，引导层 CampaignFlow._camp_data 组装）。
+func open_camp(data: Dictionary) -> void:
+	camp_popup.open(int(data.get("gold", 0)), data.get("stock", []), data.get("party", []),
+		HubPopup.MODE_CAMP, bool(data.get("rest_free", false)))
+
+## 营地动作后刷新弹层（开着才刷，不关弹层）。
+func sync_camp(data: Dictionary) -> void:
+	if camp_popup.visible:
+		camp_popup.rest_free = bool(data.get("rest_free", false))
+		camp_popup.bind(int(data.get("gold", 0)), data.get("stock", []), data.get("party", []))

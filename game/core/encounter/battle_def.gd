@@ -17,6 +17,19 @@ const TARGET_MAP := {"enemy_single": "enemy", "ally_single": "ally", "self": "se
 ## 玩家模板缺省出战技能数（整备未启用时的兜底：已习得列表前 2 个，对齐 TP2 引导脚本）。
 const DEFAULT_SKILL_COUNT := 2
 
+## 角色 HP 上限唯一口径（战斗组装 / 状态栏 / 休息共用，杜绝多处重算漂移）：
+## hp_formula 以模板基础属性求值；玩家模板叠加每级 HP 加值（11 §6）；同伴按 1 级。公式失败返回 1。
+static func max_hp_for(c: Dictionary, board: Board) -> int:
+	var base_attrs: Dictionary = c.get("attrs", {})
+	var is_player := str(c.get("kind", "")) == "player_template"
+	var level := Growth.level(board) if is_player else 1
+	var fvars := {"might": int(base_attrs.get("might", 0)), "finesse": int(base_attrs.get("finesse", 0)),
+		"wits": int(base_attrs.get("wits", 0)), "level": level}
+	var hp: Variant = LightV1.eval_formula(str(c.get("hp_formula", "10")), fvars)
+	if hp == null:
+		return 1
+	return int(hp) + ((level - 1) * LightV1.LEVEL_HP_BONUS if is_player else 0)
+
 ## 组装战斗定义。返回 { ok, errors[], def }；def 仅在 ok 时可用。
 ## selection = 整备选择 {skills[], items[]}（可空 = 缺省）；board 供成长/背包/优势旗标读取（只读）。
 static func assemble(pack: Dictionary, encounter_id: String, selection: Dictionary, board: Board) -> Dictionary:
@@ -104,7 +117,8 @@ static func assemble(pack: Dictionary, encounter_id: String, selection: Dictiona
 	for l: Variant in enc.get("loot", []):
 		loot.append({"item": str((l as Dictionary).get("item", "")), "n": int((l as Dictionary).get("n", 1))})
 	var def := {"party": party, "enemies": foes, "party_advantage_rounds": adv_rounds,
-		"loot": loot, "xp": int(enc.get("xp", 0))}
+		"loot": loot, "xp": int(enc.get("xp", 0)),
+		"gold": int(enc.get("gold", 0))} # 胜利金币（11 §7.3 战利金；包命名空间 <pack>.gold）
 	if not escort_def.is_empty():
 		def["escort"] = escort_def
 	return {"ok": errors.is_empty(), "errors": errors, "def": def}

@@ -86,10 +86,20 @@ func _run_shots_m2n() -> void:
 	await m.get_tree().create_timer(0.3).timeout
 	m._on_story_edge(0) # N0-4 → N1-1 hub
 	await m.get_tree().create_timer(0.3).timeout
-	(m.shell as EncounterPortrait).hub_popup.open(m.graph.get_gold(), m.graph.hub_stock()) # 商店半屏弹层（04 §3.3）
+	(m.shell as EncounterPortrait).hub_popup.open(m.graph.get_gold(), m.graph.hub_stock(),
+		m.graph.party_status()) # 商店半屏弹层（04 §3.3）
 	await m.get_tree().create_timer(0.3).timeout
 	await _shot("/tmp/m2n_hub.png")
 	(m.shell as EncounterPortrait).hub_popup.hide()
+	# 营地弹层（11 §7.2：短休/长休/补给）——伤员一名演示短休入口
+	m.board.write("%s.hp.player_blank" % m._campaign_id, 6,
+		{"event_id": m.stream.tail(), "node_id": m.graph.current_id, "pack_id": m._campaign_id})
+	(m.shell as EncounterPortrait).hub_popup.open(m.graph.get_gold(), m.graph.hub_stock(),
+		m.graph.party_status(), HubPopup.MODE_CAMP)
+	await m.get_tree().create_timer(0.3).timeout
+	await _shot("/tmp/m2n_camp.png")
+	(m.shell as EncounterPortrait).hub_popup.hide()
+	m.graph.hub_rest()
 	# N1-1 → 前往褪色现场 N1-2（按文案找边：购买边数量随货单变化）
 	var edges: Array = m.graph.available_edges()
 	for i: int in edges.size():

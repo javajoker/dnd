@@ -319,8 +319,11 @@ func _build_ui() -> void:
 		if story_cb.has("hub"):
 			story_cb["hub"].call("buy", item_id))
 	hub_popup.rest_requested.connect(func() -> void:
+		if story_cb.has("hub"): # 旅店长休 / 野外长休（耗时钟）由弹层模式区分（11 §7.2）
+			story_cb["hub"].call("long_rest" if hub_popup.mode == HubPopup.MODE_CAMP else "rest", ""))
+	hub_popup.short_rest_requested.connect(func(cid: String) -> void:
 		if story_cb.has("hub"):
-			story_cb["hub"].call("rest", ""))
+			story_cb["hub"].call("short_rest", cid))
 	add_child(hub_popup)
 	info_popup = InfoPopup.new()
 	add_child(info_popup)
@@ -823,13 +826,17 @@ func _refresh_story_options() -> void:
 		idx += 1
 	if str(_vm.get("type", "")) == "hub": # hub 三设施（战役书 §4 N1-1）
 		_add_story_chip(Texts.s(&"HUB_SHOP"), func() -> void: hub_popup.open(
-			int(_vm.get("gold", 0)), _vm.get("stock", [])))
+			int(_vm.get("gold", 0)), _vm.get("stock", []), _vm.get("party", []), HubPopup.MODE_HUB))
 		_add_story_chip(Texts.s(&"HUB_REST"), func() -> void:
 			if story_cb.has("hub"):
 				story_cb["hub"].call("rest", ""))
 		_add_story_chip(Texts.s(&"HUB_RUMOR"), func() -> void:
 			if story_cb.has("hub"):
 				story_cb["hub"].call("rumor", ""))
+	elif bool(_vm.get("camp", false)): # 野外营地（11 §7.2：短休/长休/补给，战斗之间的落脚处）
+		_add_story_chip(Texts.s(&"CAMP"), func() -> void: hub_popup.open(
+			int(_vm.get("gold", 0)), _vm.get("stock", []), _vm.get("party", []), HubPopup.MODE_CAMP,
+			bool(_vm.get("rest_free", false))))
 
 func _add_story_chip(label: String, on_press: Callable) -> void:
 	var b := Button.new()
@@ -840,7 +847,7 @@ func _add_story_chip(label: String, on_press: Callable) -> void:
 ## 购买/休整后由 main 同步弹层货单与金币。
 func sync_hub_popup(vm: Dictionary) -> void:
 	if hub_popup.visible:
-		hub_popup.bind(int(vm.get("gold", 0)), vm.get("stock", []))
+		hub_popup.bind(int(vm.get("gold", 0)), vm.get("stock", []), vm.get("party", []))
 
 ## 时间钟弹层：时间边逼近事件预告（04 §3.1 例外交互）。
 func _open_forecast() -> void:

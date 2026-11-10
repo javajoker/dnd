@@ -58,7 +58,7 @@ Conventions:
 
 ### 3.3 Sheets and drawers
 
-- Half-screen sheets: character cards, item details, Doom Clock preview — they don't break the current screen context;
+- Half-screen sheets: character cards, item details, Doom Clock preview, the hub shop / camp (Supplies + short/long rest, with party HP and Hit Dice visible together) — they don't break the current screen context;
 - Bottom drawers: expanded log, dialogue options — swipe up to expand, swipe down to collapse;
 - Full-screen takeover: only for key-check presentations and campaign-clear cutscenes.
 
@@ -260,8 +260,8 @@ During a landscape campaign, Loadout and Settlement aren't squeezed into a cente
 ### ⑨ Settlement
 
 - **Purpose**: the full stop of an encounter, where the meta loop's pen touches paper — "reading the Board changes aloud to the player".
-- **Composition**: XP and level changes; loot (new items highlighted, can jump to Inventory); a summary of flag changes ("The blacksmith owes you a favor"); reputation and Doom Clock advance animations; previews of newly unlocked content.
-- **Core actions**: continue to the next encounter / back to Home / view new scroll entries.
+- **Composition**: XP and level changes; battle gold ("Gold +N (total M)", 11 §7.3); loot (new items highlighted, can jump to Inventory); a summary of flag changes ("The blacksmith owes you a favor"); reputation and Doom Clock advance animations; previews of newly unlocked content.
+- **Core actions**: continue to the next encounter / **Make Camp** (after a victory: the camp sheet — per-character short rests spending Hit Dice, a long rest that costs Doom Clock time, Supplies to buy; 11 §7.2) / back to Home / view new scroll entries.
 - **Entrances**: the end of any encounter.
 - **Exits**: next encounter (③/④); ① Home; ⑧ History Scroll.
 

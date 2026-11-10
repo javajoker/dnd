@@ -79,6 +79,7 @@ func _init() -> void:
 	test_finale_endings()
 	test_full_run_e4()
 	test_story_runtime()
+	test_camp_rest()
 	test_story_vm()
 	test_text_ref()
 	test_subgame_arena()
@@ -109,6 +110,7 @@ func _async_shell_tests() -> void:
 	await test_subgame_flow()
 	await test_entitlement_flow()
 	await test_act2_hybrid_flow()
+	await test_camp_flow()
 	await test_act3_forced_mode()
 	await test_mode_boundary()
 	await test_loadout_settle_landscape()
@@ -3323,6 +3325,84 @@ func test_story_runtime() -> void:
 	check(not rumors.any(func(r: Dictionary) -> bool: return str(r["id"]) == "dock_tales"),
 		"auto 触发事件不作传闻")
 
+# ---------------------------------------------------------------- 营地与休息（11 §7.2 短休/长休；11 §7.3 战利金）
+
+func test_camp_rest() -> void:
+	print("[camp_rest]")
+	var pack := _load_campaign01()
+	var s := EventStream.new()
+	var b := Board.new(s)
+	var g := StoryGraph.new(b, Rng.new(11), pack)
+	g.start()
+	var prov := {"event_id": 0, "node_id": "N1-7", "pack_id": "campaign01"}
+	check(not g.camp_available(), "序章（未经历战斗）不出现营地")
+	g._enter("N1-7")
+	check(not g.camp_available(), "战斗节点不开营地（战斗走整备）")
+	g._enter("N1-8")
+	check(g.camp_available() and not g.rest_is_free(), "战后野外节点：营地可用、长休耗时钟")
+	g._enter("N1-1")
+	check(not g.camp_available() and g.rest_is_free(), "hub：不开营地（旅店长休免费）")
+	g._enter("N1-8")
+	# 生命骰：队伍等级枚，骰面取 hit_die
+	var ps: Array = g.party_status()
+	check(ps.size() == 3 and int(ps[0]["hd_max"]) == 1 and int(ps[0]["hd_left"]) == 1
+		and str(ps[0]["hit_die"]) == "d10", "生命骰：1 级 ×1，白页者 d10（characters.json hit_die）")
+	check(str(g.hit_dice_of("companion_kelan")["die"]) == "d6", "珂兰生命骰 d6")
+	# 短休：满血拒绝（不浪费骰子）
+	var full := g.short_rest("companion_kelan")
+	check(not bool(full["ok"]) and str(full["reason"]) == "full", "满血短休拒绝（不浪费生命骰）")
+	b.write("campaign01.hp.player_blank", 3, prov)
+	var r := g.short_rest("player_blank")
+	check(bool(r["ok"]) and int(r["roll"]) >= 1 and int(r["roll"]) <= 10
+		and int(r["heal"]) == mini(int(r["roll"]) + 2, 14 - 3), "短休：d10 + 力2 回血（封顶上限）")
+	check(g.hp_of("player_blank") == 3 + int(r["heal"]) and int(g.hit_dice_of("player_blank")["left"]) == 0,
+		"短休写板 HP + 生命骰扣 1")
+	check(s.query_by_type(EventTypes.LOG).any(func(ev: Dictionary) -> bool:
+		return str((ev["payload"] as Dictionary).get("msg_key", "")) == "MSG_SHORT_REST"), "短休日志（toast）")
+	b.write("campaign01.hp.player_blank", 3, prov)
+	var r2 := g.short_rest("player_blank")
+	check(not bool(r2["ok"]) and str(r2["reason"]) == "no_dice", "生命骰用尽拒绝短休")
+	# 野外长休：HP 全满 + 生命骰恢复 + 时钟 +1
+	var clock0 := b.get_doom_clock()
+	g.long_rest(false)
+	check(g.hp_of("player_blank") == 14 and int(g.hit_dice_of("player_blank")["left"]) == 1
+		and b.get_doom_clock() == clock0 + StoryGraph.CAMP_LONG_REST_CLOCK, "野外长休：满血 + 生命骰恢复 + 时钟 +1")
+	g.long_rest(true)
+	check(b.get_doom_clock() == clock0 + StoryGraph.CAMP_LONG_REST_CLOCK, "旅店/安全处长休不耗时钟")
+	# HP 上限唯一口径：成长只叠加玩家模板（状态栏 / 休息 / 战斗组装一致）
+	Growth.new(b).grant_xp(300, prov)
+	g.long_rest(true)
+	var def: Dictionary = BattleDef.assemble(pack, "N1-7", {}, b)["def"]
+	var same := true
+	for u: Variant in def["party"]:
+		var ud: Dictionary = u
+		if g.max_hp_of(str(ud["ref"])) != int(ud["max_hp"]) or g.hp_of(str(ud["ref"])) != int(ud["hp"]):
+			same = false
+	check(same and g.max_hp_of("player_blank") == 16 and g.max_hp_of("companion_kelan") == 10,
+		"HP 上限三处同口径：升 2 级白页者 16、同伴不吃成长（BattleDef.max_hp_for）")
+	check(int(g.hit_dice_of("player_blank")["max"]) == 2, "生命骰随等级 +1")
+	# 战利金：遭遇 gold 字段 → 胜利写 <pack>.gold + MSG_GOLD_GAIN
+	check(int(def.get("gold", 0)) == 20, "N1-7 战斗定义携带战利金 20（encounters.json gold）")
+	for e: Variant in def["enemies"]:
+		(e as Dictionary)["hp"] = 1
+		(e as Dictionary)["max_hp"] = 1
+	var gold0 := g.get_gold()
+	var sm := EncounterSM.new(b, s, Rng.new(5), "campaign01")
+	var agent := AutoAgent.new()
+	sm.enter("N1-7")
+	sm.transition(EncounterSM.S_EXPLORE)
+	sm.begin_combat(def)
+	var guard := 0
+	while not sm.is_over() and guard < 500:
+		guard += 1
+		var cmd := agent.next_command(sm)
+		if cmd.is_empty():
+			break
+		sm.submit_command(cmd)
+	check(sm.is_over() and g.get_gold() == gold0 + 20, "胜利战利金写板 +20（包命名空间 <pack>.gold）")
+	check(s.query_by_type(EventTypes.LOG).any(func(ev: Dictionary) -> bool:
+		return int((ev["payload"] as Dictionary).get("gold", 0)) == 20), "战利金日志携带数额（结算念板来源）")
+
 # ---------------------------------------------------------------- 节点流程视图模型（双壳共用内容源，godot-dev §7）
 
 func test_story_vm() -> void:
@@ -4129,6 +4209,62 @@ func test_act2_hybrid_flow() -> void:
 	check(m.graph.current_id == "N2U-3" and m.board.read("campaign01.mercy_shown") == true
 		and m.board.has_item("black_feather_token"),
 		"抉择「不撕」→ 手下留情 + 黑羽令写板 → N2U-3（边效果，tech/02 §3）")
+	m.queue_free()
+	await process_frame
+
+# ---------------------------------------------------------------- 战斗之间扎营（11 §7.2）：结算屏「扎营」→ 营地弹层 → 短休/补给/长休
+
+func test_camp_flow() -> void:
+	print("[camp_flow]")
+	var m: Node = _new_main()
+	root.add_child(m)
+	await process_frame
+	await process_frame
+	m._on_home_navigate(&"entry")
+	await process_frame
+	(m.current_screen as ScreenEntry).pick_mode(ShellRouter.MODE_TIME)
+	(m.current_screen as ScreenEntry).start_requested.emit()
+	await process_frame
+	await process_frame
+	m.graph._enter("N1-7")
+	m._present_node()
+	await process_frame
+	(m.current_screen as ScreenLoadout)._on_confirm()
+	await create_timer(1.4).timeout
+	var prov := {"event_id": m.stream.tail(), "node_id": "N1-7", "pack_id": "campaign01"}
+	m.board.write("campaign01.gold", 50, prov)
+	m.stream.emit(EventTypes.COMBAT_END, {"result": &"victory", "rounds": 2}, &"core", "N1-7")
+	await create_timer(1.6).timeout
+	check(m.current_screen is ScreenSettle, "胜利 → 结算屏")
+	var st := m.current_screen as ScreenSettle
+	check(st.camp_button.visible, "胜利结算出现「扎营」出口（战斗之间回血/补给）")
+	m.board.write("campaign01.hp.player_blank", 4, prov)
+	st.camp_button.pressed.emit()
+	await process_frame
+	check(st.camp_popup.visible and st.camp_popup.mode == HubPopup.MODE_CAMP, "扎营 → 营地弹层（camp 模式）")
+	var pc_row: Node = st.camp_popup.party_box.get_node_or_null("Party_player_blank")
+	var sr: Button = pc_row.get_node("ShortRest") if pc_row != null else null
+	check(sr != null and not sr.disabled, "受伤队员行：短休按钮可点")
+	sr.pressed.emit()
+	await process_frame
+	check(m.graph.hp_of("player_blank") > 4 and int(m.graph.hit_dice_of("player_blank")["left"]) == 0,
+		"点短休 → 花费生命骰回血（写板）")
+	var pc_row2: Node = st.camp_popup.party_box.get_node_or_null("Party_player_blank")
+	check(pc_row2 != null and (pc_row2.get_node("ShortRest") as Button).disabled, "弹层刷新：生命骰用尽按钮禁用")
+	var potions: int = m.board.item_count("heal_potion")
+	var buy: Button = null
+	for c: Node in st.camp_popup.stock_box.get_children():
+		if c is Button and (c as Button).text.contains("补给药水"):
+			buy = c
+	check(buy != null and not buy.disabled, "营地补给：药水可购买")
+	buy.pressed.emit()
+	await process_frame
+	check(m.board.item_count("heal_potion") == potions + 1 and m.graph.get_gold() == 35, "营地补给购买：+1 药水 −15 金")
+	var clock0: int = m.board.get_doom_clock()
+	st.camp_popup.rest_button.pressed.emit()
+	await process_frame
+	check(m.graph.hp_of("player_blank") == m.graph.max_hp_of("player_blank")
+		and m.board.get_doom_clock() >= clock0 + 1, "营地长休：满血 + 时钟 +1")
 	m.queue_free()
 	await process_frame
 
@@ -5118,7 +5254,7 @@ func test_main_flow() -> void:
 	m._on_hub_action("rest", "")
 	await process_frame
 	check(int(m.board.read("campaign01.hp.player_blank", 0)) == 14
-		and sh.flash_label.text.contains("休整"), "休整：恢复 HP（写板 + toast）")
+		and sh.flash_label.text.contains("长休"), "旅店长休：恢复 HP（写板 + toast）")
 	# 商店半屏弹层：购买 → 道具 + 金币扣减；金币不足拒绝
 	sh.hub_popup.open(m.graph.get_gold(), m.graph.hub_stock())
 	await process_frame

@@ -276,48 +276,113 @@ func hub_buy(item_id: String) -> bool:
 	board.give_item(item_id, 1, _hub_prov())
 	return true
 
-## 休整：队伍 HP 恢复至满值并写板（11 §7.1：休整态恢复全满并写板；上限按 characters.json
-## hp_formula + 11 §6 等级加值重算，<pack>.hp.<cid> 簿记键见 07 §2）；次数制技能按 11 §8
-## 遭遇内计次，离场即随遭遇组装重置（tech/02 §6），休整日志一并说明。
+## 休整（旅店长休）：等同 long_rest(true)——hub 内长休不耗时钟（战役书 §4 N1-1）。
 func hub_rest() -> Dictionary:
-	var alloc := Growth.attrs_map(board)
-	var level := Growth.level(board)
-	var hp_bonus := (level - 1) * LightV1.LEVEL_HP_BONUS
-	var restored := {}
+	return long_rest(true)
+
+## 队伍成员（玩家模板 + 同伴）characters.json 条目 id 列表（按包内顺序）。
+func party_ids() -> Array[String]:
+	var out: Array[String] = []
 	for cid: String in (pack.get("characters", {}) as Dictionary).keys():
-		var c: Dictionary = pack["characters"][cid]
-		if not ["player_template", "companion"].has(str(c.get("kind", ""))):
-			continue
-		var attrs: Dictionary = (c.get("attrs", {}) as Dictionary).duplicate(true)
-		for k: Variant in alloc.keys():
-			attrs[str(k)] = int(attrs.get(str(k), 0)) + int(alloc[k])
-		attrs["level"] = level
-		var max_hp := int(LightV1.eval_formula(str(c.get("hp_formula", "10")), attrs)) + hp_bonus
-		board.write("%s.hp.%s" % [pack_id, cid], max_hp, _hub_prov())
-		restored[cid] = max_hp
-	board.stream.emit(EventTypes.LOG,
-		{"msg_key": "MSG_REST", "toast": true},
-		&"graph", current_id)
+		if ["player_template", "companion"].has(str((pack["characters"][cid] as Dictionary).get("kind", ""))):
+			out.append(cid)
+	return out
+
+## HP 上限（唯一口径 BattleDef.max_hp_for）。
+func max_hp_of(cid: String) -> int:
+	return BattleDef.max_hp_for((pack.get("characters", {}) as Dictionary).get(cid, {}), board)
+
+## 当前 HP：<pack>.hp.<cid> 簿记，未写入按满值；死亡记录 0 按 1 抬升（同 BattleDef，11 §7.1）。
+func hp_of(cid: String) -> int:
+	var mx := max_hp_of(cid)
+	var key := "%s.hp.%s" % [pack_id, cid]
+	return clampi(int(board.read(key)), 1, mx) if board.has(key) else mx
+
+# ---------------------------------------------------------------- 营地与休息（11 §7.2：d20 核心规则的短休 / 长休）
+# 生命骰：每名队员持有「队伍等级」枚生命骰（骰面取 characters.json hit_die，缺省 d8）。
+# 短休：逐枚花费生命骰回血 = 骰值 + 力量修正（最少 1）；不耗时钟。
+# 长休：HP 全满 + 生命骰全数恢复；旅店（hub）免费，野外营地推进末日时钟 +1（时间即墨迹）。
+# 次数制技能按遭遇计次（11 §8），每场遭遇开局即视为已短休充能，无需另行恢复。
+const DEFAULT_HIT_DIE := "d8"
+const CAMP_LONG_REST_CLOCK := 1
+
+func _hd_key(cid: String) -> String:
+	return "%s.hd_spent.%s" % [pack_id, cid]
+
+## 生命骰状态：{die, max, left}。
+func hit_dice_of(cid: String) -> Dictionary:
+	var c: Dictionary = (pack.get("characters", {}) as Dictionary).get(cid, {})
+	var mx := Growth.level(board)
+	var spent := clampi(int(board.read(_hd_key(cid))), 0, mx)
+	return {"die": str(c.get("hit_die", DEFAULT_HIT_DIE)), "max": mx, "left": mx - spent}
+
+## 营地可用：已经历过至少一场战斗（序章教学不出现营地）、不在 hub（hub 有旅店长休与正式商店）、
+## 不在战斗节点（战斗走整备）且未到结局。
+func camp_available() -> bool:
+	if ["hub", "battle"].has(str(current().get("type", ""))) or is_at_ending():
+		return false
+	var nodes: Dictionary = pack.get("nodes", {})
+	for nid: Variant in visit_log:
+		if str((nodes.get(str(nid), {}) as Dictionary).get("type", "")) == "battle":
+			return true
+	return false
+
+## 长休免费：hub（旅店）与 rest 节点（安全落脚点）不耗时钟；其余野外营地耗时钟。
+func rest_is_free() -> bool:
+	return ["hub", "rest"].has(str(current().get("type", "")))
+
+## 短休：为 cid 花费一枚生命骰。返回 {ok, reason?, roll, heal, hp, max_hp}。
+## 拒绝：无剩余生命骰（no_dice）/ 已满血（full）——满血不浪费骰子。
+func short_rest(cid: String) -> Dictionary:
+	if not party_ids().has(cid):
+		return {"ok": false, "reason": "unknown"}
+	var hd := hit_dice_of(cid)
+	var mx := max_hp_of(cid)
+	var hp := hp_of(cid)
+	if hp >= mx:
+		return {"ok": false, "reason": "full", "hp": hp, "max_hp": mx}
+	if int(hd["left"]) <= 0:
+		return {"ok": false, "reason": "no_dice", "hp": hp, "max_hp": mx}
+	var c: Dictionary = pack["characters"][cid]
+	var roll: int = int(LightV1.roll_damage(rng, "1" + str(hd["die"]))["total"])
+	var might := int((c.get("attrs", {}) as Dictionary).get("might", 0))
+	var heal := maxi(1, roll + might)
+	var new_hp := mini(mx, hp + heal)
+	board.write("%s.hp.%s" % [pack_id, cid], new_hp, _hub_prov())
+	board.write(_hd_key(cid), int(hd["max"]) - int(hd["left"]) + 1, _hub_prov())
+	board.stream.emit(EventTypes.LOG, {"msg_key": "MSG_SHORT_REST", "toast": true,
+		"args": {"name": str(c.get("name", cid)), "die": str(hd["die"]), "roll": roll,
+			"heal": new_hp - hp, "hp": new_hp, "max_hp": mx}}, &"graph", current_id)
+	return {"ok": true, "roll": roll, "heal": new_hp - hp, "hp": new_hp, "max_hp": mx}
+
+## 长休：全队 HP 全满 + 生命骰清零花费；at_inn=false（野外营地）推进末日时钟 +1，
+## 时钟写板后复查 doom_clock 触发（可能直接把剧情推到触发节点，调用方需重新呈现）。
+func long_rest(at_inn: bool) -> Dictionary:
+	var restored := {}
+	for cid: String in party_ids():
+		var mx := max_hp_of(cid)
+		board.write("%s.hp.%s" % [pack_id, cid], mx, _hub_prov())
+		if int(board.read(_hd_key(cid))) != 0:
+			board.write(_hd_key(cid), 0, _hub_prov())
+		restored[cid] = mx
+	if at_inn:
+		board.stream.emit(EventTypes.LOG, {"msg_key": "MSG_REST", "toast": true}, &"graph", current_id)
+	else:
+		board.stream.emit(EventTypes.LOG, {"msg_key": "MSG_LONG_REST_CAMP", "toast": true,
+			"args": {"clock": CAMP_LONG_REST_CLOCK}}, &"graph", current_id)
+		_apply([{"clock": CAMP_LONG_REST_CLOCK}], current_id)
+		_scan_triggers()
 	return restored
 
-## 队伍状态（状态栏带 04 §3.1「队伍 HP 概览」只读数据源）：
-## [{id, name, hp, max_hp}]；hp 取 <pack>.hp.<cid> 簿记，未写入时按满值（公式重算上限）。
+## 队伍状态（状态栏带 04 §3.1「队伍 HP 概览」与营地面板数据源）：
+## [{id, name, hp, max_hp, hd_left, hd_max, hit_die, art_ref?}]。
 func party_status() -> Array:
-	var alloc := Growth.attrs_map(board)
-	var level := Growth.level(board)
-	var hp_bonus := (level - 1) * LightV1.LEVEL_HP_BONUS
 	var out: Array = []
-	for cid: String in (pack.get("characters", {}) as Dictionary).keys():
+	for cid: String in party_ids():
 		var c: Dictionary = pack["characters"][cid]
-		if not ["player_template", "companion"].has(str(c.get("kind", ""))):
-			continue
-		var attrs: Dictionary = (c.get("attrs", {}) as Dictionary).duplicate(true)
-		for k: Variant in alloc.keys():
-			attrs[str(k)] = int(attrs.get(str(k), 0)) + int(alloc[k])
-		attrs["level"] = level
-		var max_hp := int(LightV1.eval_formula(str(c.get("hp_formula", "10")), attrs)) + hp_bonus
-		var entry := {"id": cid, "name": str(c.get("name", cid)),
-			"hp": mini(int(board.read("%s.hp.%s" % [pack_id, cid], max_hp)), max_hp), "max_hp": max_hp}
+		var hd := hit_dice_of(cid)
+		var entry := {"id": cid, "name": str(c.get("name", cid)), "hp": hp_of(cid), "max_hp": max_hp_of(cid),
+			"hd_left": int(hd["left"]), "hd_max": int(hd["max"]), "hit_die": str(hd["die"])}
 		if c.has("art_ref"): # 头像引用随行（tech/05 §6 纯呈现；队伍芯片按 art_ref 显示头像）
 			entry["art_ref"] = str(c["art_ref"])
 		out.append(entry)
@@ -328,8 +393,6 @@ func party_status() -> Array:
 ## 数值口径与 BattleDef._build_character_unit 一致（11 §6：成长只叠加玩家模板，hp 公式吃基础属性）。
 func party_roster() -> Array:
 	var alloc := Growth.attrs_map(board)
-	var level := Growth.level(board)
-	var hp_bonus := (level - 1) * LightV1.LEVEL_HP_BONUS
 	var skills: Dictionary = pack.get("skills", {})
 	var out: Array = []
 	for cid: String in (pack.get("characters", {}) as Dictionary).keys():
@@ -341,14 +404,8 @@ func party_roster() -> Array:
 		var final_attrs := {}
 		for a: String in ["might", "finesse", "wits"]:
 			final_attrs[a] = int(base_attrs.get(a, 0)) + (int(alloc.get(a, 0)) if kind == "player_template" else 0)
-		var fvars := {"might": int(base_attrs.get("might", 0)), "finesse": int(base_attrs.get("finesse", 0)),
-			"wits": int(base_attrs.get("wits", 0)), "level": level if kind == "player_template" else 1}
-		var hp: Variant = LightV1.eval_formula(str(c.get("hp_formula", "10")), fvars)
-		var max_hp := int(hp) + (hp_bonus if kind == "player_template" else 0)
-		var hp_now := max_hp
-		var hp_key := "%s.hp.%s" % [pack_id, cid]
-		if board.has(hp_key):
-			hp_now = clampi(int(board.read(hp_key)), 1, max_hp) # 11 §7.1 持久化；0 抬 1 同 BattleDef
+		var max_hp := max_hp_of(cid)
+		var hp_now := hp_of(cid) # 11 §7.1 持久化；0 抬 1 同 BattleDef
 		var skill_entries: Array = []
 		var learned: Array = (c.get("skills", []) as Array).duplicate()
 		var ba := str(c.get("basic_attack", ""))

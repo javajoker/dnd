@@ -127,7 +127,7 @@ const HUB_RUMOR := "听传闻"
 const HUB_GOLD := "金币：%d"
 const HUB_CLOSE := "离开"
 const HUB_NO_GOLD := "金币不足。"
-const HUB_REST_HINT := "休整：恢复全部 HP 与技能次数"
+const HUB_REST_HINT := "长休：HP 全满、生命骰全数恢复"
 const HUB_RUMOR_NONE := "码头寂静，暂无新传闻。"
 
 # ① 主屏（04 §①）
@@ -319,7 +319,7 @@ const TUT_HINT_CHECK := "双指点击 = 一键快掷；点按检定按钮亦可�
 const TUT_HINT_KEY := "关键判定演出：长按 ≥0.4 秒跳过，跳过不丢信息（内容同步写入日志与卷轴）。"
 
 # 事件流消息模板（core/应用层只发 msg_key + args，壳按当前语言渲染；tech/01 E-5）
-const MSG_REST := "你在广场的篝火边休整。伤口被重新誊写，技能次数已恢复。"
+const MSG_REST := "你在旅店长休了一夜。伤口被重新誊写，生命骰已全数恢复。"
 const MSG_ACHIEVEMENT := "成就达成：{label}"
 const MSG_SKIN_CODEX := "图鉴集齐——骰子皮肤「{skin}」已到账。（纯演出，不动骰运）"
 const MSG_SKIN_SHOP := "守门人拓下新印——骰子皮肤「{skin}」已到手。（纯演出，不动骰运）"
@@ -466,3 +466,18 @@ const MSG_PURCHASE_FAILED := "购买未完成：{error}"
 const MSG_STORE_UNAVAILABLE := "商店暂不可用。"
 const SHOP_LINE_CAMPAIGN := "《%s》——%s。一次解锁，抄本会从这一页接着写下去。"
 const DICE_STRIP_IDLE := "掷骰结果会显示在这里"
+
+# ---- 营地与休息（11 §7.2 短休/长休；战利金 11 §7.3）----
+const CAMP := "扎营"
+const CAMP_TITLE := "营地"
+const CAMP_SUPPLIES := "补给"
+const CAMP_PARTY_LINE := "%s　HP %d/%d · 生命骰 %d/%d（%s）"
+const CAMP_SHORT_REST := "短休：掷生命骰"
+const CAMP_FULL := "已满"
+const CAMP_NO_DICE := "无生命骰"
+const CAMP_LONG_REST := "长休（时间钟 +%d）"
+const CAMP_HINT := "短休花费生命骰回复 HP；长休全满并恢复生命骰，但时间流逝。技能次数每场遭遇自动恢复。"
+const HUB_INN_REST := "就地长休（安全处，免费）"
+const MSG_SHORT_REST := "{name} 短休：掷 {die} 得 {roll}，回复 {heal} HP（{hp}/{max_hp}）。"
+const MSG_LONG_REST_CAMP := "你们在野外扎营长休。伤口愈合，生命骰恢复——墨迹又褪了一格（时间钟 +{clock}）。"
+const MSG_GOLD_GAIN := "获得 {amount} 金币。"

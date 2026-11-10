@@ -150,4 +150,5 @@ static func battle_def() -> Dictionary:
 		"party_advantage_rounds": 1,
 		"loot": [{"item": "ink_core", "n": 1}],
 		"xp": 100,
+		"gold": 20,
 	}

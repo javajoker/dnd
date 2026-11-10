@@ -92,6 +92,8 @@ Note: the Godot gesture layer implements all of 12 §1's recognition parameters 
 | Maze exploration sequence | Check / pickup / ambush beats, idempotent progress | ✅ (none) | ✅ |
 | Battle + choice hybrid | Post-battle choice written to the Board | ✅ (none) | ✅ |
 | HP persists across encounters | Written at settlement, next encounter starts from it, rest restores full | ✅ (none) | ✅ |
+| Short / long rest | Short rest spends Hit Dice to heal; long rest restores all (Doom Clock +1 in the wild, free at the inn); "Make Camp" on settle + camp on post-battle story nodes | ✅ (none) | ✅ |
+| Battle gold | Encounter `gold` field, paid on victory, read out at settle; spend it on camp Supplies | ✅ (none) | ✅ |
 
 ## 8. Encounter boundaries (09 §7)
 

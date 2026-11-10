@@ -96,7 +96,7 @@ const HUB_RUMOR := "Listen for Rumors"
 const HUB_GOLD := "Gold: %d"
 const HUB_CLOSE := "Leave"
 const HUB_NO_GOLD := "Not enough gold."
-const HUB_REST_HINT := "Rest: restore all HP and skill uses"
+const HUB_REST_HINT := "Long rest: full HP and all Hit Dice restored"
 const HUB_RUMOR_NONE := "The pier is quiet. No new rumors."
 
 # ① Home (Camp)
@@ -248,7 +248,7 @@ const TUT_HINT_CHECK := "Two-finger tap = quick roll; tapping the check button w
 const TUT_HINT_KEY := "Key-check presentation: hold ≥0.4 s to skip. Nothing is lost — it's all written to the log and the Scroll."
 
 # Event-stream message templates (core emits msg_key + args; tech/01 E-5)
-const MSG_REST := "You rest by the campfire in the plaza. Your wounds are rewritten and your skill uses restored."
+const MSG_REST := "You take a long rest at the inn. Your wounds are rewritten and your Hit Dice restored."
 const MSG_ACHIEVEMENT := "Achievement: {label}"
 const MSG_SKIN_CODEX := "Series complete — the \"{skin}\" dice skin is yours. (Cosmetic only; it never changes your luck.)"
 const MSG_SKIN_SHOP := "The gatekeeper strikes a new seal — the \"{skin}\" dice skin is yours. (Cosmetic only; it never changes your luck.)"
@@ -395,3 +395,18 @@ const MSG_PURCHASE_FAILED := "The purchase didn't go through: {error}"
 const MSG_STORE_UNAVAILABLE := "The store isn't available right now."
 const SHOP_LINE_CAMPAIGN := "%s — %s. One unlock, and your codex carries on from this page."
 const DICE_STRIP_IDLE := "Your rolls appear here"
+
+# ---- Camp and rests (11 §7.2 short/long rest; battle gold 11 §7.3) ----
+const CAMP := "Make Camp"
+const CAMP_TITLE := "Camp"
+const CAMP_SUPPLIES := "Supplies"
+const CAMP_PARTY_LINE := "%s  HP %d/%d · Hit Dice %d/%d (%s)"
+const CAMP_SHORT_REST := "Short rest: roll a Hit Die"
+const CAMP_FULL := "Full"
+const CAMP_NO_DICE := "No Hit Dice"
+const CAMP_LONG_REST := "Long rest (Doom Clock +%d)"
+const CAMP_HINT := "Short rest: spend Hit Dice to heal. Long rest: full HP and Hit Dice back, but time passes. Skill uses recharge every encounter."
+const HUB_INN_REST := "Long rest here (safe haven, free)"
+const MSG_SHORT_REST := "{name} takes a short rest: rolled {roll} on the {die}, healing {heal} HP ({hp}/{max_hp})."
+const MSG_LONG_REST_CAMP := "You make camp for a long rest. Wounds close and Hit Dice return — but the ink fades a little more (Doom Clock +{clock})."
+const MSG_GOLD_GAIN := "Found {amount} gold."

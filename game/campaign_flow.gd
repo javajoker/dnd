@@ -166,24 +166,39 @@ func _on_story_edge(idx: int) -> void:
 		m.graph.take_edge(edge)
 	_present_node()
 
-## Hub 动作（战役书 §4 N1-1）：商店购买 / 休整 / 传闻；写板全部在 core，本层只转发与刷新。
+## Hub / 营地动作（战役书 §4 N1-1；11 §7.2 短休/长休）：商店购买 / 旅店长休 / 短休 / 野外长休 / 传闻；
+## 写板全部在 core，本层只转发与刷新。野外长休推进时钟可能触发 doom_clock 边直接改写当前节点 → 重新呈现。
 func _on_hub_action(action: String, arg: String) -> void:
+	var before: String = m.graph.current_id
 	match action:
 		"buy":
 			if not m.graph.hub_buy(arg):
 				m.stream.emit(EventTypes.LOG, {"msg_key": "HUB_NO_GOLD", "toast": true}, &"core", m.graph.current_id)
-			var vm := StoryVM.build(m.graph, m.board, m.pack)
-			_story_show(vm)
-			m.shell.sync_hub_popup(vm)
 		"rest":
 			m.graph.hub_rest()
-			var vm2 := StoryVM.build(m.graph, m.board, m.pack)
-			_story_show(vm2)
-			m.shell.sync_hub_popup(vm2)
+		"short_rest":
+			m.graph.short_rest(arg)
+		"long_rest":
+			m.graph.long_rest(m.graph.rest_is_free())
 		"rumor":
 			var rumors: Array = m.graph.hub_rumors()
 			var msg := StoryVM.rumor_text(rumors[0]) if not rumors.is_empty() else Texts.s(&"HUB_RUMOR_NONE")
 			m.stream.emit(EventTypes.LOG, {"msg": msg, "toast": true}, &"core", m.graph.current_id)
+			return
+	if m.graph.current_id != before: # 时钟触发改道：弹层随旧节点作废
+		_present_node()
+		return
+	if m.current_screen is ScreenSettle: # 结算屏营地（战斗之间）：只刷新弹层
+		(m.current_screen as ScreenSettle).sync_camp(_camp_data())
+		return
+	var vm := StoryVM.build(m.graph, m.board, m.pack)
+	_story_show(vm)
+	m.shell.sync_hub_popup(vm)
+
+## 营地弹层数据（结算屏用；故事态由 StoryVM 提供同口径字段）。
+func _camp_data() -> Dictionary:
+	return {"gold": m.graph.get_gold(), "stock": m.graph.hub_stock(), "party": m.graph.party_status(),
+		"rest_free": m.graph.rest_is_free()}
 
 ## 切片终点（出 SL-0/SL-1 范围或结局节点）：结算快照落盘（07 §4.2 主快照点）+ ⑨结算屏。
 func _end_slice() -> void:
@@ -496,12 +511,15 @@ func _show_settle_deferred() -> void:
 func _show_settle() -> void:
 	var lines: Array[String] = []
 	var xp := 0
+	var gold := 0
 	var attr_gained := 0
 	for ev: Dictionary in m.stream.since(_encounter_tail):
 		var p: Dictionary = ev["payload"]
 		match StringName(ev["type"]):
 			EventTypes.XP_GAIN:
 				xp += int(p.get("amount", 0))
+			EventTypes.LOG:
+				gold += int(p.get("gold", 0)) # 战利金（11 §7.3；MSG_GOLD_GAIN 携带 gold 数额）
 			EventTypes.LEVEL_UP:
 				attr_gained += int(p.get("attr_points", 0)) # 升级即发放（tech/04 §8 规则2）
 			EventTypes.ITEM_GAIN:
@@ -518,6 +536,8 @@ func _show_settle() -> void:
 					int(p.get("delta", 0))])
 			EventTypes.LOADOUT_CONFIRM:
 				lines.append(Texts.s(&"SETTLE_LINE_LOADOUT") % [str(p.get("skills", [])), str(p.get("items", []))])
+	if gold > 0:
+		lines.insert(0, Texts.s(&"SETTLE_LINE_GOLD") % [gold, m.graph.get_gold()])
 	if xp > 0:
 		lines.insert(0, Texts.s(&"SETTLE_LINE_XP") % xp)
 	var level := Growth.level(m.board)
@@ -540,11 +560,14 @@ func _bind_settle() -> void:
 		"saved": true, "attr_points": Growth.attr_points(m.board),
 		"attrs": Growth.attrs_map(m.board),
 		"has_next": _encounter_result == &"victory", # 下一遭遇出口（04 §⑨：胜利结算三出口）
+		"can_camp": _encounter_result == &"victory", # 战斗之间扎营：短休/长休/补给（11 §7.2）
 		"celebrate": not _settle_celebrated}) # 胜利演出每场首播（04 §④.8；加点刷新重绑不重播）
 	_settle_celebrated = true
 	screen.allocate.connect(_on_settle_allocate)
 	screen.go_home.connect(m._show_home)
 	screen.go_next.connect(_on_settle_next)
+	screen.go_camp.connect(func() -> void: screen.open_camp(_camp_data())) # 战斗之间扎营（11 §7.2）
+	screen.camp_action.connect(_on_hub_action)
 	screen.go_history.connect(func() -> void:
 		m._history_origin = &"settle"
 		m._show_history())

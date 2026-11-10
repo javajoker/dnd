@@ -39,6 +39,7 @@ Design constraints (from doc 02): fixed file names; a new resource = a new data 
 - Formulas are **string expressions** (whitelisted variables: attrs / level / proficiency) evaluated by the rule pack — changing the rule pack doesn't change the character table;
 - The player template `kind: "player_template"` provides creation defaults (the +2/+1/0 of doc 11 §1);
 - Optional `basic_attack`: the basic-attack skill id (must be registered in this pack's skills.json, V11); the bootstrap derives the basic attack modifier (= the value of that skill's `attr`) and damage die (= that skill's `damage`) from it;
+- Optional `hit_die` (doc 11 §7.2): the Hit Die size (`"d6"` / `"d8"` / `"d10"`…, default d8); a short rest spends Hit Dice to heal die roll + Might modifier;
 - Optional `art_ref` (tech/05 §6): portrait reference (`"portraits/<id>"`); a pure presentation reference passed through BattleDef into the unit dictionary and party_status; shells fall back silently when art is missing.
 
 enemies.json entries may also have `art_ref` (tech/05 §6): enemy unit art reference (`"units/<id>"`); passed through BattleDef (including inline summon templates); both shells' battlefield tokens show the image.

@@ -101,8 +101,28 @@ Each turn: **move (≤6 squares) + action ×1 + bonus action ×1**, in any order
 ### 7.1 HP persists across encounters
 
 - HP at the end of an encounter is written to the Board (`<ns>.hp.<char_id>`, doc 07 §2) and the next encounter starts from it — wounds are part of a continuous adventure; no "full HP every fight";
-- The rest state restores HP to full and writes the Board (doc 09 §1 rest state);
+- The rest state restores HP to full and writes the Board (doc 09 §1 rest state) — i.e. the §7.2 long rest;
 - Downed companions get up with 1 HP after battle (§5.2), also written to the Board.
+- One source of truth for max HP: `hp_formula` is evaluated on the template's base attributes, the player template adds the per-level HP bonus (§6), companions count as level 1 — battle assembly, the status band and resting all call the same function; none may recompute it on its own.
+
+### 7.2 Short and long rests (d20 core-rules style)
+
+Recovery between fights follows the d20 core rules' two kinds of rest, turning "heal up" into a decision with a cost:
+
+| Rest | Effect | Cost | Where |
+|---|---|---|---|
+| **Short rest** | Spend **Hit Dice** one at a time to heal: die roll + Might modifier (minimum 1, capped at max HP) | Hit Dice only; no time passes | Camp (between fights) |
+| **Long rest** | Full HP + all Hit Dice restored | Camp in the wild: **Doom Clock +1** (time is ink); hub inn / `rest` safe node: free | Camp, hub, rest nodes |
+
+- **Hit Dice**: each party member has as many as the party level; the die comes from `hit_die` in `characters.json` (default d8; launch: the Unwritten d10, Old Fei d8, Kelan d6); spent dice are tracked in `<ns>.hd_spent.<char_id>` (a bookkeeping key, never read out to the player);
+- A short rest is refused at full HP (no wasted dice) and with no Hit Dice left;
+- **Camp access**: the "Make Camp" exit on the victory settle screen, plus any non-hub, non-battle story node once the party has fought at least once (it never appears in the Prologue tutorial); camp also offers **Supplies** (the same stock and prices as the hub shop);
+- A long rest in the wild advances the clock, which may fire `doom_clock` edges/events — that is the cost: the more you rest, the faster the world fades.
+
+### 7.3 Battle gold
+
+- An encounter may declare `gold` (tech/02 §6): on victory it is added to the pack-namespaced gold `<ns>.gold` (doc 07 §2 currency clause) and read out on the settle screen ("Gold +N (total M)");
+- Launch tuning: `gold = xp ÷ 5` (an easy fight pays for about one potion); no gold for a failed escort or a wipe.
 
 ## 8. Weapon dice and use-limited skills
 
@@ -113,7 +133,7 @@ Each turn: **move (≤6 squares) + action ×1 + bonus action ×1**, in any order
 | Heavy | d8 | Boat-hook axe |
 | Spell-style | d6 (Wits) | Ink Bolt |
 
-- No spell slots; **use-limited skills**: each active skill can be used N times per encounter (marked on the skill card, usually 1–3), restored at rest;
+- No spell slots; **use-limited skills**: each active skill can be used N times per encounter (marked on the skill card, usually 1–3), refilled at the start of every encounter (counts as a short-rest recharge, §7.2);
 - Classes are presented as **skill-combination bundles** (three at launch: Harbor Guard / Scavenger / Ink Adept — players feel a style rather than read clauses, doc 05 §8).
 
 ## 9. Difficulty calibration and placement pacing (for content authors)
