@@ -120,7 +120,7 @@ Each file replaces the generated frame of the same name (tech/05 §10). Draw **o
 
 ### 3.5 Unit action animations (`anims/`, sprite strips) — optional
 
-The game animates a still portrait procedurally (tech/05 §9); a strip replaces that for one unit and one action. Format: **one horizontal strip of square frames**, frame size = image height (256 px recommended), **8–12 frames**, transparent background, the character centred and the same scale in every frame, feet on the same baseline. File `anim_<art id>_<action>.png` where `<art id>` is the unit's art id (`ink_fiend`, `companion_kelan`, `class_scavenger` …) and `<action>` ∈ `lunge`, `cast`, `throw`, `hop`, `brace`, `down`, `revive`.
+The game animates a still portrait procedurally (tech/05 §9); a strip replaces that for one unit and one action. Copy-ready prompts per unit: §3.7. Format: **one horizontal strip of square frames**, frame size = image height (256 px recommended), **8–12 frames**, transparent background, the character centred and the same scale in every frame, feet on the same baseline. File `anim_<art id>_<action>.png` where `<art id>` is the unit's art id (`ink_fiend`, `companion_kelan`, `class_scavenger` …) and `<action>` ∈ `lunge`, `cast`, `throw`, `hop`, `brace`, `down`, `revive`.
 
 Generic prompt (image tools that make sprite sheets, e.g. a model fine-tuned for sprite sheets, or generate frames one by one with a fixed seed and the same reference image):
 
@@ -160,6 +160,324 @@ Format as §3.5 (horizontal strip of square frames, 256 px, 8–16 frames, trans
 | `fx_smoke.png` | a grey smoke puff expanding and thinning out |
 | `fx_summon.png` | a swirling dark portal of ink opening on the ground |
 | `fx_aura.png` | rising red-gold streaks around a figure's silhouette area, empowering aura |
+
+### 3.7 Animation strip prompts — Old Fei and enemies (copy-ready)
+
+Learned from the first two deliveries (the Unwritten and Kelan): the importer copes with a JPEG checkerboard and uneven spacing, but clean input gives clean edges. **Delivery spec for every strip:**
+
+- **PNG with real transparency** (if the tool can only give a flat background, ask for flat pure white or pure black — never a checkerboard);
+- **10 poses in one row**, each in its **own equal square cell** (e.g. 2560×256: ten 256² cells), at least 12 px of empty space between poses; swooshes and trails stay inside their own cell;
+- the character **faces right** (the game mirrors the strip when the target is on the left — one strip serves both sides), same scale and the **same ground line** in every pose, the figure about 80 % of the cell height;
+- **pose 1 and pose 10 are the same idle stance** (the strip starts and ends on the card's still image);
+- attach the unit's portrait / unit image (`game/assets/art/portraits/…` or `units/…`) as the **reference image** so outfit, colours and proportions match;
+- file name `anim_<art id>_<action>.png` (or deliver anything to `art_src/anims/` and run `tools/import_anim_strip.gd`).
+
+**Priority:** each unit's `lunge` first — it is used for every attack of that unit (cast / throw fall back to it). Then `down` (every unit can fall), then the extra actions listed.
+
+**Negative prompt (all strips):**
+
+```
+checkerboard, grey background, floor, ground shadow plane, text, letters, numbers, watermark, frame borders, overlapping poses, motion trails crossing into the next pose, cropped feet, cropped weapon, different outfits between poses, extra characters, photorealistic, 3d render, anime, chibi
+```
+
+**Action breakdowns** (already inside the prompts below):
+
+| Action | Poses 1–10 |
+|---|---|
+| `lunge` | attack sequence: 1 idle stance, 2-3 wind-up (weight back, weapon drawn back), 4 step forward, 5-6 strike at full extension toward the right (impact pose), 7-8 follow-through, 9 recovering, 10 back to the same idle stance as pose 1 |
+| `cast` | casting sequence: 1 idle stance, 2-3 gathering power (arms rise, gold-ink glow forming in the hands), 4-6 releasing the power forward to the right, 7-8 glow fading, 9-10 back to the idle stance |
+| `brace` | defend sequence: 1 idle stance, 2-3 dropping into a low guard, 4-7 holding the guard with a faint gold-ink glow, 8-9 relaxing, 10 back to the idle stance |
+| `down` | defeat sequence: 1 hit flinch, 2-4 staggering backward, 5-7 collapsing, 8-10 lying still on the ground (poses 8-10 almost identical) |
+| `revive` | recovery sequence: 1-3 lying on the ground, 4-6 pushing up to one knee with a faint golden glow, 7-9 rising, 10 standing in the idle stance |
+
+#### Old Fei (companion) — `companion_laofei`
+
+| File | Action |
+|---|---|
+| `anim_companion_laofei_lunge.png` | lunge — swings the iron boat-hook in a wide hooking arc |
+| `anim_companion_laofei_brace.png` | brace — plants his feet wide and raises the boat-hook across his chest like a bar |
+| `anim_companion_laofei_down.png` | down |
+| `anim_companion_laofei_revive.png` | revive |
+
+`anim_companion_laofei_lunge.png`
+
+```
+Game character sprite sheet, dark ink-wash fantasy style, deep blue-black ink with aged-paper tones and glowing gold-ink linework, painterly brush texture, strong readable silhouette, rim light from upper left. Exactly 10 poses of the SAME character in ONE horizontal row, each pose centred in its own equal square cell, clear empty space between poses, full body visible, same scale and same ground line in every pose, character faces RIGHT, side / three-quarter view, transparent background, no floor, no text. Character: Old Fei: a stocky old harbour crane-master, grey beard, weathered face, dark oilskin coat, rust-orange scarf, an iron boat-hook in place of his left hand; tough and gruff. Action — attack sequence: 1 idle stance, 2-3 wind-up (weight back, weapon drawn back), 4 step forward, 5-6 strike at full extension toward the right (impact pose), 7-8 follow-through, 9 recovering, 10 back to the same idle stance as pose 1; specifically: swings the iron boat-hook in a wide hooking arc.
+```
+
+`anim_companion_laofei_brace.png`
+
+```
+Game character sprite sheet, dark ink-wash fantasy style, deep blue-black ink with aged-paper tones and glowing gold-ink linework, painterly brush texture, strong readable silhouette, rim light from upper left. Exactly 10 poses of the SAME character in ONE horizontal row, each pose centred in its own equal square cell, clear empty space between poses, full body visible, same scale and same ground line in every pose, character faces RIGHT, side / three-quarter view, transparent background, no floor, no text. Character: Old Fei: a stocky old harbour crane-master, grey beard, weathered face, dark oilskin coat, rust-orange scarf, an iron boat-hook in place of his left hand; tough and gruff. Action — defend sequence: 1 idle stance, 2-3 dropping into a low guard, 4-7 holding the guard with a faint gold-ink glow, 8-9 relaxing, 10 back to the idle stance; specifically: plants his feet wide and raises the boat-hook across his chest like a bar.
+```
+
+`anim_companion_laofei_down.png`
+
+```
+Game character sprite sheet, dark ink-wash fantasy style, deep blue-black ink with aged-paper tones and glowing gold-ink linework, painterly brush texture, strong readable silhouette, rim light from upper left. Exactly 10 poses of the SAME character in ONE horizontal row, each pose centred in its own equal square cell, clear empty space between poses, full body visible, same scale and same ground line in every pose, character faces RIGHT, side / three-quarter view, transparent background, no floor, no text. Character: Old Fei: a stocky old harbour crane-master, grey beard, weathered face, dark oilskin coat, rust-orange scarf, an iron boat-hook in place of his left hand; tough and gruff. Action — defeat sequence: 1 hit flinch, 2-4 staggering backward, 5-7 collapsing, 8-10 lying still on the ground (poses 8-10 almost identical).
+```
+
+`anim_companion_laofei_revive.png`
+
+```
+Game character sprite sheet, dark ink-wash fantasy style, deep blue-black ink with aged-paper tones and glowing gold-ink linework, painterly brush texture, strong readable silhouette, rim light from upper left. Exactly 10 poses of the SAME character in ONE horizontal row, each pose centred in its own equal square cell, clear empty space between poses, full body visible, same scale and same ground line in every pose, character faces RIGHT, side / three-quarter view, transparent background, no floor, no text. Character: Old Fei: a stocky old harbour crane-master, grey beard, weathered face, dark oilskin coat, rust-orange scarf, an iron boat-hook in place of his left hand; tough and gruff. Action — recovery sequence: 1-3 lying on the ground, 4-6 pushing up to one knee with a faint golden glow, 7-9 rising, 10 standing in the idle stance.
+```
+
+#### Ink Imp — `ink_imp`
+
+| File | Action |
+|---|---|
+| `anim_ink_imp_lunge.png` | lunge — springs forward and bites, body stretching like a drop of ink |
+| `anim_ink_imp_down.png` | down — melts into a flat puddle of ink, eyes fading last |
+
+`anim_ink_imp_lunge.png`
+
+```
+Game character sprite sheet, dark ink-wash fantasy style, deep blue-black ink with aged-paper tones and glowing gold-ink linework, painterly brush texture, strong readable silhouette, rim light from upper left. Exactly 10 poses of the SAME character in ONE horizontal row, each pose centred in its own equal square cell, clear empty space between poses, full body visible, same scale and same ground line in every pose, character faces RIGHT, side / three-quarter view, transparent background, no floor, no text. Character: Ink Imp: a small round creature of living black ink with two horn buds, big glowing gold eyes, dripping tendrils instead of legs; mischievous. Action — attack sequence: 1 idle stance, 2-3 wind-up (weight back, weapon drawn back), 4 step forward, 5-6 strike at full extension toward the right (impact pose), 7-8 follow-through, 9 recovering, 10 back to the same idle stance as pose 1; specifically: springs forward and bites, body stretching like a drop of ink.
+```
+
+`anim_ink_imp_down.png`
+
+```
+Game character sprite sheet, dark ink-wash fantasy style, deep blue-black ink with aged-paper tones and glowing gold-ink linework, painterly brush texture, strong readable silhouette, rim light from upper left. Exactly 10 poses of the SAME character in ONE horizontal row, each pose centred in its own equal square cell, clear empty space between poses, full body visible, same scale and same ground line in every pose, character faces RIGHT, side / three-quarter view, transparent background, no floor, no text. Character: Ink Imp: a small round creature of living black ink with two horn buds, big glowing gold eyes, dripping tendrils instead of legs; mischievous. Action — defeat sequence: 1 hit flinch, 2-4 staggering backward, 5-7 collapsing, 8-10 lying still on the ground (poses 8-10 almost identical); specifically: melts into a flat puddle of ink, eyes fading last.
+```
+
+#### Ink Fiend — `ink_fiend`
+
+| File | Action |
+|---|---|
+| `anim_ink_fiend_lunge.png` | lunge — lunges and rakes with one clawed hand |
+| `anim_ink_fiend_cast.png` | cast — raises both arms and flings a spray of ink rain upward and forward |
+| `anim_ink_fiend_down.png` | down |
+
+`anim_ink_fiend_lunge.png`
+
+```
+Game character sprite sheet, dark ink-wash fantasy style, deep blue-black ink with aged-paper tones and glowing gold-ink linework, painterly brush texture, strong readable silhouette, rim light from upper left. Exactly 10 poses of the SAME character in ONE horizontal row, each pose centred in its own equal square cell, clear empty space between poses, full body visible, same scale and same ground line in every pose, character faces RIGHT, side / three-quarter view, transparent background, no floor, no text. Character: Ink Fiend: a hulking horned brute of black ink, bull-like head with curved horns, heavy shoulders and clawed hands, ink dripping from its body, glowing gold eyes. Action — attack sequence: 1 idle stance, 2-3 wind-up (weight back, weapon drawn back), 4 step forward, 5-6 strike at full extension toward the right (impact pose), 7-8 follow-through, 9 recovering, 10 back to the same idle stance as pose 1; specifically: lunges and rakes with one clawed hand.
+```
+
+`anim_ink_fiend_cast.png`
+
+```
+Game character sprite sheet, dark ink-wash fantasy style, deep blue-black ink with aged-paper tones and glowing gold-ink linework, painterly brush texture, strong readable silhouette, rim light from upper left. Exactly 10 poses of the SAME character in ONE horizontal row, each pose centred in its own equal square cell, clear empty space between poses, full body visible, same scale and same ground line in every pose, character faces RIGHT, side / three-quarter view, transparent background, no floor, no text. Character: Ink Fiend: a hulking horned brute of black ink, bull-like head with curved horns, heavy shoulders and clawed hands, ink dripping from its body, glowing gold eyes. Action — casting sequence: 1 idle stance, 2-3 gathering power (arms rise, gold-ink glow forming in the hands), 4-6 releasing the power forward to the right, 7-8 glow fading, 9-10 back to the idle stance; specifically: raises both arms and flings a spray of ink rain upward and forward.
+```
+
+`anim_ink_fiend_down.png`
+
+```
+Game character sprite sheet, dark ink-wash fantasy style, deep blue-black ink with aged-paper tones and glowing gold-ink linework, painterly brush texture, strong readable silhouette, rim light from upper left. Exactly 10 poses of the SAME character in ONE horizontal row, each pose centred in its own equal square cell, clear empty space between poses, full body visible, same scale and same ground line in every pose, character faces RIGHT, side / three-quarter view, transparent background, no floor, no text. Character: Ink Fiend: a hulking horned brute of black ink, bull-like head with curved horns, heavy shoulders and clawed hands, ink dripping from its body, glowing gold eyes. Action — defeat sequence: 1 hit flinch, 2-4 staggering backward, 5-7 collapsing, 8-10 lying still on the ground (poses 8-10 almost identical).
+```
+
+#### Ink Swarm — `ink_swarm`
+
+| File | Action |
+|---|---|
+| `anim_ink_swarm_lunge.png` | lunge — the cluster surges forward and snaps like one creature |
+| `anim_ink_swarm_down.png` | down — the blobs burst and splatter apart, then dissolve |
+
+`anim_ink_swarm_lunge.png`
+
+```
+Game character sprite sheet, dark ink-wash fantasy style, deep blue-black ink with aged-paper tones and glowing gold-ink linework, painterly brush texture, strong readable silhouette, rim light from upper left. Exactly 10 poses of the SAME character in ONE horizontal row, each pose centred in its own equal square cell, clear empty space between poses, full body visible, same scale and same ground line in every pose, character faces RIGHT, side / three-quarter view, transparent background, no floor, no text. Character: Ink Swarm: a cluster of three small black ink blobs with many tiny glowing gold eyes, huddled together and dripping. Action — attack sequence: 1 idle stance, 2-3 wind-up (weight back, weapon drawn back), 4 step forward, 5-6 strike at full extension toward the right (impact pose), 7-8 follow-through, 9 recovering, 10 back to the same idle stance as pose 1; specifically: the cluster surges forward and snaps like one creature.
+```
+
+`anim_ink_swarm_down.png`
+
+```
+Game character sprite sheet, dark ink-wash fantasy style, deep blue-black ink with aged-paper tones and glowing gold-ink linework, painterly brush texture, strong readable silhouette, rim light from upper left. Exactly 10 poses of the SAME character in ONE horizontal row, each pose centred in its own equal square cell, clear empty space between poses, full body visible, same scale and same ground line in every pose, character faces RIGHT, side / three-quarter view, transparent background, no floor, no text. Character: Ink Swarm: a cluster of three small black ink blobs with many tiny glowing gold eyes, huddled together and dripping. Action — defeat sequence: 1 hit flinch, 2-4 staggering backward, 5-7 collapsing, 8-10 lying still on the ground (poses 8-10 almost identical); specifically: the blobs burst and splatter apart, then dissolve.
+```
+
+#### The Page Warden (boss) — `page_warden`
+
+| File | Action |
+|---|---|
+| `anim_page_warden_lunge.png` | lunge — smashes forward with a heavy seal held in both hands |
+| `anim_page_warden_cast.png` | cast — raises the seal overhead, a gold ring of light pulses outward |
+| `anim_page_warden_brace.png` | brace — the page halo spins faster and the golem straightens, gold light running through its armour (powering up) |
+| `anim_page_warden_down.png` | down — collapses into a heap of armour and loose pages that scatter |
+
+`anim_page_warden_lunge.png`
+
+```
+Game character sprite sheet, dark ink-wash fantasy style, deep blue-black ink with aged-paper tones and glowing gold-ink linework, painterly brush texture, strong readable silhouette, rim light from upper left. Exactly 10 poses of the SAME character in ONE horizontal row, each pose centred in its own equal square cell, clear empty space between poses, full body visible, same scale and same ground line in every pose, character faces RIGHT, side / three-quarter view, transparent background, no floor, no text. Character: The Page Warden: a tall armoured scribing golem in a long dark robe, face mask with a thin glowing gold slit, a halo ring of torn floating pages behind its head; rigid and mechanical. Action — attack sequence: 1 idle stance, 2-3 wind-up (weight back, weapon drawn back), 4 step forward, 5-6 strike at full extension toward the right (impact pose), 7-8 follow-through, 9 recovering, 10 back to the same idle stance as pose 1; specifically: smashes forward with a heavy seal held in both hands.
+```
+
+`anim_page_warden_cast.png`
+
+```
+Game character sprite sheet, dark ink-wash fantasy style, deep blue-black ink with aged-paper tones and glowing gold-ink linework, painterly brush texture, strong readable silhouette, rim light from upper left. Exactly 10 poses of the SAME character in ONE horizontal row, each pose centred in its own equal square cell, clear empty space between poses, full body visible, same scale and same ground line in every pose, character faces RIGHT, side / three-quarter view, transparent background, no floor, no text. Character: The Page Warden: a tall armoured scribing golem in a long dark robe, face mask with a thin glowing gold slit, a halo ring of torn floating pages behind its head; rigid and mechanical. Action — casting sequence: 1 idle stance, 2-3 gathering power (arms rise, gold-ink glow forming in the hands), 4-6 releasing the power forward to the right, 7-8 glow fading, 9-10 back to the idle stance; specifically: raises the seal overhead, a gold ring of light pulses outward.
+```
+
+`anim_page_warden_brace.png`
+
+```
+Game character sprite sheet, dark ink-wash fantasy style, deep blue-black ink with aged-paper tones and glowing gold-ink linework, painterly brush texture, strong readable silhouette, rim light from upper left. Exactly 10 poses of the SAME character in ONE horizontal row, each pose centred in its own equal square cell, clear empty space between poses, full body visible, same scale and same ground line in every pose, character faces RIGHT, side / three-quarter view, transparent background, no floor, no text. Character: The Page Warden: a tall armoured scribing golem in a long dark robe, face mask with a thin glowing gold slit, a halo ring of torn floating pages behind its head; rigid and mechanical. Action — defend sequence: 1 idle stance, 2-3 dropping into a low guard, 4-7 holding the guard with a faint gold-ink glow, 8-9 relaxing, 10 back to the idle stance; specifically: the page halo spins faster and the golem straightens, gold light running through its armour (powering up).
+```
+
+`anim_page_warden_down.png`
+
+```
+Game character sprite sheet, dark ink-wash fantasy style, deep blue-black ink with aged-paper tones and glowing gold-ink linework, painterly brush texture, strong readable silhouette, rim light from upper left. Exactly 10 poses of the SAME character in ONE horizontal row, each pose centred in its own equal square cell, clear empty space between poses, full body visible, same scale and same ground line in every pose, character faces RIGHT, side / three-quarter view, transparent background, no floor, no text. Character: The Page Warden: a tall armoured scribing golem in a long dark robe, face mask with a thin glowing gold slit, a halo ring of torn floating pages behind its head; rigid and mechanical. Action — defeat sequence: 1 hit flinch, 2-4 staggering backward, 5-7 collapsing, 8-10 lying still on the ground (poses 8-10 almost identical); specifically: collapses into a heap of armour and loose pages that scatter.
+```
+
+#### The Inktide Avatar (final boss) — `tide_avatar`
+
+| File | Action |
+|---|---|
+| `anim_tide_avatar_lunge.png` | lunge — the wave rears back and crashes forward to the right |
+| `anim_tide_avatar_cast.png` | cast — the wave swells upward and sweeps across in a wide arc (area attack) |
+| `anim_tide_avatar_down.png` | down — the wave collapses into a flat spreading pool of ink, the eyes going dark |
+
+`anim_tide_avatar_lunge.png`
+
+```
+Game character sprite sheet, dark ink-wash fantasy style, deep blue-black ink with aged-paper tones and glowing gold-ink linework, painterly brush texture, strong readable silhouette, rim light from upper left. Exactly 10 poses of the SAME character in ONE horizontal row, each pose centred in its own equal square cell, clear empty space between poses, full body visible, same scale and same ground line in every pose, character faces RIGHT, side / three-quarter view, transparent background, no floor, no text. Character: The Inktide Avatar: a towering wave of living black ink shaped like a cresting tide, a crown of ink droplets, several glowing gold eyes inside the wave, gold-ink highlights along the crest; the base of the wave is its 'feet' on the ground line. Action — attack sequence: 1 idle stance, 2-3 wind-up (weight back, weapon drawn back), 4 step forward, 5-6 strike at full extension toward the right (impact pose), 7-8 follow-through, 9 recovering, 10 back to the same idle stance as pose 1; specifically: the wave rears back and crashes forward to the right.
+```
+
+`anim_tide_avatar_cast.png`
+
+```
+Game character sprite sheet, dark ink-wash fantasy style, deep blue-black ink with aged-paper tones and glowing gold-ink linework, painterly brush texture, strong readable silhouette, rim light from upper left. Exactly 10 poses of the SAME character in ONE horizontal row, each pose centred in its own equal square cell, clear empty space between poses, full body visible, same scale and same ground line in every pose, character faces RIGHT, side / three-quarter view, transparent background, no floor, no text. Character: The Inktide Avatar: a towering wave of living black ink shaped like a cresting tide, a crown of ink droplets, several glowing gold eyes inside the wave, gold-ink highlights along the crest; the base of the wave is its 'feet' on the ground line. Action — casting sequence: 1 idle stance, 2-3 gathering power (arms rise, gold-ink glow forming in the hands), 4-6 releasing the power forward to the right, 7-8 glow fading, 9-10 back to the idle stance; specifically: the wave swells upward and sweeps across in a wide arc (area attack).
+```
+
+`anim_tide_avatar_down.png`
+
+```
+Game character sprite sheet, dark ink-wash fantasy style, deep blue-black ink with aged-paper tones and glowing gold-ink linework, painterly brush texture, strong readable silhouette, rim light from upper left. Exactly 10 poses of the SAME character in ONE horizontal row, each pose centred in its own equal square cell, clear empty space between poses, full body visible, same scale and same ground line in every pose, character faces RIGHT, side / three-quarter view, transparent background, no floor, no text. Character: The Inktide Avatar: a towering wave of living black ink shaped like a cresting tide, a crown of ink droplets, several glowing gold eyes inside the wave, gold-ink highlights along the crest; the base of the wave is its 'feet' on the ground line. Action — defeat sequence: 1 hit flinch, 2-4 staggering backward, 5-7 collapsing, 8-10 lying still on the ground (poses 8-10 almost identical); specifically: the wave collapses into a flat spreading pool of ink, the eyes going dark.
+```
+
+#### Black Feather Guard — `uninked_guard`
+
+| File | Action |
+|---|---|
+| `anim_uninked_guard_lunge.png` | lunge — thrusts the quarterstaff forward with both hands |
+| `anim_uninked_guard_down.png` | down |
+
+`anim_uninked_guard_lunge.png`
+
+```
+Game character sprite sheet, dark ink-wash fantasy style, deep blue-black ink with aged-paper tones and glowing gold-ink linework, painterly brush texture, strong readable silhouette, rim light from upper left. Exactly 10 poses of the SAME character in ONE horizontal row, each pose centred in its own equal square cell, clear empty space between poses, full body visible, same scale and same ground line in every pose, character faces RIGHT, side / three-quarter view, transparent background, no floor, no text. Character: Black Feather Guard: a rebel guard in a cloth head-wrap and patched dark coat, a long quarterstaff, a blank white emblem on the chest. Action — attack sequence: 1 idle stance, 2-3 wind-up (weight back, weapon drawn back), 4 step forward, 5-6 strike at full extension toward the right (impact pose), 7-8 follow-through, 9 recovering, 10 back to the same idle stance as pose 1; specifically: thrusts the quarterstaff forward with both hands.
+```
+
+`anim_uninked_guard_down.png`
+
+```
+Game character sprite sheet, dark ink-wash fantasy style, deep blue-black ink with aged-paper tones and glowing gold-ink linework, painterly brush texture, strong readable silhouette, rim light from upper left. Exactly 10 poses of the SAME character in ONE horizontal row, each pose centred in its own equal square cell, clear empty space between poses, full body visible, same scale and same ground line in every pose, character faces RIGHT, side / three-quarter view, transparent background, no floor, no text. Character: Black Feather Guard: a rebel guard in a cloth head-wrap and patched dark coat, a long quarterstaff, a blank white emblem on the chest. Action — defeat sequence: 1 hit flinch, 2-4 staggering backward, 5-7 collapsing, 8-10 lying still on the ground (poses 8-10 almost identical).
+```
+
+#### Tax Collector's Guard — `tax_guard`
+
+| File | Action |
+|---|---|
+| `anim_tax_guard_lunge.png` | lunge — chops down with the halberd |
+| `anim_tax_guard_down.png` | down |
+
+`anim_tax_guard_lunge.png`
+
+```
+Game character sprite sheet, dark ink-wash fantasy style, deep blue-black ink with aged-paper tones and glowing gold-ink linework, painterly brush texture, strong readable silhouette, rim light from upper left. Exactly 10 poses of the SAME character in ONE horizontal row, each pose centred in its own equal square cell, clear empty space between poses, full body visible, same scale and same ground line in every pose, character faces RIGHT, side / three-quarter view, transparent background, no floor, no text. Character: Tax Collector's Guard: a uniformed guard in a tall hat with a crimson band, a halberd, an open ledger tucked under one arm; stern. Action — attack sequence: 1 idle stance, 2-3 wind-up (weight back, weapon drawn back), 4 step forward, 5-6 strike at full extension toward the right (impact pose), 7-8 follow-through, 9 recovering, 10 back to the same idle stance as pose 1; specifically: chops down with the halberd.
+```
+
+`anim_tax_guard_down.png`
+
+```
+Game character sprite sheet, dark ink-wash fantasy style, deep blue-black ink with aged-paper tones and glowing gold-ink linework, painterly brush texture, strong readable silhouette, rim light from upper left. Exactly 10 poses of the SAME character in ONE horizontal row, each pose centred in its own equal square cell, clear empty space between poses, full body visible, same scale and same ground line in every pose, character faces RIGHT, side / three-quarter view, transparent background, no floor, no text. Character: Tax Collector's Guard: a uniformed guard in a tall hat with a crimson band, a halberd, an open ledger tucked under one arm; stern. Action — defeat sequence: 1 hit flinch, 2-4 staggering backward, 5-7 collapsing, 8-10 lying still on the ground (poses 8-10 almost identical).
+```
+
+#### Fog Wharf Ambusher — `dock_ambusher`
+
+| File | Action |
+|---|---|
+| `anim_dock_ambusher_lunge.png` | lunge — leaps forward with a double knife stab |
+| `anim_dock_ambusher_down.png` | down |
+
+`anim_dock_ambusher_lunge.png`
+
+```
+Game character sprite sheet, dark ink-wash fantasy style, deep blue-black ink with aged-paper tones and glowing gold-ink linework, painterly brush texture, strong readable silhouette, rim light from upper left. Exactly 10 poses of the SAME character in ONE horizontal row, each pose centred in its own equal square cell, clear empty space between poses, full body visible, same scale and same ground line in every pose, character faces RIGHT, side / three-quarter view, transparent background, no floor, no text. Character: Fog Wharf Ambusher: a lean masked dockside ambusher in a hood, two short knives, fog wisps around the feet. Action — attack sequence: 1 idle stance, 2-3 wind-up (weight back, weapon drawn back), 4 step forward, 5-6 strike at full extension toward the right (impact pose), 7-8 follow-through, 9 recovering, 10 back to the same idle stance as pose 1; specifically: leaps forward with a double knife stab.
+```
+
+`anim_dock_ambusher_down.png`
+
+```
+Game character sprite sheet, dark ink-wash fantasy style, deep blue-black ink with aged-paper tones and glowing gold-ink linework, painterly brush texture, strong readable silhouette, rim light from upper left. Exactly 10 poses of the SAME character in ONE horizontal row, each pose centred in its own equal square cell, clear empty space between poses, full body visible, same scale and same ground line in every pose, character faces RIGHT, side / three-quarter view, transparent background, no floor, no text. Character: Fog Wharf Ambusher: a lean masked dockside ambusher in a hood, two short knives, fog wisps around the feet. Action — defeat sequence: 1 hit flinch, 2-4 staggering backward, 5-7 collapsing, 8-10 lying still on the ground (poses 8-10 almost identical).
+```
+
+#### Three-Faction Mercenary — `mercenary`
+
+| File | Action |
+|---|---|
+| `anim_mercenary_lunge.png` | lunge — an overhead greatsword cleave |
+| `anim_mercenary_down.png` | down |
+
+`anim_mercenary_lunge.png`
+
+```
+Game character sprite sheet, dark ink-wash fantasy style, deep blue-black ink with aged-paper tones and glowing gold-ink linework, painterly brush texture, strong readable silhouette, rim light from upper left. Exactly 10 poses of the SAME character in ONE horizontal row, each pose centred in its own equal square cell, clear empty space between poses, full body visible, same scale and same ground line in every pose, character faces RIGHT, side / three-quarter view, transparent background, no floor, no text. Character: Three-Faction Mercenary: a hardened mercenary with a cloak and mismatched armour pieces, a greatsword. Action — attack sequence: 1 idle stance, 2-3 wind-up (weight back, weapon drawn back), 4 step forward, 5-6 strike at full extension toward the right (impact pose), 7-8 follow-through, 9 recovering, 10 back to the same idle stance as pose 1; specifically: an overhead greatsword cleave.
+```
+
+`anim_mercenary_down.png`
+
+```
+Game character sprite sheet, dark ink-wash fantasy style, deep blue-black ink with aged-paper tones and glowing gold-ink linework, painterly brush texture, strong readable silhouette, rim light from upper left. Exactly 10 poses of the SAME character in ONE horizontal row, each pose centred in its own equal square cell, clear empty space between poses, full body visible, same scale and same ground line in every pose, character faces RIGHT, side / three-quarter view, transparent background, no floor, no text. Character: Three-Faction Mercenary: a hardened mercenary with a cloak and mismatched armour pieces, a greatsword. Action — defeat sequence: 1 hit flinch, 2-4 staggering backward, 5-7 collapsing, 8-10 lying still on the ground (poses 8-10 almost identical).
+```
+
+#### Bandit (starter kit) — `bandit`
+
+| File | Action |
+|---|---|
+| `anim_bandit_lunge.png` | lunge — an overhead axe chop |
+| `anim_bandit_down.png` | down |
+
+`anim_bandit_lunge.png`
+
+```
+Game character sprite sheet, dark ink-wash fantasy style, deep blue-black ink with aged-paper tones and glowing gold-ink linework, painterly brush texture, strong readable silhouette, rim light from upper left. Exactly 10 poses of the SAME character in ONE horizontal row, each pose centred in its own equal square cell, clear empty space between poses, full body visible, same scale and same ground line in every pose, character faces RIGHT, side / three-quarter view, transparent background, no floor, no text. Character: Bandit: a hooded road bandit in a ragged cloak with a hand axe. Action — attack sequence: 1 idle stance, 2-3 wind-up (weight back, weapon drawn back), 4 step forward, 5-6 strike at full extension toward the right (impact pose), 7-8 follow-through, 9 recovering, 10 back to the same idle stance as pose 1; specifically: an overhead axe chop.
+```
+
+`anim_bandit_down.png`
+
+```
+Game character sprite sheet, dark ink-wash fantasy style, deep blue-black ink with aged-paper tones and glowing gold-ink linework, painterly brush texture, strong readable silhouette, rim light from upper left. Exactly 10 poses of the SAME character in ONE horizontal row, each pose centred in its own equal square cell, clear empty space between poses, full body visible, same scale and same ground line in every pose, character faces RIGHT, side / three-quarter view, transparent background, no floor, no text. Character: Bandit: a hooded road bandit in a ragged cloak with a hand axe. Action — defeat sequence: 1 hit flinch, 2-4 staggering backward, 5-7 collapsing, 8-10 lying still on the ground (poses 8-10 almost identical).
+```
+
+#### Wolf (starter kit) — `wolf`
+
+| File | Action |
+|---|---|
+| `anim_wolf_lunge.png` | lunge — pounces forward and bites |
+| `anim_wolf_down.png` | down |
+
+`anim_wolf_lunge.png`
+
+```
+Game character sprite sheet, dark ink-wash fantasy style, deep blue-black ink with aged-paper tones and glowing gold-ink linework, painterly brush texture, strong readable silhouette, rim light from upper left. Exactly 10 poses of the SAME character in ONE horizontal row, each pose centred in its own equal square cell, clear empty space between poses, full body visible, same scale and same ground line in every pose, character faces RIGHT, side / three-quarter view, transparent background, no floor, no text. Character: Wolf: a lean grey wolf, side view, ears up, long tail, one glowing eye (four-legged: 'feet' = paws on the ground line). Action — attack sequence: 1 idle stance, 2-3 wind-up (weight back, weapon drawn back), 4 step forward, 5-6 strike at full extension toward the right (impact pose), 7-8 follow-through, 9 recovering, 10 back to the same idle stance as pose 1; specifically: pounces forward and bites.
+```
+
+`anim_wolf_down.png`
+
+```
+Game character sprite sheet, dark ink-wash fantasy style, deep blue-black ink with aged-paper tones and glowing gold-ink linework, painterly brush texture, strong readable silhouette, rim light from upper left. Exactly 10 poses of the SAME character in ONE horizontal row, each pose centred in its own equal square cell, clear empty space between poses, full body visible, same scale and same ground line in every pose, character faces RIGHT, side / three-quarter view, transparent background, no floor, no text. Character: Wolf: a lean grey wolf, side view, ears up, long tail, one glowing eye (four-legged: 'feet' = paws on the ground line). Action — defeat sequence: 1 hit flinch, 2-4 staggering backward, 5-7 collapsing, 8-10 lying still on the ground (poses 8-10 almost identical).
+```
+
+#### Scout (starter kit) — `scout`
+
+| File | Action |
+|---|---|
+| `anim_scout_lunge.png` | lunge — draws the bow and looses an arrow to the right (arrow leaves the frame cell), then lowers the bow — this one strip is used for every attack |
+| `anim_scout_down.png` | down |
+
+`anim_scout_lunge.png`
+
+```
+Game character sprite sheet, dark ink-wash fantasy style, deep blue-black ink with aged-paper tones and glowing gold-ink linework, painterly brush texture, strong readable silhouette, rim light from upper left. Exactly 10 poses of the SAME character in ONE horizontal row, each pose centred in its own equal square cell, clear empty space between poses, full body visible, same scale and same ground line in every pose, character faces RIGHT, side / three-quarter view, transparent background, no floor, no text. Character: Scout: a light-armoured scout in a short cloak with a short bow. Action — attack sequence: 1 idle stance, 2-3 wind-up (weight back, weapon drawn back), 4 step forward, 5-6 strike at full extension toward the right (impact pose), 7-8 follow-through, 9 recovering, 10 back to the same idle stance as pose 1; specifically: draws the bow and looses an arrow to the right (arrow leaves the frame cell), then lowers the bow — this one strip is used for every attack.
+```
+
+`anim_scout_down.png`
+
+```
+Game character sprite sheet, dark ink-wash fantasy style, deep blue-black ink with aged-paper tones and glowing gold-ink linework, painterly brush texture, strong readable silhouette, rim light from upper left. Exactly 10 poses of the SAME character in ONE horizontal row, each pose centred in its own equal square cell, clear empty space between poses, full body visible, same scale and same ground line in every pose, character faces RIGHT, side / three-quarter view, transparent background, no floor, no text. Character: Scout: a light-armoured scout in a short cloak with a short bow. Action — defeat sequence: 1 hit flinch, 2-4 staggering backward, 5-7 collapsing, 8-10 lying still on the ground (poses 8-10 almost identical).
+```
 
 ## 4. Scenes and maps
 

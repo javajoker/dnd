@@ -431,6 +431,8 @@ func _draw_ghost(g: Dictionary) -> void:
 			rot = 1.25 * k2
 			off = Vector2(side * 0.15 * k2, side * 0.18 * k2)
 			mod = Color(1.0 + 0.6 * s, 1.0 + 0.6 * s, 1.0 + 0.3 * s)
+	if g["strip"] != null and (g["dir"] as Vector2).x < -4.0:
+		sc.x = -sc.x # 帧条约定一律面朝右：目标在左侧时镜像（敌我双方共用一套帧条）
 	draw_set_transform(c + off, rot, sc)
 	if g["strip"] != null:
 		_draw_strip(g["strip"], Vector2.ZERO, side, u, mod)
