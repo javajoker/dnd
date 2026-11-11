@@ -20,12 +20,12 @@ static var redirect_path: String = ""
 static func _resolve(path: String) -> String:
 	return redirect_path if redirect_path != "" and path == PATH else path
 
-## 主屏兜底条是否收起；默认展开（12 §5：默认展开）。
+## 主屏文字菜单是否收起；缺省收起（主屏留给插画；小把手 / 上滑拉出）。
 static func load_home_bar_collapsed(path: String = PATH) -> bool:
 	var cfg := ConfigFile.new()
 	if cfg.load(_resolve(path)) != OK:
-		return false
-	return bool(cfg.get_value(SECTION, KEY_HOME_BAR_COLLAPSED, false))
+		return true
+	return bool(cfg.get_value(SECTION, KEY_HOME_BAR_COLLAPSED, true)) # 缺省收起：主屏留给插画，上滑 / 把手拉出
 
 static func save_home_bar_collapsed(collapsed: bool, path: String = PATH) -> void:
 	_save_key(KEY_HOME_BAR_COLLAPSED, collapsed, path)

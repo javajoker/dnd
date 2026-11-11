@@ -169,12 +169,18 @@ func hotspot_at(pos: Vector2) -> Dictionary:
 
 # ---------------------------------------------------------------- 交互（12 §5 ①：点按热点 = 导航；兜底条为等价路径）
 
+var _press_at := Vector2(INF, INF) # 按下位置：松开时位移过大 = 滑动（交给整屏手势），不算点按
+
 func _gui_input(event: InputEvent) -> void:
 	var pos := Vector2.ZERO
 	var tapped := false
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		_press_at = event.position
+		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
 		pos = event.position
-		tapped = true
+		tapped = _press_at.x == INF or pos.distance_to(_press_at) < 12.0
+		_press_at = Vector2(INF, INF)
 	elif event is InputEventScreenTouch and not event.pressed:
 		pos = event.position
 		tapped = true

@@ -91,19 +91,25 @@ func _build() -> void:
 	v.add_child(promo_button)
 	# 兜底条 toggle 把手（12 §5：可收起/展开；把手独立于兜底条本体，收起后仍可触达——等价路径永不消失）
 	var toggle_row := HBoxContainer.new()
-	toggle_row.alignment = BoxContainer.ALIGNMENT_END # 右端
-	toggle_row.add_theme_constant_override("separation", 4)
+	toggle_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	v.add_child(toggle_row)
-	var toggle_hint := Label.new()
-	toggle_hint.text = Texts.s(&"HOME_BAR_HINT")
-	toggle_hint.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55))
-	toggle_hint.add_theme_font_size_override("font_size", 11)
-	toggle_hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	toggle_row.add_child(toggle_hint)
+	# 把手：细金条 + 小箭头（视觉小、触达区仍 ≥ 120×28；上滑 / 下滑整屏同效，见 _input）
 	bar_toggle = Button.new()
-	bar_toggle.custom_minimum_size = Vector2(96, 44) # 12 §6：可触目标最小 44×44pt
+	bar_toggle.name = "MenuGrip"
+	bar_toggle.flat = true
+	bar_toggle.focus_mode = Control.FOCUS_NONE
+	bar_toggle.custom_minimum_size = Vector2(120, 28)
+	bar_toggle.add_theme_font_size_override("font_size", 14)
+	bar_toggle.add_theme_color_override("font_color", Color(Palette.color("accent"), 0.85))
 	bar_toggle.pressed.connect(func() -> void: set_bar_collapsed(not _bar_collapsed, true))
 	toggle_row.add_child(bar_toggle)
+	var grip_line := ColorRect.new() # 把手条（居中，不截手势）
+	grip_line.color = Color(Palette.color("accent"), 0.55)
+	grip_line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	grip_line.custom_minimum_size = Vector2(44, 3)
+	grip_line.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	grip_line.position = Vector2(-22, -5)
+	bar_toggle.add_child(grip_line)
 	# 底部文字入口兜底条（12 §5：无障碍与辨识度兜底；热点图是皮肤，文字入口是骨架）
 	fallback_bar = VBoxContainer.new()
 	fallback_bar.add_theme_constant_override("separation", 4)
@@ -156,9 +162,35 @@ func _entry(parent: Container, label: String, screen_id: StringName) -> Button:
 func set_bar_collapsed(collapsed: bool, persist: bool) -> void:
 	_bar_collapsed = collapsed
 	fallback_bar.visible = not collapsed
-	bar_toggle.text = Texts.s(&"HOME_BAR_EXPAND") if collapsed else Texts.s(&"HOME_BAR_COLLAPSE")
+	bar_toggle.text = "︿" if collapsed else "﹀" # 小箭头：上 = 拉出菜单，下 = 收起
+	bar_toggle.tooltip_text = Texts.s(&"HOME_BAR_EXPAND") if collapsed else Texts.s(&"HOME_BAR_COLLAPSE")
 	if persist:
 		UiSettings.save_home_bar_collapsed(collapsed, settings_path) # UI 偏好不写状态板（12 §5）
+
+## 上滑 / 下滑整屏手势（12 §2）：上滑拉出文字菜单，下滑收起。按下-松开位移 ≥ SWIPE_MIN 且以纵向为主才算；
+## 帮助层开着时不响应。用 _input 先于控件看到松开，但不吞事件（热点按"位移过大不算点按"自行忽略）。
+const SWIPE_MIN := 48.0
+var _swipe_from := Vector2(INF, INF)
+
+func _input(event: InputEvent) -> void:
+	if not is_visible_in_tree() or (_help_overlay != null and _help_overlay.visible):
+		return
+	if event is InputEventMouseButton and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
+		var mb := event as InputEventMouseButton
+		if mb.pressed:
+			_swipe_from = mb.position
+			return
+		if _swipe_from.x == INF:
+			return
+		var d := mb.position - _swipe_from
+		_swipe_from = Vector2(INF, INF)
+		if absf(d.y) >= SWIPE_MIN and absf(d.y) > absf(d.x) * 1.5:
+			swipe_menu(d.y < 0.0)
+
+## 手势结果（也供测试直调）：up = 上滑 → 展开；down → 收起。
+func swipe_menu(up: bool) -> void:
+	if up == _bar_collapsed: # 只在状态真的改变时动
+		set_bar_collapsed(not up, true)
 
 ## 测试探针。
 func is_bar_collapsed() -> bool:

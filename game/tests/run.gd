@@ -1570,10 +1570,10 @@ func test_juice() -> void:
 	# ---- 震动开关（ui.screen_shake；与兜底条同机制：默认开、合并写盘不丢其它键）----
 	var cfg_path := "user://test/juice_settings.cfg"
 	check(UiSettings.load_screen_shake(cfg_path), "震动开关缺省=开（读不到键回落文档默认）")
-	UiSettings.save_home_bar_collapsed(true, cfg_path)
+	UiSettings.save_home_bar_collapsed(false, cfg_path) # 非缺省值：验证合并写盘真的保住了它
 	UiSettings.save_screen_shake(false, cfg_path)
 	check(not UiSettings.load_screen_shake(cfg_path), "震动开关写盘后读回=关")
-	check(UiSettings.load_home_bar_collapsed(cfg_path), "写震动键不覆盖既有兜底条键（合并写盘）")
+	check(not UiSettings.load_home_bar_collapsed(cfg_path), "写震动键不覆盖既有兜底条键（合并写盘）")
 	UiSettings.save_screen_shake(true, cfg_path)
 
 	# ---- 竖屏壳接线：事件流 → 飘字/闪白击退/消散/分级震动 ----
@@ -5774,14 +5774,23 @@ func test_home_bar_toggle() -> void:
 	var navs: Array = []
 	home.navigate.connect(func(id: StringName) -> void: navs.append(id))
 	home.bind(board, 0, false)
-	# ---- 默认展开（12 §5）----
-	check(not home.is_bar_collapsed() and home.fallback_bar.visible, "兜底条默认展开（12 §5）")
-	check(home.bar_toggle.text == TextsZh.HOME_BAR_COLLAPSE, "展开态把手=收起钮（12 §5 toggle）")
-	# ---- 收起：入口条隐藏为细条把手，把手仍可触达（12 §5；等价路径永不消失）----
+	# ---- 默认收起：主屏留给插画，只露细把手（12 §5 修订）----
+	check(home.is_bar_collapsed() and not home.fallback_bar.visible, "文字菜单默认收起（主屏留给插画）")
+	check(home.bar_toggle.visible and home.bar_toggle.tooltip_text == TextsZh.HOME_BAR_EXPAND
+		and home.bar_toggle.custom_minimum_size.y <= 32.0 and home.bar_toggle.flat, "收起态：小把手可见（细条 + 箭头，提示=展开）")
+	# ---- 把手点按 / 上滑下滑 都能切换 ----
+	home.bar_toggle.pressed.emit()
+	check(not home.is_bar_collapsed() and home.fallback_bar.visible
+		and home.bar_toggle.tooltip_text == TextsZh.HOME_BAR_COLLAPSE, "点把手：展开文字菜单")
+	home.swipe_menu(false)
+	check(home.is_bar_collapsed() and not home.fallback_bar.visible, "下滑：收起")
+	home.swipe_menu(false)
+	check(home.is_bar_collapsed(), "已收起时再下滑：不变")
+	home.swipe_menu(true)
+	check(not home.is_bar_collapsed() and home.fallback_bar.visible, "上滑：展开")
 	home.bar_toggle.pressed.emit()
 	check(home.is_bar_collapsed() and not home.fallback_bar.visible, "toggle 收起：兜底条隐去（12 §5）")
-	check(home.bar_toggle.visible and home.bar_toggle.text == TextsZh.HOME_BAR_EXPAND,
-		"收起后展开把手始终可触达（12 §5：等价路径永不消失）")
+	check(home.bar_toggle.visible, "收起后展开把手始终可触达（12 §5：等价路径永不消失）")
 	check(not board.has("ui.home_bar_collapsed"), "UI 偏好不写状态板（12 §5：存本地设置）")
 	# ---- 收起态五入口仍经热点可达（12 §5：热点图是皮肤）----
 	for h: Dictionary in HomeScroll.HOTSPOTS:
@@ -5802,7 +5811,7 @@ func test_home_bar_toggle() -> void:
 	# ---- 展开还原 + 展开等价路径断言不回归（12 §5：骨架与皮肤同信号）----
 	home2.bar_toggle.pressed.emit()
 	check(not home2.is_bar_collapsed() and home2.fallback_bar.visible
-		and home2.bar_toggle.text == TextsZh.HOME_BAR_COLLAPSE, "toggle 展开还原（12 §5）")
+		and home2.bar_toggle.tooltip_text == TextsZh.HOME_BAR_COLLAPSE, "toggle 展开还原（12 §5）")
 	navs.clear()
 	home2.campaign_button.pressed.emit()
 	home2.quests_button.pressed.emit()
@@ -7236,6 +7245,24 @@ func test_home_promo() -> void:
 # 仍然全绿，必须用 Viewport.push_input 走真实输入路由（按下+抬起）断言热点与兜底条可达。
 
 ## 在视口坐标 pos 注入一次完整左键点按（按下 + 抬起）。
+## 真实输入滑动：按下 → 移动 → 松开。
+func _push_drag(from: Vector2, to: Vector2) -> void:
+	var down := InputEventMouseButton.new()
+	down.button_index = MOUSE_BUTTON_LEFT
+	down.pressed = true
+	down.position = from
+	root.push_input(down)
+	var mv := InputEventMouseMotion.new()
+	mv.position = to
+	mv.relative = to - from
+	mv.button_mask = MOUSE_BUTTON_MASK_LEFT
+	root.push_input(mv)
+	var up := InputEventMouseButton.new()
+	up.button_index = MOUSE_BUTTON_LEFT
+	up.pressed = false
+	up.position = to
+	root.push_input(up)
+
 func _push_click(pos: Vector2) -> void:
 	var down := InputEventMouseButton.new()
 	down.button_index = MOUSE_BUTTON_LEFT
@@ -7797,6 +7824,23 @@ func test_home_real_input() -> void:
 	await process_frame
 	await process_frame
 	check(navs == [&"entry"], "真实输入：启动卡结束后点热点 → 导航（覆盖层不残留吞输入，12 §4/§5）")
+	# ---- 真实输入上滑：拉出文字菜单（默认收起）；下滑收起；滑动不误触热点 ----
+	check(home.is_bar_collapsed(), "真实输入前：文字菜单默认收起")
+	var mid := home.scroll.get_global_rect().get_center()
+	navs.clear()
+	_push_drag(mid + Vector2(0, 60), mid - Vector2(0, 60))
+	await process_frame
+	await process_frame
+	check(not home.is_bar_collapsed() and home.fallback_bar.visible and navs.is_empty(),
+		"真实输入：上滑拉出文字菜单（滑过热点不触发导航）")
+	_push_drag(mid - Vector2(0, 60), mid + Vector2(0, 60))
+	await process_frame
+	await process_frame
+	check(home.is_bar_collapsed() and navs.is_empty(), "真实输入：下滑收起文字菜单")
+	_push_click(home.bar_toggle.get_global_rect().get_center())
+	await process_frame
+	await process_frame
+	check(not home.is_bar_collapsed(), "真实输入：点小把手展开")
 	# ---- 兜底条等价路径：真实点按文字入口（12 §5：骨架与皮肤同信号）----
 	navs.clear()
 	_push_click(home.campaign_button.get_global_rect().get_center())
