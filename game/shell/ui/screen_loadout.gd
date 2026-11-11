@@ -534,7 +534,7 @@ func _refresh_party() -> void:
 		b.button_pressed = cid == _sel
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.custom_minimum_size = Vector2(0, 56)
-		b.clip_text = true
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART # 长名字换行，不截断（卡片随之增高）
 		b.text = Texts.s(&"LOADOUT_PARTY_CARD") % [str(d.get("name", cid)), int(d.get("hp", 0)), int(d.get("max_hp", 0))]
 		b.pressed.connect(func() -> void: select_character(cid))
 		b.set_drag_forwarding(Callable(), _can_drop_any, func(_p: Vector2, data: Variant) -> void:
@@ -558,7 +558,7 @@ func _refresh_sheet() -> void:
 			b.name = "Slot_%s" % slot
 			b.custom_minimum_size = Vector2(0, 40)
 			b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			b.clip_text = true
+			b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART # 长装备名换行，不截断
 			b.text = Texts.s(&"LOADOUT_SLOT_FMT") % [str(slot_names.get(slot, slot)),
 				str(_gear_entry(iid).get("name", iid)) if iid != "" else Texts.s(&"LOADOUT_SLOT_EMPTY")]
 			if iid != "":
