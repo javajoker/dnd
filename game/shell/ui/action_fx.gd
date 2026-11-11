@@ -296,7 +296,7 @@ func _start_action(uid: String, action: String, toward: String) -> void:
 		return
 	var ref := str(art_ref_of.call(uid)) if art_ref_of.is_valid() else ""
 	var tex := ArtLoader.texture_for(ref) if ref != "" else null
-	var strip := _strip("res://assets/art/anims/anim_%s_%s.png" % [ref.get_file(), action]) if ref != "" else null
+	var strip := action_strip(ref.get_file(), action) if ref != "" else null
 	if tex == null and strip == null:
 		return # 无美术：只播特效，不出替身
 	var dir := Vector2.ZERO
@@ -356,6 +356,18 @@ func _strip(path: String) -> Texture2D:
 			tex = ImageTexture.create_from_image(img)
 	_strips[path] = tex
 	return tex
+
+## 单位动作帧条：anim_<id>_<action>；进攻类动作（lunge / cast / throw）缺专用条时
+## 依次回落 anim_<id>_attack → anim_<id>_lunge（一条出招动画即可覆盖全部进攻）。
+func action_strip(art_id: String, action: String) -> Texture2D:
+	var names: Array[String] = [action]
+	if ["lunge", "cast", "throw"].has(action):
+		names.append_array(["attack", "lunge"])
+	for nm: String in names:
+		var t := _strip("res://assets/art/anims/anim_%s_%s.png" % [art_id, nm])
+		if t != null:
+			return t
+	return null
 
 static func _strip_frames(tex: Texture2D) -> int:
 	return maxi(1, int(tex.get_width() / maxf(1.0, tex.get_height())))

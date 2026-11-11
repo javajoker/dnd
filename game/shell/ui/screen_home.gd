@@ -108,14 +108,18 @@ func _build() -> void:
 	fallback_bar = VBoxContainer.new()
 	fallback_bar.add_theme_constant_override("separation", 4)
 	v.add_child(fallback_bar)
-	var row1 := HBoxContainer.new()
-	row1.alignment = BoxContainer.ALIGNMENT_CENTER
+	var row1 := HFlowContainer.new() # 流式换行：长文案（如起步包"Write in the journal"）不撑出屏幕
+	row1.alignment = FlowContainer.ALIGNMENT_CENTER
+	row1.add_theme_constant_override("h_separation", 4)
+	row1.add_theme_constant_override("v_separation", 4)
 	fallback_bar.add_child(row1)
 	campaign_button = _entry(row1, Texts.s(&"HOME_ENTRY_CAMPAIGN"), &"entry")
 	quests_button = _entry(row1, Texts.s(&"HOME_ENTRY_QUESTS"), &"quests")
 	inventory_button = _entry(row1, Texts.s(&"HOME_ENTRY_INVENTORY"), &"inventory")
-	var row2 := HBoxContainer.new()
-	row2.alignment = BoxContainer.ALIGNMENT_CENTER
+	var row2 := HFlowContainer.new() # 流式换行：长文案（如起步包"Write in the journal"）不撑出屏幕
+	row2.alignment = FlowContainer.ALIGNMENT_CENTER
+	row2.add_theme_constant_override("h_separation", 4)
+	row2.add_theme_constant_override("v_separation", 4)
 	fallback_bar.add_child(row2)
 	character_button = _entry(row2, Texts.s(&"HOME_ENTRY_CHARACTER"), &"character")
 	history_button = _entry(row2, Texts.s(&"HOME_ENTRY_HISTORY"), &"history")

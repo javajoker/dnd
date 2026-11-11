@@ -17,7 +17,7 @@ const SPECS := {
 	"button_disabled": {"size": 48, "margin": 14, "content": Vector4(8, 5, 8, 5)},
 	"panel": {"size": 96, "margin": 26, "content": Vector4(18, 16, 18, 16)},
 	"sheet": {"size": 96, "margin": 26, "content": Vector4(16, 22, 16, 14)},
-	"toast": {"size": 64, "margin": 22, "content": Vector4(26, 8, 26, 8)},
+	"toast": {"size": 64, "margin": 22, "content": Vector4(30, 11, 30, 11)},
 	"field": {"size": 32, "margin": 10, "content": Vector4(10, 6, 10, 6)},
 	"track": {"size": 16, "margin": 7, "content": Vector4(0, 0, 0, 0)},
 	"fill": {"size": 16, "margin": 7, "content": Vector4(0, 0, 0, 0)},
@@ -26,9 +26,33 @@ const SPECS := {
 }
 
 static var _cache: Dictionary = {}
+static var _external: Dictionary = {}   # name -> true（用的是美术交付文件）
+static var _margins: Dictionary = {}    # ui_kit.json：外部框体的九宫格边距 {name: [l, t, r, b]}
+static var _margins_loaded := false
 
 static func reset() -> void:
 	_cache.clear()
+	_external.clear()
+	_margins.clear()
+	_margins_loaded = false
+
+static func _ui_dir() -> String:
+	return str((GameManifest.data().get("theme", {}) as Dictionary).get("ui_dir", UI_DIR))
+
+## tools/import_ui_kit.gd 写出的边距表（外部框体专用）。
+static func external_margins(name: String) -> Array:
+	if not _margins_loaded:
+		_margins_loaded = true
+		var p := _ui_dir().path_join("ui_kit.json")
+		if FileAccess.file_exists(p):
+			var raw: Variant = JSON.parse_string(FileAccess.get_file_as_string(p))
+			if raw is Dictionary:
+				_margins = raw
+	return _margins.get(name, [])
+
+static func is_external(name: String) -> bool:
+	texture(name)
+	return _external.has(name)
 
 # ---------------------------------------------------------------- 纹理与样式
 
@@ -37,15 +61,16 @@ static func texture(name: String) -> Texture2D:
 	if _cache.has(name):
 		return _cache[name]
 	var tex: Texture2D = null
-	var dir := str((GameManifest.data().get("theme", {}) as Dictionary).get("ui_dir", UI_DIR))
-	var path := dir.path_join("ui_%s.png" % name)
+	var path := _ui_dir().path_join("ui_%s.png" % name)
 	if ResourceLoader.exists(path):
 		tex = load(path) as Texture2D
 	elif FileAccess.file_exists(path):
 		var img := Image.load_from_file(path)
 		if img != null and not img.is_empty():
 			tex = ImageTexture.create_from_image(img)
-	if tex == null:
+	if tex != null:
+		_external[name] = true
+	else:
 		tex = ImageTexture.create_from_image(render(name))
 	_cache[name] = tex
 	return tex
@@ -56,16 +81,17 @@ static func style(name: String) -> StyleBoxTexture:
 	var sb := StyleBoxTexture.new()
 	sb.texture = texture(name)
 	var m := float(spec["margin"])
-	sb.texture_margin_left = m
-	sb.texture_margin_right = m
-	sb.texture_margin_top = m
-	sb.texture_margin_bottom = m
+	var em := external_margins(name) if _external.has(name) else []
+	sb.texture_margin_left = float(em[0]) if em.size() == 4 else m
+	sb.texture_margin_top = float(em[1]) if em.size() == 4 else m
+	sb.texture_margin_right = float(em[2]) if em.size() == 4 else m
+	sb.texture_margin_bottom = float(em[3]) if em.size() == 4 else m
 	var c: Vector4 = spec["content"]
 	sb.content_margin_left = c.x
 	sb.content_margin_top = c.y
 	sb.content_margin_right = c.z
 	sb.content_margin_bottom = c.w
-	if name == "button_hover":
+	if name == "button_hover" and not _external.has(name):
 		sb.expand_margin_left = 3 # 外发光画在纹理留白里：外扩到控件边缘之外，内容区不缩
 		sb.expand_margin_right = 3
 		sb.expand_margin_top = 3
@@ -290,8 +316,9 @@ static func build(theme: Theme) -> void:
 	# 面板 / 弹层 / 提示
 	# 默认面板：同一框体但内容边距收窄——不改变既有布局的最小尺寸（横屏战术格等按尺寸反推的布局
 	# 遇到大边距会来回重排）；需要宽松留白的界面用 FramePanel 变体
-	theme.set_stylebox("panel", &"PanelContainer", _snug(style("panel")))
-	theme.set_stylebox("panel", &"Panel", _snug(style("panel")))
+	# 默认面板用简洁的 field 框（小角饰）：状态带等矮面板放得下；华丽 panel 框留给 FramePanel / 弹层
+	theme.set_stylebox("panel", &"PanelContainer", _snug(style("field")))
+	theme.set_stylebox("panel", &"Panel", _snug(style("field")))
 	theme.set_type_variation(&"FramePanel", &"PanelContainer")
 	theme.set_stylebox("panel", &"FramePanel", style("panel"))
 	theme.set_stylebox("panel", &"PopupPanel", style("panel"))
@@ -337,8 +364,8 @@ static func build(theme: Theme) -> void:
 		theme.set_stylebox("slider", t3, style("track"))
 		theme.set_stylebox("grabber_area", t3, style("fill"))
 		theme.set_stylebox("grabber_area_highlight", t3, style("fill"))
-		theme.set_icon("grabber", t3, gem_icon(24))
-		theme.set_icon("grabber_highlight", t3, gem_icon(26))
+		theme.set_icon("grabber", t3, texture("grabber") if is_external("grabber") else gem_icon(24))
+		theme.set_icon("grabber_highlight", t3, texture("grabber") if is_external("grabber") else gem_icon(26))
 	# 滚动条：细金线
 	for t4: StringName in [&"VScrollBar", &"HScrollBar"]:
 		theme.set_stylebox("scroll", t4, _thin(Color(accent, 0.12)))

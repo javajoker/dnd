@@ -678,6 +678,8 @@ func _run_shots_fx() -> void:
 	var fx: ActionFx = m.shell.action_fx
 	var foes: Array = fx.units_of.call(&"enemy")
 	var demos := [
+		["strip_pc", {"type": EventTypes.BATTLE_ATTACK, "payload": {"attacker": "pc", "target": foes[0], "skill": "slash", "hit": true}}, 0.22],
+		["strip_kelan", {"type": EventTypes.BATTLE_ATTACK, "payload": {"attacker": "kelan", "target": foes[2], "skill": "kelan_bolt", "hit": true}}, 0.26],
 		["slash", {"type": EventTypes.BATTLE_ATTACK, "payload": {"attacker": "pc", "target": foes[0], "skill": "slash", "hit": true}}, 0.16],
 		["bolt", {"type": EventTypes.BATTLE_ATTACK, "payload": {"attacker": "kelan", "target": foes[1], "skill": "kelan_bolt", "hit": true}}, 0.2],
 		["heal", {"type": EventTypes.LOG, "payload": {"msg_key": "MSG_SKILL_HEAL", "unit": "kelan", "target": "pc", "skill": "kelan_mend"}}, 0.3],

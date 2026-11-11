@@ -249,7 +249,8 @@ Goal: turn the framework into a reusable D&D-style engine — new narrative game
 
 ### 6.5 Owner actions (outside the code)
 - [x] Final art delivered and wired (2026-11-11): portraits, units, item icons, map / site backgrounds, five act scenes, home illustration, app icon, key art (landscape + phone) — tech/05 §11
-- [ ] Final music and sound with the prompt pack (tech/08 §5); optional animation / effect strips, UI frames and a title font (§3.4–§3.6)
+- [x] UI kit frames and first animation strips (the Unwritten, Kelan) delivered and imported (2026-11-12, tech/05 §11.1)
+- [ ] Final music and sound with the prompt pack (tech/08 §5); more animation strips (Old Fei, classes, enemies, non-attack actions), effect strips and a title font (§3.5–§3.6)
 - [ ] Store accounts, signing, devices, billing adapters (tech/06; `docs/en/store/`)
 - [ ] Human playtest of the three classes and four backgrounds (feel, not just win rates); localisation review of the new English text
 

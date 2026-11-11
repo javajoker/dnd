@@ -7989,6 +7989,26 @@ func test_art_pipeline() -> void:
 	check(missing_brand.is_empty(), "导出预设引用的图标 / 启动图文件都存在 %s" % str(missing_brand))
 	var icon_img := Image.load_from_file("res://assets/brand/app_icon_1024.png")
 	check(icon_img != null and icon_img.get_width() == 1024 and not icon_img.detect_alpha(), "商店图标 1024² 无透明通道")
+	# 美术交付的 UI 框体（tools/import_ui_kit.gd 处理过：裁边 + 缩到屏幕尺度 + ui_kit.json 边距）
+	UiKit.reset()
+	var ui_names := ["button", "button_hover", "button_pressed", "button_disabled", "panel", "sheet", "toast",
+		"field", "tooltip", "track", "fill", "grabber"]
+	check(ui_names.all(func(nm: String) -> bool: return UiKit.is_external(nm) and UiKit.external_margins(nm).size() == 4),
+		"12 个交付框体全部启用，且都有九宫格边距")
+	var bsb := UiKit.style("button")
+	var btex := bsb.texture
+	check(btex.get_width() <= 128 and bsb.texture_margin_left * 2.0 < btex.get_width()
+		and bsb.texture_margin_top * 2.0 < btex.get_height(), "按钮框体已缩到屏幕尺度，四角边距小于半边")
+	# 动作帧条（tools/import_anim_strip.gd：去棋盘底 + 方帧）
+	for strip_name: String in ["anim_companion_kelan_lunge", "anim_player_blank_lunge"]:
+		var st := Image.load_from_file("res://assets/art/anims/%s.png" % strip_name)
+		check(st != null and st.get_width() == st.get_height() * 10 and st.detect_alpha() != Image.ALPHA_NONE
+			and st.get_pixel(2, 2).a < 0.05, "%s：10 帧方帧、透明底" % strip_name)
+	var afx := ActionFx.new()
+	check(afx.action_strip("companion_kelan", "lunge") != null and afx.action_strip("companion_kelan", "cast") != null
+		and afx.action_strip("companion_kelan", "down") == null and afx.action_strip("companion_laofei", "lunge") == null,
+		"帧条查找：进攻动作回落 lunge；非进攻 / 无条单位走程序化")
+	afx.free()
 	# 道具图标（tech/05 §7.2）：各包每件道具都有图标（约定 icons/<id>）
 	for ipdir: String in ["res://packs/campaign01", "res://packs/arena", "res://packs/riddle_maze", "res://kit/starter"]:
 		var ipk: Dictionary = PackLoader.load_pack(ipdir)["pack"]

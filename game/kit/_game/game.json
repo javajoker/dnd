@@ -18,7 +18,8 @@
       "sheet": "#121a13f7",
       "text": "#e6eadf"
     },
-    "home_art": "res://kit/_game/home_art.png"
+    "home_art": "res://kit/_game/home_art.png",
+    "ui_dir": "res://kit/_game/ui"
   },
   "audio": {
     "bgm": {
