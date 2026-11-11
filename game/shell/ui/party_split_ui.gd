@@ -139,7 +139,8 @@ func refresh(split: Dictionary) -> void:
 		b.button_pressed = bool(gd.get("focused", false))
 		b.custom_minimum_size = Vector2(0, 40)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		b.clip_text = true
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART # 组名 · 状态 换行显示全文，不截断
+		b.add_theme_font_size_override("font_size", 15)
 		var status := str((Texts.t(&"PARTY_STATUS") as Dictionary).get(str(gd.get("status", "")), ""))
 		b.text = str(gd.get("label", gid)) + ((" · " + status) if status != "" else "")
 		b.disabled = str(gd.get("status", "")) == "waiting"

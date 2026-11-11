@@ -906,6 +906,7 @@ func _refresh_story_options() -> void:
 	var idx := 0
 	for e: Variant in _vm.get("edges", []):
 		var b := Button.new()
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART # 窄栏（左 15%）里长选项换行，不截断
 		b.text = str((e as Dictionary)["label"])
 		var i := idx
 		b.pressed.connect(func() -> void:
@@ -937,6 +938,7 @@ func _refresh_story_options() -> void:
 
 func _add_story_chip(label: String, on_press: Callable) -> void:
 	var b := Button.new()
+	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART # 窄栏（左 15%）里长选项换行，不截断
 	b.text = label
 	b.pressed.connect(on_press)
 	wheel_box.add_child(b)
@@ -996,6 +998,7 @@ func _refresh_wheel() -> void:
 		shown = shown + (groups["pack"] as Array)
 	for a: Dictionary in shown:
 		var b := Button.new()
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART # 窄栏（左 15%）里长选项换行，不截断
 		b.text = Texts.action_label(a)
 		b.disabled = bool(a["disabled"])
 		b.set_meta("action", a) # 芯片拖动 = 指定目标使用（12 §3.6）
