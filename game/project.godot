@@ -44,5 +44,7 @@ features/landscape.mobile=false
 
 [rendering]
 
+textures/vram_compression/import_etc2_astc=true
+
 renderer/rendering_method="mobile"
 environment/defaults/default_clear_color=Color(0.07, 0.07, 0.09, 1)
