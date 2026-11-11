@@ -12,7 +12,7 @@ const FONT_REGULAR := "res://assets/fonts/NotoSansSC-Regular.otf"
 const BOLD_EMBOLDEN := 0.6
 
 ## 字号档（04 §7：正文/标题/大字）。正文档 = Godot 默认 16，保持既有界面观感不变。
-const SIZE_BODY := 16 # 正文
+const SIZE_BODY := 18 # 正文（Crimson Pro 字面偏小：18 ≈ 无衬线 16 的视觉大小）
 const SIZE_TITLE := 24 # 标题
 const SIZE_BIG := 32 # 大字（掷骰结果、结算数字等强调位）
 
@@ -35,10 +35,8 @@ static func apply(root: Window = null) -> bool:
 	var ff := _load(GameManifest.font(FONT_REGULAR)) # 游戏清单 theme.font 优先（tech/07 §3）
 	if ff != null:
 		regular = ff
-		var fv := FontVariation.new()
-		fv.base_font = ff
-		fv.variation_embolden = BOLD_EMBOLDEN
-		bold = fv
+		_attach_fallbacks(ff) # 西文字体缺的字形（中文等）回落 theme.font_fallbacks（缺省 Noto Sans SC）
+		bold = _weighted(ff, 650)
 		var theme := Theme.new()
 		theme.default_font = regular
 		theme.default_font_size = SIZE_BODY
@@ -68,12 +66,38 @@ static func apply(root: Window = null) -> bool:
 
 ## 标题字体（游戏清单 theme.title_font；缺省 = 正文粗体变体）。
 static func title_font() -> Font:
-	var p := str((GameManifest.data().get("theme", {}) as Dictionary).get("title_font", ""))
+	var th: Dictionary = GameManifest.data().get("theme", {})
+	var p := str(th.get("title_font", ""))
 	if p != "":
 		var f := _load(p)
 		if f != null:
-			return f
+			_attach_fallbacks(f)
+			return _weighted(f, int(th.get("title_weight", 600)))
 	return bold
+
+## 回落链：theme.font_fallbacks（路径数组）；缺省 = 内置 Noto Sans SC（中文 / 全字形兜底）。
+static func _attach_fallbacks(f: FontFile) -> void:
+	var paths: Array = (GameManifest.data().get("theme", {}) as Dictionary).get("font_fallbacks", [FONT_REGULAR])
+	var fb: Array[Font] = []
+	for p: Variant in paths:
+		if str(p) == f.resource_path:
+			continue
+		var ff := _load(str(p))
+		if ff != null:
+			fb.append(ff)
+	f.fallbacks = fb
+
+## 字重变体：可变字体走 wght 轴（真粗体）；非可变字体（如 Noto Regular）退回加粗描边。
+static func _weighted(f: FontFile, weight: int) -> Font:
+	var fv := FontVariation.new()
+	fv.base_font = f
+	var axes: Dictionary = f.get_supported_variation_list()
+	var wght := TextServerManager.get_primary_interface().name_to_tag("wght")
+	if axes.has(wght):
+		fv.variation_opentype = {wght: weight}
+	elif weight >= 600:
+		fv.variation_embolden = BOLD_EMBOLDEN
+	return fv
 
 static func _load(path: String) -> FontFile:
 	if path.begins_with("res://") and ResourceLoader.exists(path):

@@ -2109,7 +2109,7 @@ func test_ui_kit() -> void:
 		and th.has_icon("grabber", "HSlider") and th.has_stylebox("fill", "ProgressBar"), "主题：面板 / 滚动条 / 滑条 / 进度条")
 	check(th.is_type_variation(&"TitleLabel", &"Label") and th.is_type_variation(&"ToastLabel", &"Label")
 		and th.get_stylebox("normal", "ToastLabel") is StyleBoxTexture, "主题：标题 / 横幅变体")
-	check(th.get_stylebox("panel", "PanelContainer").get_minimum_size() == Vector2(8, 8),
+	check(th.get_stylebox("panel", "PanelContainer").get_minimum_size() == Vector2(UiKit.SNUG_PAD, UiKit.SNUG_PAD) * 2.0,
 		"默认面板内容边距收窄（不改变既有布局最小尺寸）")
 	check(Palette.sheet_style().has_meta(&"ui_sheet"), "弹层底板带 ui_sheet 标记（UiFx 入场动画）")
 	# ---- UiFx：加入树即生效 ----

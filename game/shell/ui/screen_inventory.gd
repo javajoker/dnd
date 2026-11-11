@@ -14,7 +14,7 @@ signal skin_purchase_requested(skin_id: String) # 商店外观商品购买确认
 
 const ROLE_ORDER: Array[String] = ["stat", "check_mod", "branch_key", "codex"] # 10 §1 四重身份
 
-var filter_row: HBoxContainer
+var filter_row: HFlowContainer
 var bag_box: VBoxContainer
 var codex_box: VBoxContainer
 var cos_box: VBoxContainer
@@ -47,9 +47,10 @@ func _build() -> void:
 	title.add_theme_font_size_override("font_size", 24)
 	v.add_child(title)
 	# 身份筛选（04 §⑥：按身份筛选；点按 = 按钮等价路径）
-	filter_row = HBoxContainer.new()
-	filter_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	filter_row.add_theme_constant_override("separation", 6)
+	filter_row = HFlowContainer.new() # 筛选页签流式换行：不把整屏撑宽
+	filter_row.alignment = FlowContainer.ALIGNMENT_CENTER
+	filter_row.add_theme_constant_override("h_separation", 6)
+	filter_row.add_theme_constant_override("v_separation", 6)
 	v.add_child(filter_row)
 	_add_filter(Texts.s(&"INV_FILTER_ALL"), "")
 	for r: String in ROLE_ORDER:

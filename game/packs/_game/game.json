@@ -14,7 +14,7 @@
     "zh-CN"
   ],
   "theme": {
-    "font": "res://assets/fonts/NotoSansSC-Regular.otf",
+    "font": "res://assets/fonts/CrimsonPro-Variable.ttf",
     "home_art": "res://assets/art/scenes/scene_home_ashenport_1080.png",
     "home_focus": [
       0.5,
@@ -51,7 +51,12 @@
         0.36,
         0.14
       ]
-    }
+    },
+    "font_fallbacks": [
+      "res://assets/fonts/NotoSansSC-Regular.otf"
+    ],
+    "title_font": "res://assets/fonts/Cinzel-Variable.ttf",
+    "title_weight": 600
   },
   "audio": {
     "bgm": {

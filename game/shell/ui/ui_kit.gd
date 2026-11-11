@@ -11,19 +11,24 @@ const UI_DIR := "res://assets/art/ui"
 
 ## 框体规格：尺寸 / 九宫格边距 / 内容边距。
 const SPECS := {
-	"button": {"size": 48, "margin": 14, "content": Vector4(8, 5, 8, 5)},
-	"button_hover": {"size": 48, "margin": 14, "content": Vector4(8, 5, 8, 5)},
-	"button_pressed": {"size": 48, "margin": 14, "content": Vector4(8, 6, 8, 4)},
-	"button_disabled": {"size": 48, "margin": 14, "content": Vector4(8, 5, 8, 5)},
-	"panel": {"size": 96, "margin": 26, "content": Vector4(18, 16, 18, 16)},
-	"sheet": {"size": 96, "margin": 26, "content": Vector4(16, 22, 16, 14)},
+	"button": {"size": 48, "margin": 14, "content": Vector4(12, 7, 12, 7)},
+	"button_hover": {"size": 48, "margin": 14, "content": Vector4(12, 7, 12, 7)},
+	"button_pressed": {"size": 48, "margin": 14, "content": Vector4(12, 8, 12, 6)},
+	"button_disabled": {"size": 48, "margin": 14, "content": Vector4(12, 7, 12, 7)},
+	"panel": {"size": 96, "margin": 26, "content": Vector4(20, 18, 20, 18)},
+	"sheet": {"size": 96, "margin": 26, "content": Vector4(20, 24, 20, 14)},
 	"toast": {"size": 64, "margin": 22, "content": Vector4(30, 11, 30, 11)},
-	"field": {"size": 32, "margin": 10, "content": Vector4(10, 6, 10, 6)},
+	"field": {"size": 32, "margin": 10, "content": Vector4(14, 10, 14, 10)},
 	"track": {"size": 16, "margin": 7, "content": Vector4(0, 0, 0, 0)},
 	"fill": {"size": 16, "margin": 7, "content": Vector4(0, 0, 0, 0)},
 	"grabber": {"size": 16, "margin": 7, "content": Vector4(0, 0, 0, 0)},
-	"tooltip": {"size": 32, "margin": 10, "content": Vector4(10, 6, 10, 6)},
+	"tooltip": {"size": 32, "margin": 10, "content": Vector4(14, 10, 14, 10)},
 }
+
+## 交付框体的最小内容边距 = 九宫格角边距 × 本比例（角边距含描边与角饰，文字落在描边以内一段）。
+const CONTENT_RATIO := 0.55
+## 默认面板（状态带 / 操作台等）的内容边距：文字不贴框。
+const SNUG_PAD := 8.0
 
 static var _cache: Dictionary = {}
 static var _external: Dictionary = {}   # name -> true（用的是美术交付文件）
@@ -87,6 +92,10 @@ static func style(name: String) -> StyleBoxTexture:
 	sb.texture_margin_right = float(em[2]) if em.size() == 4 else m
 	sb.texture_margin_bottom = float(em[3]) if em.size() == 4 else m
 	var c: Vector4 = spec["content"]
+	if em.size() == 4 and not ["track", "fill", "grabber"].has(name):
+		# 交付框体：文字至少离开描边（≈ 九宫格角边距的 55%），不贴金线
+		c = Vector4(maxf(c.x, round(float(em[0]) * CONTENT_RATIO)), maxf(c.y, round(float(em[1]) * CONTENT_RATIO)),
+			maxf(c.z, round(float(em[2]) * CONTENT_RATIO)), maxf(c.w, round(float(em[3]) * CONTENT_RATIO)))
 	sb.content_margin_left = c.x
 	sb.content_margin_top = c.y
 	sb.content_margin_right = c.z
@@ -385,9 +394,18 @@ static func build(theme: Theme) -> void:
 		theme.set_color("font_unselected_color", t5, text)
 	theme.set_stylebox("panel", &"TabContainer", style("panel"))
 
+## 细带面板（横屏上缘 / 日志带等按屏高比例冻结的条带）：同框体，只留左右内边距，放得下一行控件。
+static func band_style() -> StyleBoxTexture:
+	var sb := style("field")
+	sb.set_content_margin(SIDE_LEFT, 8.0) # 只留左右：条带高度按屏高冻结，上下不再加
+	sb.set_content_margin(SIDE_RIGHT, 8.0)
+	sb.set_content_margin(SIDE_TOP, 0.0)
+	sb.set_content_margin(SIDE_BOTTOM, 0.0)
+	return sb
+
 static func _snug(sb: StyleBoxTexture) -> StyleBoxTexture:
 	for side: int in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
-		sb.set_content_margin(side, 4.0)
+		sb.set_content_margin(side, SNUG_PAD)
 	return sb
 
 static func _thin(col: Color) -> StyleBoxFlat:

@@ -133,6 +133,7 @@ func _build_ui() -> void:
 	SafeArea.apply_offsets(self) # 全屏锚定 + 安全区内缩（tech/01 §10.1）
 	# 上缘 8%：队伍状态条 + 先攻顺序条（战斗时展开）+ ☰（右端）
 	top_band = PanelContainer.new()
+	top_band.add_theme_stylebox_override("panel", UiKit.band_style()) # 冻结比例细带：窄内边距（09 §4）
 	top_band.name = "TopBand"
 	add_child(top_band)
 	_set_rect(top_band, 0.0, 0.0, 1.0, RATIO_TOP)
@@ -248,6 +249,7 @@ func _build_ui() -> void:
 	dice_v.add_child(dice_detail)
 	# 下缘 5%：日志带（点击展开半屏，09 §4）
 	log_band = PanelContainer.new()
+	log_band.add_theme_stylebox_override("panel", UiKit.band_style()) # 冻结比例细带：窄内边距（09 §4）
 	log_band.name = "LogBand"
 	add_child(log_band)
 	_set_rect(log_band, 0.0, 1.0 - RATIO_BOTTOM, 1.0, 1.0)

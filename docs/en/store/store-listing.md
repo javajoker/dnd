@@ -92,6 +92,7 @@ Example: `godot --path game -- --locale=en --home-shot`. The driver writes PNGs 
 ## Pre-submission checklist
 
 - [ ] Set the real bundle/package id (`game/export_presets.cfg`); app icons are wired (`game/assets/brand/`) — check the Android adaptive mask and iOS icon set in the first real export
+- [ ] Credits / licences screen (or store "licences" link): fonts Cinzel, Crimson Pro and Noto Sans SC are SIL OFL 1.1 — the licence texts ship in the build (`assets/fonts/OFL*.txt`)
 - [ ] Feature graphic (Play, 1024×500): crop `key_art_landscape.png` around the wave and the three figures
 - [ ] Create the products above in Play Console and App Store Connect; set price tiers; update `ops_config.json` English `price_text` (or read localized prices from the store at runtime)
 - [ ] Integrate the billing plugins per `billing-adapter.md`; test with Play license testers and App Store sandbox accounts (purchase, cancel, restore on a second device, refund)

@@ -152,3 +152,11 @@ Every `art_ref` in campaign01, arena and the starter kit now resolves (the test 
 - **Per-game frames:** delivered frames live in `game/assets/art/ui/` and apply to this game; another game points `theme.ui_dir` at its own folder (the starter kit uses `res://kit/_game/ui`, which is empty, so it keeps palette-generated green frames).
 - **Sources** are kept in `art_src/` (not shipped) so every imported file can be regenerated (`art_src/README.md`).
 
+### 11.2 Fonts and text padding (2026-11-12)
+
+- **Fonts** (SIL Open Font License 1.1, files and licences in `game/assets/fonts/`, licence texts included in every export): body **Crimson Pro** (variable, `CrimsonPro-Variable.ttf`), titles **Cinzel** (variable, `Cinzel-Variable.ttf`, weight 600), both falling back to **Noto Sans SC** for Chinese and any missing glyph. Bold uses the variable `wght` axis (real bold); a non-variable font falls back to emboldening. Body size is 18 px (Crimson's small x-height reads like a 16 px sans).
+- Game manifest: `theme.font` (body), `theme.font_fallbacks` (paths; default Noto Sans SC), `theme.title_font`, `theme.title_weight`. A game without them (the starter kit) keeps Noto Sans SC.
+- **Titles:** the automatic title style scales titles to 85 % (Cinzel's capitals are wide) and lets full-width titles wrap.
+- **Padding:** text never touches a frame — buttons 12 / 7 px, fields and tooltips 14 / 10, panels 20 / 18, sheets 20 / 24, default panels 8 on all sides; with a delivered frame the padding is at least 55 % of its 9-slice corner margin, so it clears the painted border. Thin bands with a frozen screen ratio (landscape top and log bands) use `UiKit.band_style()` (side padding only).
+- Layout fixes that came with the larger text: the home menu and inventory filter rows wrap (`HFlowContainer`).
+

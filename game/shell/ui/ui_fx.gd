@@ -13,6 +13,7 @@ const PRESS_IN := 0.06
 const PRESS_OUT := 0.16
 const SHEET_IN := 0.22
 const TITLE_MIN_SIZE := 20
+const TITLE_SCALE := 0.85
 
 static var installed := false
 static var enabled := true
@@ -74,6 +75,11 @@ static func _maybe_title(l: Label) -> void:
 	if l.get_theme_font_size("font_size") < TITLE_MIN_SIZE:
 		return
 	l.theme_type_variation = &"TitleLabel"
+	# 标题字体（如 Cinzel 全小型大写）比正文宽：字号按 TITLE_SCALE 收一档；占满整行的标题允许换行，不出屏
+	var fs := l.get_theme_font_size("font_size")
+	l.add_theme_font_size_override("font_size", maxi(TITLE_MIN_SIZE - 2, int(round(fs * TITLE_SCALE))))
+	if l.get_parent() is VBoxContainer and l.autowrap_mode == TextServer.AUTOWRAP_OFF:
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	stats["titles"] += 1
 
 # ---------------------------------------------------------------- 弹层
