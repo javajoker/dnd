@@ -78,7 +78,9 @@ The framework's UI tables (`texts_en.gd` / `texts_zh.gd`) keep **neutral** wordi
 | Font | **Done** — `theme.font` |
 | World-flavoured UI wording in framework tables | **Done** — moved to `packs/_game/texts` (§3.1) |
 | Template pack | **Done** — `kit/starter` (packlint 0 FAIL, simulation 100% coverage) |
-| Home-screen illustration | **Done** — `theme.home_art` (image path; hotspots keep working); without it the procedural Ashenport scene is drawn |
+| Home-screen illustration | **Done** — `theme.home_art` (image path) + `theme.home_hotspots` (`{hotspot id: [x, y, w, h]}` in **image** coordinates, so taps land on the painted landmarks at any screen ratio) + `theme.home_focus` (`[fx, fy]` crop centre); the picture is cover-scaled but zoomed out just enough to keep every hotspot visible; without `home_art` the procedural Ashenport scene is drawn |
+| Act scenes | **Done** — `nodes.json` `acts[].art_ref` (`scenes/<id>` → `scene_<id>_1080.png`) is drawn behind the story text (dimmed, with a reading panel) and, darker, behind battles of that act (tech/05 §11) |
+| App icon, splash | **Done** — `game/assets/brand/` (icon sizes, Android adaptive layers, key art); `project.godot` `config/icon` + boot splash; export presets point at them |
 | Theme palette tokens | **Done** — `theme.palette` (`bg`, `panel`, `sheet`, `accent`, `accent_soft`, `text`, `muted`, `success`, `danger`, `ink`; hex) feeds the UI theme and the shared sheets; colours not yet tokenised remain in screen code |
 | Battle win-rate tool for any pack | **Done** — `tools/winrate.gd -- <games> <seed> <pack dir> [class]`, expected level per act from manifest `balance.act_level`; with a class id, every battle is rerun with that build (±7 points of the default hero) |
 | Full audio set | **Done** — five BGM states (camp / explore / **map** / battle / ending; `map.travel` and `site.enter` switch to map) and SFX for coin, door, card, link, throw on top of the first set; all procedural (`gen_audio.py`), replaceable by file (tech/08) |

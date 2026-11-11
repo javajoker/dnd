@@ -14,7 +14,44 @@
     "zh-CN"
   ],
   "theme": {
-    "font": "res://assets/fonts/NotoSansSC-Regular.otf"
+    "font": "res://assets/fonts/NotoSansSC-Regular.otf",
+    "home_art": "res://assets/art/scenes/scene_home_ashenport_1080.png",
+    "home_focus": [
+      0.5,
+      0.6
+    ],
+    "home_hotspots": {
+      "tide_tower": [
+        0.1,
+        0.3,
+        0.26,
+        0.27
+      ],
+      "market": [
+        0.46,
+        0.46,
+        0.5,
+        0.12
+      ],
+      "campfire": [
+        0.3,
+        0.65,
+        0.24,
+        0.11
+      ],
+      "board": [
+        0.64,
+        0.59,
+        0.32,
+        0.24
+      ],
+      "scraps": [
+        0.06,
+        0.79,
+        0.36,
+        0.14
+      ]
+    }
   },
   "audio": {
     "bgm": {

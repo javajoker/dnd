@@ -20,6 +20,12 @@ config/use_custom_user_dir=true
 config/custom_user_dir_name="age-of-the-codex"
 config/quit_on_go_back=false
 config/features=PackedStringArray("4.7", "Mobile")
+config/icon="res://assets/brand/app_icon_1024.png"
+boot_splash/bg_color=Color(0.84, 0.8, 0.7, 1)
+boot_splash/image="res://assets/brand/key_art_phone.png"
+boot_splash/stretch_mode=1
+boot_splash/fullsize=true
+boot_splash/use_filter=true
 
 [display]
 

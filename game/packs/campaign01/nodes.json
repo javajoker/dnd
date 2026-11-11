@@ -1,10 +1,10 @@
 {
   "acts": [
-    { "id": "SL-0", "title": "潮醒", "mode": "choice", "role": "教学" },
-    { "id": "SL-1", "title": "褪色的街", "mode": "choice", "role": "调查+三方接触" },
-    { "id": "SL-2", "title": "三支笔", "mode": "choice", "role": "三方支线择路", "entitlement": { "requires": ["entitlement.campaign01_full"] } },
-    { "id": "SL-3", "title": "撤销区", "mode": "forced_time", "role": "房间序列追忆", "entitlement": { "requires": ["entitlement.campaign01_full"] } },
-    { "id": "SL-4", "title": "港口的最后一页", "mode": "choice", "role": "Boss+抉择+结局", "entitlement": { "requires": ["entitlement.campaign01_full"] } }
+    { "id": "SL-0", "art_ref": "scenes/act_1", "title": "潮醒", "mode": "choice", "role": "教学" },
+    { "id": "SL-1", "art_ref": "scenes/act_2", "title": "褪色的街", "mode": "choice", "role": "调查+三方接触" },
+    { "id": "SL-2", "art_ref": "scenes/act_3", "title": "三支笔", "mode": "choice", "role": "三方支线择路", "entitlement": { "requires": ["entitlement.campaign01_full"] } },
+    { "id": "SL-3", "art_ref": "scenes/act_4", "title": "撤销区", "mode": "forced_time", "role": "房间序列追忆", "entitlement": { "requires": ["entitlement.campaign01_full"] } },
+    { "id": "SL-4", "art_ref": "scenes/act_5", "title": "港口的最后一页", "mode": "choice", "role": "Boss+抉择+结局", "entitlement": { "requires": ["entitlement.campaign01_full"] } }
   ],
   "nodes": [
     {

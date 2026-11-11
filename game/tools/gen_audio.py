@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # 首批音频资产程序化生成（docs/framework/14 清单 #6：零外部版权，Python 合成，可复跑）。
+# 已存在的文件一律跳过（正式音频不被占位覆盖），--force 才覆盖。
 # 用法：python3 game/tools/gen_audio.py [--new]（--new = 只生成 P6.4 第二批）→  写入 game/assets/audio/*.wav（44100Hz 16-bit 单声道）
 # 循环资产（tide_loop/bgm_camp/bgm_battle）采用频率整数周期量化 + 首尾交叉淡化，循环无接缝。
 import math
@@ -15,6 +16,10 @@ rng = random.Random(20261109)  # 固定种子：可复跑逐字节一致
 
 
 def write_wav(name, samples):
+    import sys
+    if os.path.exists(os.path.join(OUT, name)) and "--force" not in sys.argv:
+        print("跳过（已存在，可能是正式音频；--force 覆盖）：%s" % name)
+        return
     os.makedirs(OUT, exist_ok=True)
     peak = max(1e-9, max(abs(s) for s in samples))
     gain = 0.89 / peak  # 归一化防削波

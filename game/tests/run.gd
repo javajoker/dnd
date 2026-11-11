@@ -7959,6 +7959,36 @@ func test_art_pipeline() -> void:
 				missing.append(ref)
 		check(missing.is_empty() and not refs.is_empty(), "%s：art_ref 全部有图（%d 个）%s" % [pdir.get_file(), refs.size(), str(missing)])
 	check(ResourceLoader.exists("res://kit/_game/home_art.png"), "起步包主屏插画（theme.home_art，tech/07 §5）")
+	# 幕插画（tech/05 §11）：campaign01 五幕各有插画，故事视图带出当前幕
+	var apk: Dictionary = PackLoader.load_pack("res://packs/campaign01")["pack"]
+	var act_refs: Array = (apk.get("acts", []) as Array).map(func(a: Dictionary) -> String: return str(a.get("art_ref", "")))
+	check(act_refs.size() == 5 and act_refs.all(func(r: String) -> bool: return ArtLoader.texture_for(r, SceneBackdrop.TIER) != null),
+		"五幕插画齐备并可加载（acts[].art_ref → scenes/scene_act_<n>_1080.png）")
+	check(StoryVM.act_scene(apk, "SL-0") == "scenes/act_1" and StoryVM.act_scene(apk, "nope") == "", "当前幕 → 幕插画引用")
+	var bd := SceneBackdrop.new()
+	bd.show_scene("scenes/act_2", SceneBackdrop.DIM_STORY)
+	var bd_on := bd.visible and bd.texture != null
+	bd.show_scene("scenes/no_such_act", SceneBackdrop.DIM_STORY)
+	check(bd_on and not bd.visible, "幕背景：有图显示、缺图隐藏")
+	bd.free()
+	# 本作主屏插画 + 图像坐标热点（theme.home_art / home_hotspots / home_focus）
+	var gtheme: Dictionary = GameManifest.data().get("theme", {})
+	check(ResourceLoader.exists(str(gtheme.get("home_art", ""))) and (gtheme.get("home_hotspots", {}) as Dictionary).size() == 5,
+		"主屏插画 + 五个图像坐标热点（清单声明）")
+	# 品牌素材：应用图标 / 启动图 / 导出预设引用的文件都存在
+	check(str(ProjectSettings.get_setting("application/config/icon", "")) == "res://assets/brand/app_icon_1024.png"
+		and ResourceLoader.exists(str(ProjectSettings.get_setting("application/boot_splash/image", ""))), "应用图标与启动图已设置")
+	var ecfg := ConfigFile.new()
+	ecfg.load("res://export_presets.cfg")
+	var missing_brand: Array[String] = []
+	for sec: String in ecfg.get_sections():
+		for key: String in ecfg.get_section_keys(sec):
+			var v: Variant = ecfg.get_value(sec, key)
+			if v is String and (v as String).begins_with("res://assets/brand/") and not FileAccess.file_exists(v):
+				missing_brand.append("%s/%s" % [sec, key])
+	check(missing_brand.is_empty(), "导出预设引用的图标 / 启动图文件都存在 %s" % str(missing_brand))
+	var icon_img := Image.load_from_file("res://assets/brand/app_icon_1024.png")
+	check(icon_img != null and icon_img.get_width() == 1024 and not icon_img.detect_alpha(), "商店图标 1024² 无透明通道")
 	# 道具图标（tech/05 §7.2）：各包每件道具都有图标（约定 icons/<id>）
 	for ipdir: String in ["res://packs/campaign01", "res://packs/arena", "res://packs/riddle_maze", "res://kit/starter"]:
 		var ipk: Dictionary = PackLoader.load_pack(ipdir)["pack"]

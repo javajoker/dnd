@@ -51,6 +51,16 @@ All are **non-consumable** (bought once, restorable). Prices are tier placeholde
 
 Product ids must match `shop.<key>.product_id` in `game/packs/_ops/ops_config.json`. A "Restore Purchases" button is on the Home help page and on the locked-chapter screen (required by App Store review).
 
+## Key art and icon (delivered 2026-11-11)
+
+| Asset | File | Size | Use |
+|---|---|---|---|
+| App icon | `game/assets/brand/app_icon_1024.png` (+ 512…40 px sizes) | 1024×1024, no alpha | App Store / Play icon; project icon; export presets (Android launcher + adaptive background, iOS icon set, macOS) |
+| Key art (landscape) | `game/assets/brand/key_art_landscape.png` | 2000×1116 | Play feature graphic (crop to 1024×500), store banners, press kit |
+| Key art (phone) | `game/assets/brand/key_art_phone.png` | 926×2000 | Boot splash (Godot + iOS launch storyboard), promo screenshot frame, social posts |
+
+The key art keeps the top third calm for the title, which is added as live text (never baked into the image). The icon's d20 shows numbers only — no words — so it works in every locale.
+
 ## Screenshots
 
 Capture with the screenshot driver in English, then upscale to each store's required sizes (6.7" iPhone 1290×2796, 6.5" 1242×2688, Play phone 1080×1920+):
@@ -81,7 +91,8 @@ Example: `godot --path game -- --locale=en --home-shot`. The driver writes PNGs 
 
 ## Pre-submission checklist
 
-- [ ] Set the real bundle/package id and app icons (`game/export_presets.cfg`, launcher icons)
+- [ ] Set the real bundle/package id (`game/export_presets.cfg`); app icons are wired (`game/assets/brand/`) — check the Android adaptive mask and iOS icon set in the first real export
+- [ ] Feature graphic (Play, 1024×500): crop `key_art_landscape.png` around the wave and the three figures
 - [ ] Create the products above in Play Console and App Store Connect; set price tiers; update `ops_config.json` English `price_text` (or read localized prices from the store at runtime)
 - [ ] Integrate the billing plugins per `billing-adapter.md`; test with Play license testers and App Store sandbox accounts (purchase, cancel, restore on a second device, refund)
 - [ ] Host the privacy policy and fill in the Play Data safety form / App Store privacy labels from `privacy-policy.md`

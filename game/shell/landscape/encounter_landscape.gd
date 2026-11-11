@@ -88,6 +88,8 @@ var key_dice_label: Label
 var dice3d: Dice3D                   # 关键判定 3D 物理演出层（14 清单 #2，与竖屏同一事件源）
 var juice: JuiceLayer                # 打击感三件套 + 屏幕震动（14 清单 #3/#4，与竖屏同一组件/配置源）
 var action_fx: ActionFx               # 角色动作动画 + 技能特效（与竖屏同一组件）
+var backdrop: SceneBackdrop          # 幕插画背景（与竖屏同一组件）
+var scene_ref := ""
 var camera: BattleCamera             # 战斗跟随镜头与关键推拉（14 清单 #8，与竖屏同一组件/参数源）
 var shake_button: Button             # ☰ 菜单内震动开关（14 #4：UI 偏好不写状态板，12 §5 同机制）
 var audio_settings_path := UiSettings.PATH # ☰ 音量三档滑条设置路径（14 #5；测试可注入隔离文件）
@@ -191,6 +193,8 @@ func _build_ui() -> void:
 	center_map.name = "CenterMap"
 	add_child(center_map)
 	_set_rect(center_map, RATIO_LEFT, RATIO_TOP, RATIO_LEFT + RATIO_CENTER, 1.0 - RATIO_BOTTOM)
+	backdrop = SceneBackdrop.new() # 幕插画（最底层）
+	center_map.add_child(backdrop)
 	var center := CenterContainer.new()
 	center_map.add_child(center)
 	grid = GridContainer.new()
@@ -218,6 +222,7 @@ func _build_ui() -> void:
 	story_text.scroll_following = false
 	story_text.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	story_text.add_theme_font_size_override("normal_font_size", 18)
+	story_text.add_theme_stylebox_override("normal", SceneBackdrop.text_backing())
 	story_panel.add_child(story_text)
 	# 右栏 12%：骰子盘
 	right_dice = PanelContainer.new()
@@ -584,7 +589,9 @@ func _refresh_grid() -> void:
 		var token := Label.new()
 		token.text = "%s\n%d/%d" % [str(u["name"]), int(u["hp"]), int(u["max_hp"])]
 		token.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		token.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		token.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM if tex != null else VERTICAL_ALIGNMENT_CENTER # 有图：文字压底，不挡脸
+		if tex != null:
+			token.add_theme_font_size_override("font_size", 12)
 		token.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		token.add_theme_color_override("font_color", Color.WHITE)
 		token.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9)) # 压图可读性（tech/05 §8）
@@ -853,6 +860,8 @@ func show_story(vm: Dictionary) -> void:
 	story_panel.visible = true
 	story_title.text = str(vm["title"])
 	story_text.text = str(vm["text"])
+	scene_ref = str(vm.get("scene", ""))
+	backdrop.show_scene(scene_ref, SceneBackdrop.DIM_STORY)
 	_refresh_party_split()
 	wheel_title.text = Texts.s(&"TAB_ACTION")
 	_refresh_story_status()
@@ -861,6 +870,8 @@ func show_story(vm: Dictionary) -> void:
 ## 战斗布局恢复（bind 进入遭遇时调用）。
 func show_combat_layout() -> void:
 	_story = false
+	if backdrop != null:
+		backdrop.show_scene(scene_ref, SceneBackdrop.DIM_BATTLE) # 战斗沿用当前幕插画，压得更暗
 	_refresh_party_split() # 战斗时组条收起（其他小组暂停，15 §4.3）
 	story_panel.visible = false
 	grid.visible = true

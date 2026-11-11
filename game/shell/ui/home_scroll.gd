@@ -103,9 +103,62 @@ func shed_roof_lights_per_shed() -> int:
 	return SHED_ROOF_LIGHTS.size()
 
 ## 归一化热点区域 → 控件内绝对 rect。
+## 有插画且清单声明了 theme.home_hotspots（插画归一化坐标）时，按插画的铺放变换换算——
+## 热点永远落在画中地标上，与屏幕比例无关。
 func hotspot_rect(h: Dictionary) -> Rect2:
+	_ensure_art()
+	var spots := image_hotspots()
+	if home_art != null and spots.has(str(h["id"])):
+		var ir: Rect2 = spots[str(h["id"])]
+		var dst := art_rect()
+		var rr := Rect2(dst.position + ir.position * dst.size, ir.size * dst.size)
+		return rr.intersection(Rect2(Vector2.ZERO, size))
 	var r: Rect2 = h["rect"]
 	return Rect2(r.position * size, r.size * size)
+
+## 清单 theme.home_hotspots：{hotspot id: [x, y, w, h]}（插画归一化坐标）。
+func image_hotspots() -> Dictionary:
+	var out := {}
+	var raw: Dictionary = (GameManifest.data().get("theme", {}) as Dictionary).get("home_hotspots", {})
+	for k: Variant in raw.keys():
+		var a: Array = raw[k]
+		if a.size() == 4:
+			out[str(k)] = Rect2(float(a[0]), float(a[1]), float(a[2]), float(a[3]))
+	return out
+
+## 插画铺放矩形：等比铺满（cover），裁切以 theme.home_focus [fx, fy]（插画归一化）为中心；
+## 但保证全部热点地标都在画内——放不下时缩小到恰好容下（两侧以底色补边），任何屏幕比例都可点。
+func art_rect() -> Rect2:
+	if home_art == null:
+		return Rect2(Vector2.ZERO, size)
+	var ts := home_art.get_size()
+	var k := maxf(size.x / ts.x, size.y / ts.y)
+	var f: Array = (GameManifest.data().get("theme", {}) as Dictionary).get("home_focus", [0.5, 0.5])
+	var focus := Vector2(float(f[0]), float(f[1])) if f.size() == 2 else Vector2(0.5, 0.5)
+	var spots := image_hotspots()
+	var union := Rect2()
+	if not spots.is_empty():
+		var first := true
+		for r: Rect2 in spots.values():
+			union = r if first else union.merge(r)
+			first = false
+		union = union.grow(0.02)
+		k = minf(k, minf(size.x / maxf(union.size.x * ts.x, 1.0), size.y / maxf(union.size.y * ts.y, 1.0)))
+	var scaled := ts * k
+	var pos := size * 0.5 - scaled * focus
+	for axis: int in 2:
+		if scaled[axis] <= size[axis]:
+			pos[axis] = (size[axis] - scaled[axis]) * 0.5 # 放得下：居中
+		else:
+			pos[axis] = clampf(pos[axis], size[axis] - scaled[axis], 0.0)
+			if not spots.is_empty(): # 热点并集不出画
+				pos[axis] = clampf(pos[axis], size[axis] - union.end[axis] * scaled[axis], -union.position[axis] * scaled[axis])
+	return Rect2(pos, scaled)
+
+func _ensure_art() -> void:
+	if home_art == null and not _art_checked:
+		_art_checked = true
+		_ready_art()
 
 ## 命中测试（数据驱动：遍历 HOTSPOTS 表，不写死顺序语义）。
 func hotspot_at(pos: Vector2) -> Dictionary:
@@ -137,24 +190,31 @@ func _gui_input(event: InputEvent) -> void:
 ## 本作主屏插画（游戏清单 theme.home_art；空 = 程序化烬港夜景占位）。热点仍按 HOTSPOTS 归一化矩形响应。
 var home_art: Texture2D = null
 
+func _init() -> void:
+	clip_contents = true # 插画等比铺满会超出控件：裁在绘卷区内，不压标题与菜单
+
 func _ready_art() -> void:
 	var path := str((GameManifest.data().get("theme", {}) as Dictionary).get("home_art", ""))
 	if path != "" and ResourceLoader.exists(path):
 		home_art = load(path) as Texture2D
 
 func _draw() -> void:
-	if home_art == null and not _art_checked:
-		_art_checked = true
-		_ready_art()
+	_ensure_art()
 	if home_art != null:
-		# 自定义插画：等比铺满（cover），热点只画金色微光框（插画自带建筑，不再叠剪影）
-		var ts := home_art.get_size()
-		var k := maxf(size.x / ts.x, size.y / ts.y)
-		var dst := Rect2((size - ts * k) * 0.5, ts * k)
-		draw_texture_rect(home_art, dst, false)
+		# 自定义插画：等比铺满（cover，按焦点裁切），热点只画呼吸的金色角标（插画自带地标，不再叠剪影）
+		draw_rect(Rect2(Vector2.ZERO, size), Palette.color("bg")) # 缩小容下热点时的补边底色
+		draw_texture_rect(home_art, art_rect(), false)
 		var g := breath_glow()
+		var col := Color(Palette.color("accent"), 0.25 + g * 0.45)
 		for hs: Dictionary in HOTSPOTS:
-			draw_rect(hotspot_rect(hs), Color(Palette.color("accent"), 0.15 + g * 0.35), false, 2.0)
+			var hr := hotspot_rect(hs)
+			var c := minf(14.0, minf(hr.size.x, hr.size.y) * 0.3) # 四角括号，不框死整幅画
+			for corner: Array in [[hr.position, Vector2(1, 1)], [Vector2(hr.end.x, hr.position.y), Vector2(-1, 1)],
+					[Vector2(hr.position.x, hr.end.y), Vector2(1, -1)], [hr.end, Vector2(-1, -1)]]:
+				var p0: Vector2 = corner[0]
+				var d: Vector2 = corner[1]
+				draw_line(p0, p0 + Vector2(c * d.x, 0), col, 2.0, true)
+				draw_line(p0, p0 + Vector2(0, c * d.y), col, 2.0, true)
 		return
 	var w := size.x
 	var h := size.y

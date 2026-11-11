@@ -6,6 +6,13 @@ extends RefCounted
 const FUTURE_PREVIEW := 4 # 推进条未来房间预告格数（04 §④.2：未来房间只显示门剪影）
 
 ## 当前节点完整视图模型：双壳 show_story(vm) 唯一输入。
+## 幕插画引用（nodes.json acts[].art_ref；无 = ""）。
+static func act_scene(pack: Dictionary, act_id: String) -> String:
+	for a: Variant in pack.get("acts", []):
+		if str((a as Dictionary).get("id", "")) == act_id:
+			return str((a as Dictionary).get("art_ref", ""))
+	return ""
+
 static func build(graph: StoryGraph, board: Board, pack: Dictionary) -> Dictionary:
 	var node := graph.current()
 	var nid := graph.current_id
@@ -27,6 +34,7 @@ static func build(graph: StoryGraph, board: Board, pack: Dictionary) -> Dictiona
 	# 补给与休息（04 §3.3 弹层；11 §7.2）：金币/货单恒随行——hub 商店与野外营地补给同一货单
 	vm["gold"] = graph.get_gold()
 	vm["stock"] = graph.hub_stock()
+	vm["scene"] = act_scene(pack, str(node.get("act", ""))) # 幕插画（tech/05 §11）
 	vm["usable"] = graph.camp_usable_items()  # 战斗外可用的治疗道具（11 §8.2）
 	vm["camp"] = graph.camp_available()       # 野外营地入口（短休/长休/补给）
 	vm["rest_free"] = graph.rest_is_free()    # 旅店 / 安全落脚点长休不耗时钟

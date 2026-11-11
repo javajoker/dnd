@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # 首批美术资产程序化生成（docs/tech/05-美术管线.md §7，14 清单 #7：零外部版权，纯标准库合成，可复跑）。
+# 已存在的文件一律跳过（正式美术不被占位图覆盖），--force 才覆盖。
 # 用法：python3 game/tools/gen_art.py [--new | --icons | --scenes | --home]（--new = P6.4 第二批；--icons = 道具图标；--scenes = 地图/场所背景；--home = 起步包主屏插画 kit/_game/home_art.png）→  写入 game/assets/art/{units,portraits}/*.png（128px RGBA 透明底）
 # 风格：剪影 + 墨色渐变 + 金墨描边（与主屏绘卷一致，04 §4 ink/金墨配色）；头像叠识别色描边。
 # 管线：512px 超采样栅格化（多边形扫描线 + 圆）→ 盒滤波降采样 128px = 抗锯齿（filter on 平滑档，tech/05 §4）。
@@ -229,6 +230,11 @@ class Canvas:
 
 
 def write_png(path, w, h, raw_rgba_scanlines):
+    import sys
+    if os.path.exists(path) and "--force" not in sys.argv and ART in os.path.abspath(path) \
+            or os.path.exists(path) and "--force" not in sys.argv and "kit" in path:
+        print("跳过（已存在，可能是正式美术；--force 覆盖）：%s" % path)
+        return
     def chunk(tag, data):
         c = struct.pack(">I", len(data)) + tag + data
         return c + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)

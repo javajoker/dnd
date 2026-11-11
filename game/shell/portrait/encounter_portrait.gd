@@ -88,6 +88,8 @@ var key_result_label: Label
 var dice3d: Dice3D                   # 关键判定 3D 物理演出层（14 清单 #2；结果由事件流给定）
 var juice: JuiceLayer                # 打击感三件套 + 屏幕震动（14 清单 #3/#4；纯呈现消费事件流）
 var action_fx: ActionFx               # 角色动作动画 + 技能特效（替身 + 程序化特效；纯呈现）
+var backdrop: SceneBackdrop          # 幕插画背景（tech/05 §11）
+var scene_ref := ""                   # 当前幕插画（故事态写入，战斗沿用）
 var camera: BattleCamera             # 战斗跟随镜头与关键推拉（14 清单 #8；纯呈现消费同一事件流）
 var shake_button: Button             # ☰ 菜单内震动开关（14 #4：UI 偏好不写状态板，12 §5 同机制）
 var audio_settings_path := UiSettings.PATH # ☰ 音量三档滑条设置路径（14 #5；测试可注入隔离文件）
@@ -171,6 +173,8 @@ func _build_ui() -> void:
 	main_view.name = "MainView"
 	main_view.clip_contents = true # 镜头 lane 滚动对焦会把内容上移：裁在主视野内，不压到状态带上
 	add_child(main_view)
+	backdrop = SceneBackdrop.new() # 幕插画（PanelContainer 首个子代 = 最底层）
+	main_view.add_child(backdrop)
 	# 镜头 lane（14 清单 #8）：主视野内容层套一层普通 Control——镜头平移施加在 main_v 上，
 	# 不经容器排序（PanelContainer 只对直接子代贴合），lane 滚动对焦的位移不被重建冲掉
 	var lane := Control.new()
@@ -206,6 +210,7 @@ func _build_ui() -> void:
 	story_text.bbcode_enabled = false
 	story_text.scroll_following = false
 	story_text.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	story_text.add_theme_stylebox_override("normal", SceneBackdrop.text_backing())
 	story_panel.add_child(story_text)
 	enemy_row = HBoxContainer.new()
 	enemy_row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -782,6 +787,8 @@ func show_story(vm: Dictionary) -> void:
 	set_rooms(vm["rooms"], int(vm["room_index"]), vm["room_titles"]) # pip 同步 story 节点（04 §④.2）
 	story_title.text = str(vm["title"])
 	story_text.text = str(vm["text"])
+	scene_ref = str(vm.get("scene", ""))
+	backdrop.show_scene(scene_ref, SceneBackdrop.DIM_STORY)
 	_refresh_story_options()
 	_refresh_party_split()
 	tabs.current_tab = 0
@@ -789,6 +796,8 @@ func show_story(vm: Dictionary) -> void:
 ## 战斗布局恢复（bind 进入遭遇时调用；故事面板收起，单位行/回合计/托管件归位）。
 func show_combat_layout() -> void:
 	_story = false
+	if backdrop != null:
+		backdrop.show_scene(scene_ref, SceneBackdrop.DIM_BATTLE) # 战斗沿用当前幕插画，压得更暗
 	_refresh_party_split() # 战斗时组条收起（其他小组暂停，15 §4.3）
 	story_panel.visible = false
 	enemy_row.visible = true
@@ -1219,6 +1228,7 @@ func _unit_button(u: Dictionary) -> Button:
 		b.icon = tex
 		b.expand_icon = true
 		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		b.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP # 立绘在上、名字 / HP 在下：文字不压脸
 		b.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
 		b.add_theme_constant_override("shadow_offset_x", 1)
 		b.add_theme_constant_override("shadow_offset_y", 1)
