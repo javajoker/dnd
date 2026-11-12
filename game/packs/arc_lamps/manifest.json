@@ -1,0 +1,40 @@
+{
+  "pack_id": "arc_lamps",
+  "pack_type": "arc",
+  "name": "The Thirty Lamps",
+  "source_locale": "en",
+  "locales": [
+    "en",
+    "zh-CN"
+  ],
+  "estimated_hours": "0.2",
+  "monetization": {
+    "strategies": [
+      "free"
+    ]
+  },
+  "source_doc": "docs/en/story/07-side-arc-the-thirty-lamps.md",
+  "graft": {
+    "into": "campaign01",
+    "node": "N1-1",
+    "edge": {
+      "type": "choice",
+      "label": "The archivist asks for a copyist",
+      "to": "S-1",
+      "requires": {
+        "flag.done": false
+      }
+    }
+  },
+  "namespace": "arc_lamps",
+  "pack_version": 1,
+  "min_framework_version": "1.0.0",
+  "rule_pack": {
+    "id": "light",
+    "min_version": 1
+  },
+  "presentation": {
+    "mode": "choice"
+  },
+  "node_budget": 12
+}
