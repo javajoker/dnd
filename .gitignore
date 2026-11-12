@@ -23,3 +23,6 @@ dist/
 # OS-specific folder overrides (Good practice)
 .DS_Store
 Thumbs.db
+
+# agent / test worktrees
+.claude/worktrees/

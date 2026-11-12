@@ -37,6 +37,10 @@ Old Fei has chalked every harbour crew he ever worked with into one ledger, and 
 
 The choice at C-4 is the quest's point: each faction gets a reward for its view of what names are for (world book §6). The kindest option for Old Fei costs a check and maybe a fight.
 
+## 3.1 Canon
+
+This quest filled Old Fei's open item "his written past" in the world book §8.2: the crane ledger, the tally house, and the crews named.
+
 ## 4. Data added (world designer)
 
 | Data | Where | Why |

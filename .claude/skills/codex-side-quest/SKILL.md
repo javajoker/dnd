@@ -19,6 +19,7 @@ Follow the steps in order. Each one ends in a check you can run. The worked exam
 - **Paths:** pack dirs are relative to `game/` (`packs/<id>`, `user://story_trial/<id>`). Story scripts can be given from the repo root (`docs/en/story/…`).
 - **Flags:** write flags and values literally (`--seed 7`), never through a shell variable or loop (zsh passes `"--seed 7"` as one word). The tuner rejects unknown arguments and class ids.
 - **Editing JSON** such as `game.json`: use the Edit tool, not `sed -i` (BSD sed on macOS needs `-i ''`).
+- **zsh:** don't `echo ====` (zsh treats `=word` as a path expansion and aborts the line); quote it or use `echo '---'`.
 
 ## 1. Learn the host
 
@@ -42,6 +43,7 @@ Companion backstory lives in `docs/en/story/01-world-age-of-the-codex.md` §8.2,
 - Never contradict a *locked* item there.
 - If your quest fills an *open* item, add one line to that sheet in the same change, naming your quest id.
 - If it fills none, write "Canon: no change" in the arc book. Inventing a new NPC (a broker, a clerk) needs no sheet.
+- Fill an open item only when the quest is *about* that companion (a companion quest). A quest that merely features Kelan or Old Fei leaves their open items open.
 
 ## 2. Decide the entry
 
@@ -75,11 +77,11 @@ Copy `game/kit/stories/side_quest.story.md` to `docs/en/story/<nn>-side-arc-<slu
 - `locales: ["en", "zh-CN"]`
 - `monetization: {"strategies": ["free"]}`
 - `source_doc: docs/en/story/<nn>-…md`, the book path (the acceptance test finds the script from it)
-- `graft: {"into": "campaign01", "node": "N1-1", "label": "…", "to": "<first node>", "requires": {"flag.done": false}}`; add `"item": "<id>"` for an item gate
+- `graft: {"into": "campaign01", "node": "N1-1", "label": "…", "to": "<first node>", "requires": {"flag.done": false}}`; add `"item": "<id>"` for an item gate. This **flat form is what you write in the script**. The importer expands it into the nested `{"into", "node", "edge": {…}}` block you'll see in `manifest.json` and in arc books. Never edit `manifest.json` by hand; change the script and re-import.
 - `default_party: [...]`
 
 **Rules that packlint enforces:**
-- **Doom Clock:** at most one `clock +1` in the whole quest. Send every failed check to one costed scene, e.g. `- check athletics medium "…" -> X-3 | fail X-2f`, with `X-2f` holding `> on_enter: clock +1`. A `clock -1` is allowed, but it doesn't buy back budget.
+- **Doom Clock:** at most one `clock +1` in the whole quest. With several checks, send every failure to one costed scene: `- check athletics medium "…" -> X-3 | fail X-2f`, with `X-2f` holding `> on_enter: clock +1` (preferred). With a single check, `| fail X-3 [fail_do clock +1]` is the same thing. A failure with no cost is fine too: `| fail X-3`. A `clock -1` is allowed, but it doesn't buy back budget.
 - **Checks:** use only these skills: athletics, intimidate, stealth, thievery, perception, investigation, history, persuasion, soothe. Give each check a failure target that moves the story on.
 - **Ending:** the last node writes `done` and returns to the host (`- choice "Return to the plaza" -> N1-1`).
 - **Flags:** every flag you `write` must be read somewhere (`[if flag.X]`). Otherwise V4 warns; drop the write, or use an item as the host-facing marker.
@@ -95,7 +97,16 @@ Copy `game/kit/stories/side_quest.story.md` to `docs/en/story/<nn>-side-arc-<slu
 
 ## 5. Add new data, before importing
 
-- **New items** go in `game/packs/<id>/items.json`. Copy the shape from `arc_crane/items.json`, and keep the item weaker than the shop's equivalent. `roles` takes one or more of `stat`, `check_mod`, `branch_key`, `codex`.
+- **New items** go in `game/packs/<id>/items.json`, as a JSON array. Keep each item weaker than the shop's equivalent:
+  ```json
+  [{"id": "my_token", "name": "English name", "roles": ["stat"], "source": "<id> X-5 (how the player gets it)",
+    "unlocks": [], "equip": {"slot": "trinket", "max_hp": 2}}]
+  ```
+  - `roles`: one or more of `stat`, `check_mod`, `branch_key`, `codex`.
+  - `source`: free text saying where the player gets it (designer note; translated like other text).
+  - `unlocks`: a list of short notes on what it opens; `[]` if nothing.
+  - Use `equip` (slot `weapon` / `armor` / `shield` / `trinket`) or `use` (`{"timing": "bonus_action", "heal": "1d4+2", "consume": true}`), or neither for a keepsake (`codex`).
+- **NPCs who never fight** (a broker, an archivist) are text only: no `characters.json` entry. Only party members and fighters need data.
 - **Quest-log entry:** write `game/packs/<id>/events.json` (copy `arc_crane/events.json`). Its trigger `label` must equal the graft label, `node` is your last node, and `settle` is `[{"xp": 20}]`.
 - Reuse host enemies. A new enemy is world-designer work (`codex-content-design`).
 
@@ -113,7 +124,12 @@ $G --headless --path game -s tools/text_extract.gd -- packs/<id> zh-CN <scratch 
 
 Use any writable temporary folder (your scratchpad if you have one). The output file lists every key **with its English text as the value**. It includes `items.*` and `events.*` keys, which is why step 5 writes those files first. Translate every value into Chinese and save the result as `game/packs/<id>/texts/zh-CN.json`. Don't copy English across: an English value counts as present but ships English to Chinese players.
 - **Host terms:** 老费 (Old Fei), 珂兰 (Kelan), 白页者 (the Unwritten), 誊写庭 (Scriptorium), 黑羽 (the Uninked, Black Feather), 拾遗行会 (Salvage Guild), 自由市广场 (Free City Plaza), 褪色 (the Fading), 墨魈 (Ink Fiend), 墨魈幼体 (Ink Imp), 墨魈群 (Ink Swarm).
-- **Key forms:** `nodes.<id>.title|summary|edges.N.label`, `node.<id>.text` (long text), `lore.<id>` and `lore.<id>.title`, `items.<id>.name`, `events.<id>.*`, `manifest.*`.
+- **Key forms** (translate every one the tool lists):
+  - `manifest.name`, `manifest.graft.edge.label`, `acts.<ACT>.title` / `.role`
+  - `nodes.<id>.title` / `.summary` / `.edges.N.label`, `node.<id>.text` (long text)
+  - `lore.<id>` / `lore.<id>.title`
+  - `items.<id>.name` / `.source`, `events.<id>.name` / `.objective` / `.trigger.label`
+  - `flags.<id>.name`
 
 Register the pack: add `"<id>"` to `"packs"` in `game/packs/_game/game.json`. packlint doesn't check registration; the test suite does.
 
@@ -133,7 +149,7 @@ This works for side quests: it tunes on the host's merged view. Bands for the de
 - **`✓` suggestion:** re-run with `--write`.
 - **`✗ … change the line-up`:** the HP knob is capped at ±40 % of the weakest enemy's HP. Edit the script's `enemies …` (the message says whether to add or remove), re-import, then re-tune.
 - **Confirm:** re-run with `--seed 7`.
-- **Classes:** run once each with `--class harbor_guard`, `--class scavenger` and `--class ink_adept`. Each must be within ±7 points of the default run.
+- **Classes:** run once each with `--class harbor_guard`, `--class scavenger` and `--class ink_adept`. Each must be within ±7 points of the default run. A class may sit slightly outside the band. **Never `--write` from a `--class` run**: tune the default hero only, and treat class runs as a parity check.
 
 ## 8. Accept
 
@@ -142,8 +158,8 @@ $G --headless --path game -s tools/simulate.gd -- 24 packs/<id>
 $G --headless --path game -s tests/run.gd
 ```
 
-- **simulate:** runs the quest injected into its host and must end `== 仿真断言全绿 ==` with 100 % coverage of your nodes.
-- **Test suite:** takes about 3 minutes. Run it **once**, with a 600-second timeout (or in the background), and read only the **last line**: `== 全部通过 == RESULT: PASS n / FAIL 0`. Don't count `FAIL` with grep, because some check names contain the word. It must end `== 全部通过 ==`. You don't write test code: `test_arc_packs` automatically checks every side quest in `game.json`:
+- **simulate:** runs the quest injected into its host. `== 仿真断言全绿 ==` means every run reached an ending, the Doom Clock stayed within 0–10, and ≥ 95 % of your nodes were reached. Aim for 100 %: any `未覆盖：ID` line names a node the bot never reached.
+- **Test suite:** takes about 3 minutes. Run it **once**, with a 600-second timeout (or in the background), as `$G --headless --path game -s tests/run.gd 2>&1 | grep RESULT`. The verdict is the `RESULT:` line, `== 全部通过 == RESULT: PASS n / FAIL 0`. Godot prints engine `RID … leaked at exit` lines after it, so it isn't the log's last line. Don't count `FAIL` with grep, because some check names contain the word. You don't write test code: `test_arc_packs` automatically checks every side quest in `game.json`:
   - grafted lint
   - the script matches the pack
   - battle bands and the HP cap
@@ -173,4 +189,4 @@ $G --headless --path game -s tests/run.gd
 | balance_tune | `== 建议 N 处（加 --write 写回）==` / `== 已写回 … ==` / `== 全部在区间内 ==` | N suggestions / written / all in band |
 | simulate | `== 仿真断言全绿 ==` / `== 仿真失败：N ==` | all assertions green / N failures |
 | simulate | `未覆盖：ID` / `覆盖 a/b 节点（x%）` / `卡在节点 ID` | node never reached / coverage / bot stuck (no usable exit) |
-| tests/run.gd | last line `== 全部通过 == RESULT: PASS n / FAIL 0` / `== 失败：N == RESULT: …` | whole suite green / N failed checks (failed ones print as `ERROR:   FAIL …`) |
+| tests/run.gd | the `RESULT:` line (`… \| grep RESULT`): `== 全部通过 == RESULT: PASS n / FAIL 0` / `== 失败：N == RESULT: …` | whole suite green / N failed checks (failed ones print as `ERROR:   FAIL …`; engine `RID … leaked` lines after it are noise) |

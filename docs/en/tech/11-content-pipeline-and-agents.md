@@ -34,7 +34,8 @@ The agents and skills are **model-agnostic**: every model, at every effort, foll
 | Work | Suggested | Why |
 |---|---|---|
 | Side quest, sub-game, re-import, re-tune | default (Sonnet, low) | verified cold-start passes (§7) |
-| Balance-only re-tune of an existing pack | Haiku or Sonnet, low | the tools do the search; see §7 for the Haiku run |
+| Side quest on the tightest budget | Haiku, low | verified cold-start pass (§7); expect more copying of the worked example and plainer prose |
+| Balance-only re-tune of an existing pack | Haiku or Sonnet, low | the tools do the search |
 | New world / new game, importing a long existing story | Opus (or Fable), medium–high | world building and adaptation are judgement-heavy; the checks stay the same |
 | Final review of prose and translation | Opus, medium | quality pass on top of passing checks |
 
@@ -129,3 +130,14 @@ Cold-start rule: the skills must be enough on their own. A fresh agent on a smal
 | 2026-11-12 | Sonnet / low | Kelan companion side quest, 6–8 nodes | Invalid run: its worktree was cut from `main`, without the pipeline commits. Even so it hand-wrote a valid arc (packlint 0 FAIL, tests green) | First-run `--import` step; shell and path rules; graft edge types, party, faction keys and item roles written into the side-quest skill; importer resolves repo-root paths and item-gated short grafts; `pack_catalog.gd`; output-marker glossary; per-class balance via `balance_tune --class` |
 | 2026-11-12 | Sonnet / low | same | **Pass**: `arc_kelan` with 8 nodes, real zh-CN, packlint 0 FAIL, tuner in band, simulate 8/8, tests green; ~88k tokens, 23 tool calls, 5 min. Problems: it accepted `hp +11` on 8-HP imps; it invented Kelan's backstory (no canon existed); it hand-copied a test | HP-knob cap ±40 % (tuner + test); data-driven `test_arc_packs` (it also caught arc_tide drifting to 93 % and never being simulated; both fixed); item-gated graft probe; world book §8.2 companion canon sheets; side-quest skill rewritten as a linear checklist (setup, catalogue, line-up table, translation steps, Chinese host terms); `pack_catalog` lists existing grafts, companion skills, check skills |
 | 2026-11-12 | Sonnet / low | **different brief**: Salvage Guild errand (crate, profit vs conscience) | **Pass**: `arc_salvage`, 11 nodes (7 logical), three-way choice with a check, 60 real zh-CN keys; started from the line-up table, in band with no re-tune (73.7 / 75.0 / 77.2 % over three seeds; classes within ±7); simulate 11/11; tests green; ~91k tokens, 20 tool calls. No content defects found on review | Tool ergonomics: the tuner rejects unknown args and class ids and prints the simulated level; the suite's last line carries PASS / FAIL counts; skill notes on literal flags, editing JSON, entry reachability, condition ids, the canon "no change" note, scratch paths, and running the suite once |
+| 2026-11-12 | **Haiku** / low (override of the Sonnet default) | Scriptorium errand: a novice in a fading reading room, rules vs his wish | **Pass**: `arc_lamps`, 8 nodes, a background-gated option, 47 real zh-CN keys; started from the line-up table, in band without re-tuning (73.7 / 75.0 / 77.2 %); simulate 8/8; tests green; ~135k tokens, 35 tool calls, 7 min. Content is sound but leans on run 3's structure and reuses one line of crane-ledger prose | Skill: the flat script graft form vs the nested manifest form; `items.json` schema inline; text-only NPCs; full zh-CN key list; when to fill canon; three failure-cost patterns; what simulate's verdict covers; `grep RESULT` (engine leak lines follow it); zsh `echo ====`; never `--write` from a `--class` run |
+
+**How to re-run a cold-start test:**
+1. Create a worktree from the branch under test **outside the repository**, e.g. `git worktree add ../dnd-cold-start -b cold-start HEAD`. Inside `.claude/worktrees/`, its skills show up a second time as scoped duplicates. The harness's own `isolation: worktree` cuts from `main`, so it misses unmerged work.
+2. Give `codex-producer` a short user-style brief with `model` / `effort` set, and ask for check output plus every point where it had to guess.
+3. Verify its output yourself:
+   - re-run packlint, balance_tune on a third seed, simulate and the suite
+   - read the script
+   - check that zh-CN is really translated and that `enemy_mods` stay within the cap
+4. Log the run here.
+
