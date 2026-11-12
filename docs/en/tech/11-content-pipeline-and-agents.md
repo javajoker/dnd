@@ -20,7 +20,25 @@ The framework already separates **engine** from **content** (tech/07). This docu
 | **codex-balancer** | win rates, encounter line-ups and `enemy_mods`, XP / gold curve, class parity, check difficulty mix | changes the rule pack or story structure |
 | **godot-developer-en** (existing) | engine / framework changes when content needs a new mechanic (tech/07 §6) | content |
 
-The four content agents default to **Sonnet at low effort** (`model` / `effort` in their frontmatter). All three cold-start runs (§7) passed with exactly that, so the skills, not the model, carry the knowledge. A sub-agent can't spawn other agents, so a producer run alone plays every role by loading each role's skill; the separate role agents pay off only when a parent session dispatches them in parallel.
+### 1.1 Model and effort
+
+The agents and skills are **model-agnostic**: every model, at every effort, follows the same checklists and must reach the same definition of done (§6). The tools' verdicts decide, not the model's opinion. A bigger model buys better prose, choices and translation, not different rules.
+
+- **Default:** each agent's frontmatter sets `model: sonnet` and `effort: low`, the cheapest setting with verified cold-start passes (§7).
+- **Override per call:** the caller passes `model` and/or `effort`, which take precedence over the frontmatter.
+  - From a Claude Code session, just ask, e.g. "use codex-producer on opus at high effort to make …". The session passes them as the Agent tool's `model` (`haiku`, `sonnet`, `opus`, `fable`) and `effort` (`low`, `medium`, `high`, `xhigh`, `max`) inputs.
+  - Leaving them out uses the default.
+- **Skills without an agent:** loading a skill directly (`/codex-side-quest`, or the Skill tool) runs it on the current session's model and effort.
+- **Choosing:**
+
+| Work | Suggested | Why |
+|---|---|---|
+| Side quest, sub-game, re-import, re-tune | default (Sonnet, low) | verified cold-start passes (§7) |
+| Balance-only re-tune of an existing pack | Haiku or Sonnet, low | the tools do the search; see §7 for the Haiku run |
+| New world / new game, importing a long existing story | Opus (or Fable), medium–high | world building and adaptation are judgement-heavy; the checks stay the same |
+| Final review of prose and translation | Opus, medium | quality pass on top of passing checks |
+
+A sub-agent can't spawn other agents, so a producer run plays every role itself, loading each role's skill. The separate role agents pay off when a parent session dispatches them in parallel (for example a world designer and a story writer drafting at once), each with its own model choice.
 
 Each agent loads its skills at the start: producer → `codex-new-game` / `codex-new-subgame` / `codex-side-quest`; story writer → `codex-story-script`; world designer → `codex-content-design`; balancer → `codex-balance`.
 

@@ -7,6 +7,8 @@ type: prompt
 
 # Side quest recipe
 
+**Any model, any effort:** the steps and checks are the same. Follow them in order and decide by each tool's verdict line, not by your own confidence. Smaller models: follow literally and copy the worked example. Larger models: spend the extra on prose, choices and translation, not on new mechanics.
+
 Follow the steps in order. Each one ends in a check you can run. The worked example is *The Crane Ledger*: `docs/en/story/05-side-arc-the-crane-ledger.md`, its `.story.md` script and `game/packs/arc_crane/`.
 
 ## 0. Setup
