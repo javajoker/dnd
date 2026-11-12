@@ -22,6 +22,21 @@ func _init() -> void:
 		print("用法：-s tools/balance_tune.gd -- <包目录> [--games N] [--seed S] [--class ID] [--write] [--only ID]")
 		quit(1)
 		return
+	# 参数校验：未知参数 / 值缺失直接报错（防止 shell 变量把 "--seed 7" 当成一个参数而被静默忽略）
+	var known := {"--games": true, "--seed": true, "--class": true, "--only": true, "--write": false}
+	var k := 1
+	while k < a.size():
+		if not known.has(a[k]):
+			print("Unknown argument '%s' (pass each flag and value as separate words). Known: --games N --seed S --class ID --only ID --write" % a[k])
+			quit(1)
+			return
+		if bool(known[a[k]]):
+			if k + 1 >= a.size() or str(a[k + 1]).begins_with("--"):
+				print("Missing value after %s" % a[k])
+				quit(1)
+				return
+			k += 1
+		k += 1
 	var dir: String = a[0] if a[0].contains("://") else "res://" + a[0]
 	var games := int(_opt(a, "--games", "400"))
 	var seed := int(_opt(a, "--seed", "20261109"))
@@ -52,12 +67,17 @@ func _init() -> void:
 			only_own[eid] = (view.get("encounters", {}) as Dictionary).get(eid, own[eid])
 		pack["encounters"] = only_own
 	if cls != "":
+		if not (pack.get("classes", {}) as Dictionary).has(cls):
+			print("Unknown class '%s'. Valid: %s" % [cls, ", ".join(PackedStringArray((pack.get("classes", {}) as Dictionary).keys()))])
+			quit(1)
+			return
 		_wr.hero_class = cls
 	var targets: Dictionary = _wr.TARGETS
 	var rows: Array = []
 	var out_of_band := 0
-	print("== 平衡调参 %s：每场 %d 局，种子 %d%s ==" % [own_id, games, seed, "，职业 " + cls if cls != "" else ""])
-	print("遭遇        难度    区间      现值      建议 enemy_mods          调后（复核）")
+	print("== 平衡调参 %s：每场 %d 局，种子 %d%s == (tuning %s: %d games, seed %d, class %s)" % [own_id, games, seed,
+		"，职业 " + cls if cls != "" else "", own_id, games, seed, cls if cls != "" else "default hero"])
+	print("遭遇        难度    区间      现值      建议 enemy_mods          调后（复核）   [Lv = party level simulated]")
 	for eid: String in _wr.battle_encounters(pack):
 		if only != "" and eid != only:
 			continue
@@ -74,7 +94,7 @@ func _init() -> void:
 		var cap := hp_cap(_min_enemy_hp(pack, eid))
 		var over_cap := absi(int(base_mods.get("hp", 0))) > cap
 		if r0 >= lo and r0 <= hi and not over_cap:
-			print("%-11s %-7s %2d~%-3d   %5.1f%%   （在区间内，不动）" % [eid, diff, int(lo), int(hi), r0])
+			print("%-11s %-7s %2d~%-3d   %5.1f%%   （在区间内，不动） in band  Lv%d" % [eid, diff, int(lo), int(hi), r0, int(_wr.encounter_level(pack, eid))])
 			continue
 		if over_cap:
 			out_of_band += 1

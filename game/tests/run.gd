@@ -33,8 +33,11 @@ func _wipe_dir(path: String) -> void:
 		d.remove(f)
 	DirAccess.remove_absolute(path)
 
+var passes := 0
+
 func check(cond: bool, name: String) -> void:
 	if cond:
+		passes += 1
 		print("  PASS ", name)
 	else:
 		failures += 1
@@ -140,10 +143,11 @@ func _async_shell_tests() -> void:
 	await test_gap_features()
 	await test_art_pipeline()
 	await test_transition_camera()
+	# 最后一行是唯一的判定行（检查名里可能含 "FAIL" 字样，别 grep FAIL）/ the last line is the verdict
 	if failures == 0:
-		print("== 全部通过 ==")
+		print("== 全部通过 == RESULT: PASS %d / FAIL 0" % passes)
 	else:
-		print("== 失败：", failures, " ==")
+		print("== 失败：%d == RESULT: PASS %d / FAIL %d" % [failures, passes, failures])
 	quit(1 if failures > 0 else 0)
 
 # ---------------------------------------------------------------- RNG（tech/01 §5.2 确定性）

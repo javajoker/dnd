@@ -15,6 +15,8 @@ Follow the steps in order. Each one ends in a check you can run. The worked exam
 - **Fresh checkout or worktree:** run `$G --headless --path game --import` once. Without it every tool fails with `Identifier "PackLoader" not declared`.
 - **Shell:** use one plain command per call, with no `cd … &&` chains and no heredocs mixed with `cd`. Write files with the Write tool.
 - **Paths:** pack dirs are relative to `game/` (`packs/<id>`, `user://story_trial/<id>`). Story scripts can be given from the repo root (`docs/en/story/…`).
+- **Flags:** write flags and values literally (`--seed 7`), never through a shell variable or loop (zsh passes `"--seed 7"` as one word). The tuner rejects unknown arguments and class ids.
+- **Editing JSON** such as `game.json`: use the Edit tool, not `sed -i` (BSD sed on macOS needs `-i ''`).
 
 ## 1. Learn the host
 
@@ -37,6 +39,7 @@ campaign01's JSON names are Chinese, so use this output rather than reading the 
 Companion backstory lives in `docs/en/story/01-world-age-of-the-codex.md` §8.2, the canon sheets:
 - Never contradict a *locked* item there.
 - If your quest fills an *open* item, add one line to that sheet in the same change, naming your quest id.
+- If it fills none, write "Canon: no change" in the arc book. Inventing a new NPC (a broker, a clerk) needs no sheet.
 
 ## 2. Decide the entry
 
@@ -44,7 +47,8 @@ Companion backstory lives in `docs/en/story/01-world-age-of-the-codex.md` §8.2,
 - **Entry kind:**
   - `choice`: always offered until done (`requires: {"flag.done": false}`).
   - `item`: offered only while carrying an item (`"item": "<id>"`).
-  - Extra conditions go in `requires`: `rep.X`, `bond.X`, `background`, `hero_class`.
+  - Extra conditions go in `requires`: `rep.X`, `bond.X`, `background`, `hero_class`. Take ids from the `pack_catalog` output (classes: `harbor_guard`, `scavenger`, `ink_adept`; backgrounds: `dockhand`, `scriptorium_novice`, `uninked_runaway`, `salvager_apprentice`). In edges use `[if background = dockhand]`.
+- **Reachability:** the entry must be visible when the player first stands at the node. campaign01's N1-1 comes at the very start, with every `rep` at 0, so a `rep.X >= 1` gate makes the quest unreachable, and simulate will report 0 % coverage. Item-gated entries are fine: the simulator starts holding the item.
 - **Party:** battles use the script's `default_party`. In campaign01 that's `player_blank`, `companion_kelan` and `companion_laofei`, so both companions are always present.
 
 ## 3. Write the arc book
@@ -102,14 +106,14 @@ $G --headless --path game -s tools/story_import.gd -- docs/en/story/<nn>-side-ar
 The first import reports **1 FAIL: V15**, because `texts/zh-CN.json` doesn't exist yet. That's expected. Anything else must be fixed in the script before you continue (see the marker table below).
 
 ```bash
-$G --headless --path game -s tools/text_extract.gd -- packs/<id> zh-CN /tmp/<id>_zh.json
+$G --headless --path game -s tools/text_extract.gd -- packs/<id> zh-CN <scratch dir>/<id>_zh.json
 ```
 
-The output file lists every key **with its English text as the value**. Translate every value into Chinese and save the result as `game/packs/<id>/texts/zh-CN.json`. Don't copy English across: an English value counts as present but ships English to Chinese players.
+Use any writable temporary folder (your scratchpad if you have one). The output file lists every key **with its English text as the value**. It includes `items.*` and `events.*` keys, which is why step 5 writes those files first. Translate every value into Chinese and save the result as `game/packs/<id>/texts/zh-CN.json`. Don't copy English across: an English value counts as present but ships English to Chinese players.
 - **Host terms:** 老费 (Old Fei), 珂兰 (Kelan), 白页者 (the Unwritten), 誊写庭 (Scriptorium), 黑羽 (the Uninked, Black Feather), 拾遗行会 (Salvage Guild), 自由市广场 (Free City Plaza), 褪色 (the Fading), 墨魈 (Ink Fiend), 墨魈幼体 (Ink Imp), 墨魈群 (Ink Swarm).
 - **Key forms:** `nodes.<id>.title|summary|edges.N.label`, `node.<id>.text` (long text), `lore.<id>` and `lore.<id>.title`, `items.<id>.name`, `events.<id>.*`, `manifest.*`.
 
-Register the pack: add `"<id>"` to `"packs"` in `game/packs/_game/game.json`.
+Register the pack: add `"<id>"` to `"packs"` in `game/packs/_game/game.json`. packlint doesn't check registration; the test suite does.
 
 ```bash
 $G --headless --path game -s tools/packlint.gd -- packs/<id>
@@ -137,7 +141,7 @@ $G --headless --path game -s tests/run.gd
 ```
 
 - **simulate:** runs the quest injected into its host and must end `== 仿真断言全绿 ==` with 100 % coverage of your nodes.
-- **Test suite:** must end `== 全部通过 ==`. You don't write test code: `test_arc_packs` automatically checks every side quest in `game.json`:
+- **Test suite:** takes about 3 minutes. Run it **once**, with a 600-second timeout (or in the background), and read only the **last line**: `== 全部通过 == RESULT: PASS n / FAIL 0`. Don't count `FAIL` with grep, because some check names contain the word. It must end `== 全部通过 ==`. You don't write test code: `test_arc_packs` automatically checks every side quest in `game.json`:
   - grafted lint
   - the script matches the pack
   - battle bands and the HP cap
@@ -160,11 +164,11 @@ $G --headless --path game -s tests/run.gd
 | packlint | `V5 … 正向时钟效果代数和 +N 超过上限 10` | too many `clock +` effects (host + quest): use one costed failure scene |
 | packlint | `V11 … 引用未登记道具 / 敌人 'x'` | id x doesn't exist: fix the spelling, or add it to the pack's `items.json` / `enemies.json` |
 | packlint | `V15 声明语言 zh-CN 但缺 …` | missing `texts/zh-CN.json` or keys — step 6 |
-| balance_tune | `（在区间内，不动）` | in band, unchanged |
+| balance_tune | `（在区间内，不动） in band  Lv1` | in band, unchanged (Lv = simulated party level) |
 | balance_tune | `{"hp":3} 74.3% ✓` | suggested `enemy_mods` and the confirmed rate: write it with `--write` |
 | balance_tune | `✗ 仍越界（需改阵容）/ out of band: change the line-up — too easy / too hard …` | the HP knob can't fix it: change the enemies in the script |
 | balance_tune | `✗ enemy_mods.hp +N 超过上限 ±M` | a stored HP buff is too big: change the line-up and remove the `mods` |
 | balance_tune | `== 建议 N 处（加 --write 写回）==` / `== 已写回 … ==` / `== 全部在区间内 ==` | N suggestions / written / all in band |
 | simulate | `== 仿真断言全绿 ==` / `== 仿真失败：N ==` | all assertions green / N failures |
 | simulate | `未覆盖：ID` / `覆盖 a/b 节点（x%）` / `卡在节点 ID` | node never reached / coverage / bot stuck (no usable exit) |
-| tests/run.gd | `== 全部通过 ==` / `FAIL …` | whole suite green / a failed check (grep the log for `FAIL `) |
+| tests/run.gd | last line `== 全部通过 == RESULT: PASS n / FAIL 0` / `== 失败：N == RESULT: …` | whole suite green / N failed checks (failed ones print as `ERROR:   FAIL …`) |
