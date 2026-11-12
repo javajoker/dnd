@@ -137,7 +137,7 @@ func _do_focus(uid: String) -> void:
 	var view := _view()
 	var delta := framing_delta(view, content_rect(), _anchor(uid))
 	if axis_lock_x:
-		delta.x = 0.0
+		delta.x = _base_pos.x - target.position.x # 竖屏只纵向跟随；横向任何残余偏移都归位（不让战场停在偏右处）
 	last_focus = {"uid": uid, "pan": delta}
 	if delta.length() < 0.5:
 		return

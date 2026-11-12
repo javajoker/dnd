@@ -1137,6 +1137,10 @@ func test_portrait_shell() -> void:
 			and portrait.story_panel.get_parent().size.x <= mv + 0.5,
 			"%d 间房：推进条最小宽 %.0f ≤ 主视野 %.0f，主视野内容不被撑宽" % [n_rooms,
 				portrait.progress_row.get_combined_minimum_size().x, mv])
+	var shell_rect := portrait.get_global_rect()
+	check(not portrait.main_view.is_ancestor_of(portrait.menu_button)
+		and shell_rect.encloses(portrait.menu_button.get_global_rect()),
+		"☰ 在状态栏（不随战场镜头滚走），手机宽度下完整在屏内")
 	# 长横幅（中文提示）同样不得撑宽主视野
 	portrait._flash("这一段记忆只能以碎片的方式回放——它按自己的顺序回来，不按你走过的顺序；每一片都可能改变你对这座港口的判断。")
 	await process_frame

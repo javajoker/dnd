@@ -135,6 +135,16 @@ Godot writes an Xcode project next to the output and runs `xcodebuild` to produc
 - **TestFlight:** upload the archive (Xcode Organizer or Transporter), add internal testers in App Store Connect.
 - **Release:** App Store Connect listing, privacy labels (`docs/en/store/privacy-policy.md`), in-app purchases (`billing-adapter.md`), then submit for review.
 
+## 3.5 Checking phone shapes on the desktop
+
+Screenshot passes can emulate a tall, narrow phone: add `--phone-size=390x910` (game units; 390 wide, height = 390 ÷ the phone's width/height ratio) to any shot flag, e.g.
+
+```bash
+$GODOT --path game -- --locale=zh-CN --phone-size=390x910 --auto-battle-shots
+```
+
+`--auto-battle-shots` plays an auto battle and saves `/tmp/ab_<n>.png`, printing the main view and battlefield rectangles — the battlefield must never be wider than its view.
+
 ## 4. Before every store upload
 
 - [ ] Tests, packlint and the bot simulation green (section 1)

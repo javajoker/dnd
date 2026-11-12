@@ -13,7 +13,7 @@ const FLAGS := {
 	"--font-shot": "_run_shot_font", "--trans-shots": "_run_shots_trans", "--lock-shot": "_run_shot_lock",
 	"--loadout-shots": "_run_shots_loadout", "--dice-shots": "_run_shots_dice",
 	"--map-shots": "_run_shots_map", "--split-shots": "_run_shots_split", "--hero-shots": "_run_shots_hero",
-	"--icon-shots": "_run_shots_icons", "--camp-shots": "_run_shots_camp", "--fx-shots": "_run_shots_fx",
+	"--icon-shots": "_run_shots_icons", "--camp-shots": "_run_shots_camp", "--fx-shots": "_run_shots_fx", "--auto-battle-shots": "_run_shots_auto_battle",
 }
 const SHOT_SEED := 20260009 # 固定种子：截图路径确定（主线两次检定均为成功路）
 
@@ -694,6 +694,36 @@ func _run_shots_fx() -> void:
 		await _shot_raw("/tmp/fx_%d_%s_%s.png" % [i, d[0], tag])
 		await m.get_tree().create_timer(0.7).timeout
 	print("[shots] fx stats=", fx.stats)
+	m.get_tree().quit()
+
+## 托管战斗中段多帧（窄长屏走查用）：`-- --phone-size=390x910 --auto-battle-shots` → /tmp/ab_<n>.png，
+## 同时打印主视野 / 内容层尺寸与位置（定位"战场右移 / 上移"类问题）。
+func _run_shots_auto_battle() -> void:
+	await m.get_tree().create_timer(0.8).timeout
+	m._on_home_navigate(&"entry")
+	await m.get_tree().create_timer(0.3).timeout
+	var entry := m.current_screen as ScreenEntry
+	entry.pick_mode(ShellRouter.MODE_TIME)
+	entry.start_requested.emit()
+	await m.get_tree().create_timer(0.5).timeout
+	m.graph._enter("N1-7")
+	m._present_node()
+	await m.get_tree().create_timer(0.5).timeout
+	(m.current_screen as ScreenLoadout)._on_confirm()
+	await m.get_tree().create_timer(2.6).timeout
+	var sh := m.shell as EncounterPortrait
+	if sh.tutorial != null and sh.tutorial.is_hint_visible():
+		sh.tutorial._dismiss_hint()
+	sh.set_auto(true)
+	for i: int in 6:
+		await m.get_tree().create_timer(1.3).timeout
+		var mv: Control = sh.main_view
+		var lane: Control = mv.get_child(1) if mv.get_child_count() > 1 else null
+		var mainv: Control = sh.story_panel.get_parent()
+		print("[ab] ", i, " view=", mv.get_global_rect(), " lane=", lane.get_global_rect() if lane else Rect2(),
+			" main_v=", mainv.get_global_rect(), " min=", mainv.get_combined_minimum_size(), " scale=", mainv.scale,
+			" flash_min=", sh.flash_label.get_combined_minimum_size(), " text=", sh.flash_label.text.left(30))
+		await _shot_raw("/tmp/ab_%d.png" % i)
 	m.get_tree().quit()
 
 func _run_shots_map() -> void:

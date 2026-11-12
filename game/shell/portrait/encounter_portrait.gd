@@ -191,8 +191,9 @@ func _build_ui() -> void:
 	main_v.add_child(progress_row)
 	menu_button = Button.new()
 	menu_button.text = Texts.s(&"MENU")
+	menu_button.custom_minimum_size = Vector2(44, 0)
 	menu_button.pressed.connect(_open_menu)
-	progress_row.add_child(menu_button) # ☰ 常驻：推进条右端（09 §7）
+	band_h.add_child(menu_button) # ☰ 常驻状态栏右端（09 §7）：不随战场镜头滚动，任何时候都在屏内
 	main_view.resized.connect(_fit_pips) # 旋转 / 尺寸变化后重排房间点
 	# 故事态叙事面板（04 §④.3 房间呈现：scene 文本 / dialog NPC 文本；战斗时收起）
 	story_panel = VBoxContainer.new()
@@ -927,13 +928,11 @@ func set_rooms(room_ids: Array, current_index: int, titles: Dictionary = {}) -> 
 	_rooms_snapshot = {"ids": room_ids.duplicate(), "titles": titles.duplicate(),
 		"current": current_index} # 回看数据（04 §④.2）
 	for child: Node in progress_row.get_children():
-		if child != menu_button:
-			child.queue_free()
+		child.queue_free()
 	_pips.clear()
 	if _pip_tween != null:
 		_pip_tween.kill()
 		_pip_tween = null
-	progress_row.move_child(menu_button, -1) # ☰ 保持右端
 	for i: int in room_ids.size():
 		var pip := Label.new()
 		var st := PIP_CURRENT if i == current_index else (PIP_PAST if i < current_index else PIP_FUTURE)
@@ -964,7 +963,7 @@ func _fit_pips() -> void:
 	if n == 0:
 		return
 	var width := main_view.size.x if main_view != null and main_view.size.x > 0.0 else get_viewport_rect().size.x
-	var avail := maxf(width - menu_button.get_combined_minimum_size().x - 32.0, 120.0)
+	var avail := maxf(width - 32.0, 120.0)
 	var slot := avail / float(n)
 	var sep := clampi(int(slot * 0.3), 1, 10)
 	var fs := clampi(int(slot - sep) - 1, 6, 16)

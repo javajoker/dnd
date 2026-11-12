@@ -92,6 +92,11 @@ func _ready() -> void:
 			ProjectSettings.set_setting("game/market", a.trim_prefix("--market="))
 		elif a.begins_with("--safe-area="): # `-- --safe-area=上,右,下,左`：桌面模拟刘海/Home 指示条
 			SafeArea.override_insets = SafeArea.parse_arg(a)
+		elif a.begins_with("--phone-size="): # `-- --phone-size=390x910`：桌面模拟窄长手机（竖屏窗口尺寸）
+			var wh := a.trim_prefix("--phone-size=").split("x")
+			if wh.size() == 2:
+				phone_size_override = Vector2i(int(wh[0]), int(wh[1]))
+				get_window().size = phone_size_override
 		elif a.begins_with("--packs-root="): # `-- --packs-root=res://kit`：换一整款游戏（游戏清单 + 内容包，tech/07）
 			packs_root = a.trim_prefix("--packs-root=")
 			GameManifest.override_path = packs_root.path_join("_game/game.json")
@@ -313,7 +318,12 @@ func _swap(screen: Control) -> void:
 # ---------------------------------------------------------------- 窗口形态（09 §8 战役级横竖屏边界）
 
 ## 竖屏基准尺寸 = 项目窗口配置（竖屏基准由工程设置声明，代码不写死）。
+## 桌面模拟手机比例：`-- --phone-size=390x910`（窄长屏走查；真机不受影响）。
+var phone_size_override := Vector2i.ZERO
+
 func _portrait_size() -> Vector2i:
+	if phone_size_override != Vector2i.ZERO:
+		return phone_size_override
 	return Vector2i(int(ProjectSettings.get_setting("display/window/size/viewport_width", 390)),
 		int(ProjectSettings.get_setting("display/window/size/viewport_height", 760)))
 
