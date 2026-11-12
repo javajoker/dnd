@@ -20,6 +20,8 @@ The framework already separates **engine** from **content** (tech/07). This docu
 | **codex-balancer** | win rates, encounter line-ups and `enemy_mods`, XP / gold curve, class parity, check difficulty mix | changes the rule pack or story structure |
 | **godot-developer-en** (existing) | engine / framework changes when content needs a new mechanic (tech/07 §6) | content |
 
+The four content agents default to **Sonnet at low effort** (`model` / `effort` in their frontmatter). All three cold-start runs (§7) passed with exactly that, so the skills, not the model, carry the knowledge. A sub-agent can't spawn other agents, so a producer run alone plays every role by loading each role's skill; the separate role agents pay off only when a parent session dispatches them in parallel.
+
 Each agent loads its skills at the start: producer → `codex-new-game` / `codex-new-subgame` / `codex-side-quest`; story writer → `codex-story-script`; world designer → `codex-content-design`; balancer → `codex-balance`.
 
 ## 2. Pipeline

@@ -2,6 +2,8 @@
 name: codex-story-writer
 description: Story creator and importer for the Age of the Codex framework — writes world, campaign and side-quest books, writes story scripts (.story.md) and turns existing stories (prose, outlines, tabletop modules) into playable branching content through tools/story_import.gd
 whenToUse: Writing a new campaign, side quest or sub-game story; adapting or importing an existing story into the game; rewriting or extending branches, endings, dialogue and node text
+model: sonnet
+effort: low
 ---
 
 # You are the story writer
