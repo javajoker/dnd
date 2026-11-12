@@ -96,6 +96,7 @@ func _init() -> void:
 	test_cosmetics()
 	test_font()
 	test_ngplus_inheritance()
+	test_content_pipeline()
 	call_deferred("_async_shell_tests")
 
 func _async_shell_tests() -> void:
@@ -8622,3 +8623,79 @@ func _run_battle_with_camera(with_cam: bool) -> String:
 		cam.queue_free()
 		await process_frame
 	return json
+
+# ---------------------------------------------------------------- 内容管线（tech/10 / tech/11）：剧本导入器 + 调参器
+
+func test_content_pipeline() -> void:
+	print("[content_pipeline]")
+	var imp: GDScript = load("res://tools/story_import.gd")
+	check(imp != null and load("res://tools/balance_tune.gd") != null, "story_import / balance_tune 脚本可加载")
+	# 1. 解析三份模板：无错误，节点 / 遭遇 / 结局计数合理
+	var kinds := {"side_quest": "arc", "campaign": "campaign", "subgame": "subgame"}
+	var parsed := {}
+	for k: String in kinds.keys():
+		var r: Dictionary = imp.parse_script(FileAccess.get_file_as_string("res://kit/stories/%s.story.md" % k))
+		parsed[k] = r
+		check((r["errors"] as Array).is_empty(), "模板 %s 解析无错误 %s" % [k, str(r["errors"])])
+		check(str((r["manifest"] as Dictionary).get("pack_type", "")) == kinds[k], "模板 %s pack_type = %s" % [k, kinds[k]])
+		check((r["nodes"]["nodes"] as Array).size() >= 4 and not (r["encounters"] as Array).is_empty(),
+			"模板 %s：≥4 节点且含战斗遭遇" % k)
+		check(not (r["manifest"] as Dictionary).has("default_party"), "模板 %s：default_party 不进 manifest" % k)
+	# 2. 映射细节（支线）：嫁接短式展开、效果 / 条件 / 遭遇 / 旗标账本
+	var sq: Dictionary = parsed["side_quest"]
+	var graft: Dictionary = sq["manifest"]["graft"]
+	check(graft.has("edge") and str(graft["edge"].get("to", "")) == "L-1" and str(graft.get("into", "")) == "campaign01",
+		"支线 graft 短式 → {into, node, edge}")
+	var errs: Array[String] = []
+	var eff: Array = imp._effects("xp 40, gold -5, rep.salvage +1, give heal_potion x2, write tally = 3, lore lk", 1, errs)
+	check(JSON.stringify(imp.ints(eff)) == JSON.stringify([{"xp": 40}, {"gold": -5}, {"rep.salvage": 1}, {"give_item": "heal_potion"}, {"give_item": "heal_potion"},
+		{"write": "tally", "value": 3}, {"lore": "lk"}]), "效果 DSL → JSON（xp / gold / rep / give xN / write = / lore）")
+	var cond: Dictionary = imp._cond("flag.a, not flag.b, rep.salvage >= 2, hero_class = scavenger", 1, errs)
+	check(cond == {"flag.a": true, "flag.b": false, "rep.salvage": {">=": 2}, "hero_class": "scavenger"},
+		"条件 DSL → JSON（flag / not / 比较 / 等值）")
+	var enc: Dictionary = imp._encounter("X-1", "hard | enemies bandit, wolf x2 | xp 120 | gold 24 | loot potion x2 | mods hp+2 atk-1",
+		["hero"], 1, errs)
+	check(str(enc.get("difficulty", "")) == "hard" and (enc["enemies"] as Array).size() == 3
+		and str(((enc["party"] as Array)[0] as Dictionary).get("ref", "")) == "hero", "遭遇行：难度 / 敌人 xN / 默认队伍")
+	check(enc.get("enemy_mods", {}) == {"hp": 2, "attack_mod": -1}, "遭遇行：mods hp+2 atk-1 → enemy_mods")
+	check(errs.is_empty(), "DSL 片段无解析错误 %s" % str(errs))
+	var ledger := {}
+	for f: Dictionary in sq["flags"]:
+		ledger[str(f["id"])] = f
+	check(ledger.has("done") and (ledger["done"]["readers"] as Array).has("graft") and not (ledger["done"]["writers"] as Array).is_empty(),
+		"旗标账本：done 有写入者，嫁接入口记为读者")
+	var chk: Dictionary = imp._edge('- check perception medium "Look" -> A | fail B [do xp 10] [fail_do clock +1]', 1, errs)
+	check(str(chk.get("type", "")) == "check" and chk.get("success") == "A" and chk.get("failure") == "B"
+		and (chk["success_effects"] as Array).size() == 1 and (chk["failure_effects"] as Array).size() == 1,
+		"检定边：success / failure 去向与两侧效果")
+	# 3. 写包 + packlint（隔离到 user://test/pipeline/，宿主取正式 campaign01）
+	var root := "user://test/pipeline"
+	_wipe_dir(root)
+	imp.write_pack(sq, root + "/arc_lantern")
+	var rep: Dictionary = imp.check_pack(root + "/arc_lantern")
+	check(int(rep["fail"]) == 0, "支线模板导入 → 嫁接 packlint 0 FAIL %s" % str(rep["lines"]))
+	# 新战役：先放 kit 设计数据，再导入
+	var cdir := root + "/starter_two"
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(cdir))
+	for f2: String in ["characters.json", "enemies.json", "items.json", "skills.json"]:
+		DirAccess.copy_absolute(ProjectSettings.globalize_path("res://kit/starter/" + f2), ProjectSettings.globalize_path(cdir + "/" + f2))
+	imp.write_pack(parsed["campaign"], cdir)
+	var rep2: Dictionary = imp.check_pack(cdir)
+	check(int(rep2["fail"]) == 0, "战役模板导入（kit 设计数据）→ packlint 0 FAIL %s" % str(rep2["lines"]))
+	# 4. 重导入保留平衡器写回的 enemy_mods
+	var epath := ProjectSettings.globalize_path(cdir + "/encounters.json")
+	var encs: Array = JSON.parse_string(FileAccess.get_file_as_string(epath))
+	var bid := str((encs[0] as Dictionary)["id"])
+	(encs[0] as Dictionary)["enemy_mods"] = {"hp": 5}
+	var fw := FileAccess.open(epath, FileAccess.WRITE)
+	fw.store_string(JSON.stringify(imp.ints(encs), "  ", false))
+	fw.close()
+	imp.write_pack(imp.parse_script(FileAccess.get_file_as_string("res://kit/stories/campaign.story.md")), cdir)
+	var again: Array = JSON.parse_string(FileAccess.get_file_as_string(epath))
+	var kept := false
+	for e: Variant in again:
+		if str((e as Dictionary)["id"]) == bid:
+			kept = int(((e as Dictionary).get("enemy_mods", {}) as Dictionary).get("hp", 0)) == 5
+	check(kept, "重导入保留调过的 enemy_mods")
+	check(not FileAccess.get_file_as_string(epath).contains(".0"), "写出的 JSON 整数不带 .0")
+	_wipe_dir(root)

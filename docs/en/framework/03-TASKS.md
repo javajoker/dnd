@@ -254,6 +254,14 @@ Goal: turn the framework into a reusable D&D-style engine — new narrative game
 - [ ] Store accounts, signing, devices, billing adapters (tech/06; `docs/en/store/`)
 - [ ] Human playtest of the three classes and four backgrounds (feel, not just win rates); localisation review of the new English text
 
+## P7 Content pipeline (2026-11-12)
+
+- [x] Story script format + importer: `.story.md` → pack data with flag ledger, long texts, packlint (side quests grafted onto their host); re-import keeps tuned encounter fields — `tools/story_import.gd`, tech/10
+- [x] Templates for a side quest, a new campaign and a sub-game — `game/kit/stories/`
+- [x] Balance auto-tuner: per-battle win rate vs band, binary search on `enemy_mods` (HP, then attack), second-seed confirmation, `--write` — `tools/balance_tune.gd`; `simulate.gd` accepts `user://` trial packs
+- [x] Agent set (producer, story writer, world designer, balancer) and skills (story script, content design, balance, new game / sub-game / side quest recipes) — `.claude/agents/codex-*`, `.claude/skills/codex-*`, tech/11
+- [ ] First real content through the pipeline (a new side quest or sub-game from a brief) to shake out the recipes
+
 ## Known gap
 
 - tech/04 §5 effect-modifier runtime pipeline (base→add→mul→override→clamp + `effect.attach`/`effect.expire` events) is not implemented. No current content uses it (no pack has an effects.json); it must land before the first pack that uses modifiers ships.

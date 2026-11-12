@@ -20,6 +20,8 @@
    → ⑧ Simulated playthrough / load in the engine
 ```
 
+**Shortcut:** steps ②–⑦ can be generated from a plain-text story script with `tools/story_import.gd` (tech/10) — nodes, edges, encounters, flags ledger, endings, lore and long texts, followed by packlint. This guide still defines what the data must look like and how to review it.
+
 Transcription is **translation, not re-creation**: node IDs and edge directions in the data must correspond one-to-one with the campaign book. Graph problems found while transcribing (dead ends, missing failure paths) go back to the campaign book to be fixed and synced — never patched quietly in the data alone. When the two disagree, the design doc wins.
 
 ## 2. Campaign-book sections → data files

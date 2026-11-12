@@ -47,6 +47,8 @@
 | [07 New-Game Kit](tech/07-new-game-kit.md) | What a new game supplies (story, art, music, theme, game manifest) and what the engine provides; the ten-step recipe |
 | [08 Asset Prompt Pack](tech/08-asset-prompts.md) | Copy-ready prompts and delivery specs for generating portraits, units, icons, scenes, maps, store art, music and sound with external AI tools |
 | [09 Build and Release Guide](tech/09-build-and-release-guide.md) | Exact setup and commands for Android (debug APK, release AAB) and iOS (Xcode, TestFlight): tools, templates, signing, store upload |
+| [10 Story Script Format](tech/10-story-script-format.md) | Plain-text story scripts (nodes, choices, checks, battles, effects, endings, lore) and the importer that turns them into pack data; importing an existing story |
+| [11 Content Pipeline and Agents](tech/11-content-pipeline-and-agents.md) | Roles, pipeline and recipes for new games, sub-games and side quests; design-data rules; balance procedure with the auto-tuner; definition of done |
 | [store/](store/store-listing.md) | Store listing draft, [privacy policy](store/privacy-policy.md), [billing adapter contract](store/billing-adapter.md) |
 | [Code review 2026-11-10](tech/code-review-2026-11-10.md) | Review of `game/` and verification of the TASKS / 13 / 14 checklists |
 

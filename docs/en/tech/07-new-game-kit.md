@@ -58,14 +58,17 @@ The framework's UI tables (`texts_en.gd` / `texts_zh.gd`) keep **neutral** wordi
 
 ## 4. Recipe: a new game in ten steps
 
+The `codex-producer` agent runs this recipe with the other content agents (tech/11 §3.1); the steps below are the same by hand.
+
+
 1. Copy `game/kit/starter/` (a minimal English-source campaign: crossroads, an inn hub with a shop, a check with a failure branch, two battles, an ending, a region map with a ruin site, an event table and an event card) to `game/packs/<new_id>/`, and `game/kit/_game/` to `game/packs/_game/` — or first run the kit untouched as its own game: `godot --path game -- --packs-root=res://kit`;
 2. Edit the **game manifest** (§3) and the **UI flavour texts** (§3.1): title, packs, theme, audio map, your game's voice;
 3. Write the **world and campaign book** in `docs/en/story/` (design intent first, as with *The Age of the Codex*);
-4. Transcribe the book into pack data (tech/03), choosing the **form** per campaign: space → landscape, time → portrait, or `choice` (doc 09 §2; doc 15 §6 for side campaigns);
+4. Write the story as a **story script** (template `game/kit/stories/campaign.story.md`) and import it with `tools/story_import.gd` (tech/10) — or transcribe by hand (tech/03) — choosing the **form** per campaign: space → landscape, time → portrait, or `choice` (doc 09 §2; doc 15 §6 for side campaigns);
 5. Add **characters, skills, items, gear** — reuse the rule pack; only numbers and names change;
 6. Draw the **maps** and write the **event tables** (doc 16); decide the **progression** per playthrough (doc 15 §7);
 7. Add **art** (`art_ref`) and **audio** (manifest `audio` map) — placeholders work until assets arrive;
-8. Run `tools/packlint.gd -- packs/<id>` (V1–V21) and the bot simulation (`tools/simulate.gd -- 24 packs/<id>`: every run reaches an ending, the Doom Clock stays in range, ≥95% node coverage; the bot also explores maps, sites and party splits) until both are green; check battle win rates against their bands;
+8. Run `tools/packlint.gd -- packs/<id>` (V1–V21) and the bot simulation (`tools/simulate.gd -- 24 packs/<id>`: every run reaches an ending, the Doom Clock stays in range, ≥95% node coverage; the bot also explores maps, sites and party splits) until both are green; check battle win rates against their bands with `tools/balance_tune.gd -- packs/<id> --games 600 [--write]` (tech/11 §5);
 9. Capture screenshots per locale/form (`--locale=…` shot flags) and play through on device;
 10. Fill the store documents and choose the monetization strategy per market (doc 06) — content data stays identical across markets.
 
@@ -85,6 +88,7 @@ The framework's UI tables (`texts_en.gd` / `texts_zh.gd`) keep **neutral** wordi
 | Battle win-rate tool for any pack | **Done** — `tools/winrate.gd -- <games> <seed> <pack dir> [class]`, expected level per act from manifest `balance.act_level`; with a class id, every battle is rerun with that build (±7 points of the default hero) |
 | Full audio set | **Done** — five BGM states (camp / explore / **map** / battle / ending; `map.travel` and `site.enter` switch to map) and SFX for coin, door, card, link, throw on top of the first set; all procedural (`gen_audio.py`), replaceable by file (tech/08) |
 | Starter-kit art | **Done** — home illustration (`theme.home_art`) and unit art for the kit's enemies |
+| Story importer, balance tuner, agent set | **Done** — `tools/story_import.gd` (tech/10), `tools/balance_tune.gd`, templates in `kit/stories/`, agents `codex-producer` / `codex-story-writer` / `codex-world-designer` / `codex-balancer` with their skills (tech/11) |
 | Generated art / music | Prompt pack for external AI tools: tech/08 |
 
 ## 6. Guardrails

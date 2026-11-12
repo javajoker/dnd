@@ -11,7 +11,7 @@ func _init() -> void:
 		seed_count = int(args[0])
 	var pack_dir := "res://packs/campaign01"
 	if args.size() > 1:
-		pack_dir = args[1] if args[1].begins_with("res://") else "res://" + args[1]
+		pack_dir = args[1] if args[1].contains("://") else "res://" + args[1] # res:// / user://（试导入包）
 	var res := PackLoader.load_pack(pack_dir)
 	if not res["ok"]:
 		for e: String in res["errors"]:
