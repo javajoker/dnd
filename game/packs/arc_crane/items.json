@@ -3,7 +3,7 @@
     "id": "fei_crane_token",
     "name": "Old Fei's Crane Token",
     "roles": ["stat"],
-    "source": "arc_crane C-6k (keep the ledger for Old Fei)",
+    "source": "The Crane Ledger, C-6k (keep the ledger for Old Fei)",
     "unlocks": [],
     "equip": {"slot": "trinket", "max_hp": 2}
   }

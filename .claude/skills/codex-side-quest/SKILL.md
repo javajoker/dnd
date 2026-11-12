@@ -99,7 +99,7 @@ Copy `game/kit/stories/side_quest.story.md` to `docs/en/story/<nn>-side-arc-<slu
 
 - **New items** go in `game/packs/<id>/items.json`, as a JSON array. Keep each item weaker than the shop's equivalent:
   ```json
-  [{"id": "my_token", "name": "English name", "roles": ["stat"], "source": "<id> X-5 (how the player gets it)",
+  [{"id": "my_token", "name": "English name", "roles": ["stat"], "source": "<Quest name>, X-5 (how the player gets it)",
     "unlocks": [], "equip": {"slot": "trinket", "max_hp": 2}}]
   ```
   - `roles`: one or more of `stat`, `check_mod`, `branch_key`, `codex`.
@@ -122,7 +122,7 @@ The first import reports **1 FAIL: V15**, because `texts/zh-CN.json` doesn't exi
 $G --headless --path game -s tools/text_extract.gd -- packs/<id> zh-CN <scratch dir>/<id>_zh.json
 ```
 
-Use any writable temporary folder (your scratchpad if you have one). The output file lists every key **with its English text as the value**. It includes `items.*` and `events.*` keys, which is why step 5 writes those files first. Translate every value into Chinese and save the result as `game/packs/<id>/texts/zh-CN.json`. Don't copy English across: an English value counts as present but ships English to Chinese players.
+Use any writable temporary folder (your scratchpad if you have one). The output file lists every key **with its English text as the value**. It includes `items.*` and `events.*` keys, which is why step 5 writes those files first. Translate every value into Chinese and save the result as `game/packs/<id>/texts/zh-CN.json`. Don't copy English across, not even single words or pack ids inside a Chinese sentence: an English value counts as present but ships English to Chinese players. Check with `python3 -c "import json,re;z=json.load(open('game/packs/<id>/texts/zh-CN.json'));print([k for k,v in z.items() if re.search(r'[A-Za-z]{3,}',v)])"`, which must print `[]`.
 - **Host terms:** 老费 (Old Fei), 珂兰 (Kelan), 白页者 (the Unwritten), 誊写庭 (Scriptorium), 黑羽 (the Uninked, Black Feather), 拾遗行会 (Salvage Guild), 自由市广场 (Free City Plaza), 褪色 (the Fading), 墨魈 (Ink Fiend), 墨魈幼体 (Ink Imp), 墨魈群 (Ink Swarm).
 - **Key forms** (translate every one the tool lists):
   - `manifest.name`, `manifest.graft.edge.label`, `acts.<ACT>.title` / `.role`

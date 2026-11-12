@@ -27,7 +27,7 @@ The annex door is painted over with ink-rings, and the seal ring in the middle i
 - check athletics medium "Force the bent hinges" -> S-3 | fail S-2f
 
 ## S-2f scene: The Lamp Goes Grey
-The hinges give with a crack that carries over the whole harbour. Inside, the Reading Room's lamps go grey one after another, and a bell rings in the annex tower that nobody rang.
+The hinges give with a dry snap that runs up the annex stair like a dropped ruler. Inside, the Reading Room's lamps go grey one after another, and a bell rings in the annex tower that nobody rang.
 > on_enter: clock +1
 - choice "Get inside before the seal sets" -> S-3
 

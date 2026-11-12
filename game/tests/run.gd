@@ -8747,6 +8747,16 @@ func test_arc_packs() -> void:
 			var parsed: Dictionary = imp.parse_script(FileAccess.get_file_as_string(script_path))
 			check((parsed["errors"] as Array).is_empty() and (parsed["nodes"]["nodes"] as Array).size() == (arc["node_order"] as Array).size(),
 				"%s：剧本 %s 与运行包节点数一致（剧本为结构真源，改剧本后须重导入）" % [pid, script_path.get_file()])
+		# 译文：英文源包的 zh-CN 不得夹带英文单词 / 包 id（≥3 个拉丁字母连写）——值存在但半英半中会直接上屏
+		if str(arc.get("source_locale", "")) != "zh-CN":
+			var zh_path := "res://packs/%s/texts/zh-CN.json" % pid
+			var zh: Variant = JSON.parse_string(FileAccess.get_file_as_string(zh_path)) if FileAccess.file_exists(zh_path) else {}
+			var latin := RegEx.create_from_string("[A-Za-z]{3,}")
+			var mixed: Array = []
+			for zk: String in (zh as Dictionary).keys():
+				if latin.search(str((zh as Dictionary)[zk])) != null:
+					mixed.append(zk)
+			check(not (zh as Dictionary).is_empty() and mixed.is_empty(), "%s：zh-CN 译文完整且无夹带英文（%s）" % [pid, str(mixed)])
 		# 战斗：胜率锁（200 局 ±3 噪声）+ HP 旋钮不超上限
 		var view: Dictionary = PackLoader.merge_graft(host, arc)["view"]
 		for eid: String in (arc.get("encounters", {}) as Dictionary).keys():

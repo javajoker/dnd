@@ -3,7 +3,7 @@
     "id": "mended_house_plate",
     "name": "Mended House Plate",
     "roles": ["stat"],
-    "source": "arc_salvage S-6r (return the plates to the families)",
+    "source": "The Sealed Crate, S-6r (return the plates to the families)",
     "unlocks": [],
     "equip": {"slot": "trinket", "max_hp": 2}
   }

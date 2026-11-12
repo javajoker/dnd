@@ -45,7 +45,7 @@
   "events.salvage_crate.trigger.label": "行会掮客有一只木箱要人去取",
   "events.salvage_crate.objective": "从半褪色的仓库里取回拾遗行会的封缄木箱",
   "items.mended_house_plate.name": "修补过的门牌",
-  "items.mended_house_plate.source": "arc_salvage S-6r（把门牌送还各家）",
+  "items.mended_house_plate.source": "封缄木箱 S-6r（把门牌送还各家）",
   "flags.done.name": "完成",
   "lore.revoked_registry_plates.title": "住所门牌",
   "node.S-1.text": "拾遗行会在广场边的凉棚下摆了一张点数桌。掮客是个瘦削的女人，名叫奥索莉娅·温恩，什么东西都要称两遍。她把一张委托单推过桌面。\n“狐雾码头九号仓库。一半已经褪了，另一半也在褪。后面的账房里有一只盖着行会封印的木箱。原封不动带给我，酬金六十金。原封不动，这就是全部的活儿。”",
