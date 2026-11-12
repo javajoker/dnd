@@ -30,6 +30,10 @@ static func run(pack: Dictionary, seed: int, ngplus: bool = false, lone_wolf: bo
 	var graph := StoryGraph.new(board, rng, pack)
 	for arc: Variant in arcs: # 支线仿真（tech/11 §5）：注入后从宿主起点跑，嫁接探针优先走注入边
 		graph.graft_pack(arc)
+		# 道具门支线：探针开局即持有门道具（模拟买过 / 拿到它的玩家），否则入口可能永不显形
+		var gedge: Dictionary = (((arc as Dictionary).get("manifest", {}) as Dictionary).get("graft", {}) as Dictionary).get("edge", {})
+		if str(gedge.get("type", "")) == "item":
+			board.give_item(str(gedge.get("item", "")), 1, {"event_id": 0, "node_id": "graft_probe", "pack_id": "system"})
 	if ngplus:
 		var prov := {"event_id": 0, "node_id": "ngplus_boot", "pack_id": "system"}
 		# 多周目残简继承：数据驱动读 manifest.ngplus.carries（tech/02 §2.7；战役书 §11），缺省 1

@@ -34,8 +34,8 @@ The door gives at last with a crack that carries across the whole harbour. Insid
 - choice "Get inside before it's too late" -> C-3
 
 ## C-3 battle: Ink at the Ledger
-A swarm of ink has settled on the open ledger like flies on spilt sugar, drinking names line by line. It rises when you step inside, and two salvage-scavengers who were waiting for it to finish come up out of the dark behind you.
-> encounter: medium | enemies ink_swarm, dock_ambusher x2 | xp 60 | gold 12 | loot ink_salve
+A swarm of ink has settled on the open ledger like flies on spilt sugar, drinking names line by line. It rises when you step inside, an ink imp drops from the rafters, and two salvage-scavengers who were waiting for it to finish come up out of the dark behind you.
+> encounter: medium | enemies ink_swarm, dock_ambusher x2, ink_imp | xp 60 | mods hp-1 | gold 12 | loot ink_salve
 - choice "Lift the ledger out of the water" -> C-4
 
 ## C-4 dialog: Three Buyers for a Book of Names

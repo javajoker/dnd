@@ -2,6 +2,7 @@
 # enemy_mods（全体敌人 HP 加值，必要时再加攻击修正）把胜率拉回区间中心——只建议 / 写回遭遇级旋钮，
 # 不改共享的敌人条目与规则包（铁律：调数值不调规则）。
 #
+# HP 旋钮限幅：±最弱敌人 HP 的 40%（hp_cap）；够不着区间 = 阵容问题，报 ✗ 并给出加 / 减敌人的方向。
 # 用法：godot --headless --path game -s tools/balance_tune.gd -- <包目录> [--games N] [--seed S] [--class ID] [--write] [--only ID]
 #   - 缺省 400 局 / 场、种子 20261109；搜索时同一种子（共同随机数，曲线平滑）；最终值用另一种子复核
 #   - 支线包（manifest.graft）自动并入宿主后测
@@ -70,16 +71,28 @@ func _init() -> void:
 		var center := (lo + hi) * 0.5
 		var base_mods: Dictionary = (enc.get("enemy_mods", {}) as Dictionary).duplicate()
 		var r0 := _rate(pack, eid, base_mods, games, seed)
-		if r0 >= lo and r0 <= hi:
+		var cap := hp_cap(_min_enemy_hp(pack, eid))
+		var over_cap := absi(int(base_mods.get("hp", 0))) > cap
+		if r0 >= lo and r0 <= hi and not over_cap:
 			print("%-11s %-7s %2d~%-3d   %5.1f%%   （在区间内，不动）" % [eid, diff, int(lo), int(hi), r0])
+			continue
+		if over_cap:
+			out_of_band += 1
+			print("%-11s %-7s %2d~%-3d   %5.1f%%   ✗ enemy_mods.hp %+d 超过上限 ±%d / over the HP-knob cap: change the line-up instead"
+				% [eid, diff, int(lo), int(hi), r0, int(base_mods["hp"]), cap])
 			continue
 		var best := _search(pack, eid, base_mods, games, seed, center)
 		var check := _rate(pack, eid, best["mods"], games, seed + 7777) # 换种子复核
 		var ok := check >= lo and check <= hi
 		if not ok:
 			out_of_band += 1
+		var verdict := "✓"
+		if not ok:
+			verdict = "✗ 仍越界（需改阵容）/ out of band: change the line-up — %s" % (
+				"too easy: add an enemy or swap one for a tougher type" if check > hi
+				else "too hard: remove an enemy or swap one for a weaker type")
 		print("%-11s %-7s %2d~%-3d   %5.1f%%   %-24s %5.1f%% %s" % [eid, diff, int(lo), int(hi), r0,
-			JSON.stringify(best["mods"]), check, "✓" if ok else "✗ 仍越界（需改阵容 / 敌人条目）"])
+			JSON.stringify(best["mods"]), check, verdict])
 		rows.append({"id": eid, "mods": best["mods"]})
 	if write and not rows.is_empty():
 		_write(dir, rows)
@@ -89,6 +102,17 @@ func _init() -> void:
 	else:
 		print("== 全部在区间内 ==")
 	quit(2 if out_of_band > 0 else 0)
+
+static func _min_enemy_hp(pack: Dictionary, eid: String) -> int:
+	var min_hp := 999
+	for e: Variant in (pack["encounters"][eid] as Dictionary).get("enemies", []):
+		var ref := str((e as Dictionary).get("ref", ""))
+		min_hp = mini(min_hp, int(((pack.get("enemies", {}) as Dictionary).get(ref, {}) as Dictionary).get("hp", 1)))
+	return min_hp
+
+## HP 旋钮上限（tech/11 §5）：最弱敌人 HP 的 40%，向上取整，至少 1。
+static func hp_cap(min_hp: int) -> int:
+	return maxi(1, ceili(min_hp * 0.4))
 
 static func _opt(a: PackedStringArray, key: String, def: String) -> String:
 	var i := a.find(key)
@@ -111,12 +135,11 @@ func _rate(pack: Dictionary, eid: String, mods: Dictionary, games: int, seed: in
 
 ## 先二分 HP 加值（HP 越高胜率越低，单调）；HP 到边界仍不够再试攻击修正。返回 {mods, rate}。
 func _search(pack: Dictionary, eid: String, base: Dictionary, games: int, seed: int, center: float) -> Dictionary:
-	var min_hp := 999
-	for e: Variant in (pack["encounters"][eid] as Dictionary).get("enemies", []):
-		var ref := str((e as Dictionary).get("ref", ""))
-		min_hp = mini(min_hp, int(((pack.get("enemies", {}) as Dictionary).get(ref, {}) as Dictionary).get("hp", 1)))
-	var lo := maxi(HP_RANGE.x, 1 - min_hp + 1) # 敌人 HP 至少留 2
-	var hi := HP_RANGE.y
+	var min_hp := _min_enemy_hp(pack, eid)
+	# HP 旋钮上限 = 最弱敌人 HP 的 40%（向上取整）：再大就是换了敌人（8 HP 的幼体 +11 = 另一种怪），应改阵容
+	var cap := hp_cap(min_hp)
+	var lo := maxi(maxi(HP_RANGE.x, -cap), 1 - min_hp + 1) # 敌人 HP 至少留 2
+	var hi := mini(HP_RANGE.y, cap)
 	var atk := int(base.get("attack_mod", 0))
 	var cache := {}
 	var rate_at := func(hp: int, at: int) -> float:

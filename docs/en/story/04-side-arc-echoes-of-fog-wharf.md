@@ -31,7 +31,7 @@ Whoever buys that Half-Page Tide Chart in the Free City Plaza will, on some fogg
 | Node | Type | Content |
 |---|---|---|
 | T-1 | check | **Night Search at Fog Wharf**: Perception check · medium. Success → follow the bell (T-2); failure → still reach T-2, but you've woken something in the fog (`clock +1`; the "costed convergence" failure pattern B — the difference lies in the success/failure effects) |
-| T-2 | battle | **Salvage Battle**: ambushed the moment you haul up the sunken chest — Ink Fiend ×1 + Ink Imp ×2 (reuses the Ink Fiend family from campaign01 enemies.json; side arcs reference the host's resource tables, tech/02 §2.6). After victory, the only out-edge → T-3 |
+| T-2 | battle | **Salvage Battle**: ambushed the moment you haul up the sunken chest — Ink Fiend ×1 + Ink Imp ×2 (reuses the Ink Fiend family from campaign01 enemies.json; side arcs reference the host's resource tables, tech/02 §2.6), `enemy_mods.hp +4` (2026-11-12 re-tune: it had drifted to 91–94 % after the P6 rebalance; now 75 %, seeds 20261109 / 7). After victory, the only out-edge → T-3 |
 | T-3 | scene | **Register of the Revoked · Scrap**: on_enter settlement — Compendium entry `revoked_registry_tide` (lore effect, into global.lore) + Salvage Guild reputation +1 (rep.salvage) + XP +40 (XP flows into growth, tech/04 §8 rule 1) |
 | T-4 | scene | **Convergence**: on_enter writes `arc_tide.done`; only out-edge → N1-1 (back to the main line) |
 
@@ -48,4 +48,4 @@ Flag ledger: `done` (writers: T-4; readers: History Scroll / reserved for future
 ## 5. Validation and simulation scope
 
 - packlint: `lint_grafted` (tech/02 §12 V14) — V1–V3 graph traversal runs on the merged view (T-1~T-4 reach the host's endings via the injected edge), V4/V6–V9/V11–V13 run per this pack, and resource references (Ink Fiend family enemies, player_blank, half_tide_table) resolve in the merged view;
-- Simulation: when the bot holds the Tide Chart the injected edge is visible, and after completing the arc it returns to N1-1; the ending-distribution assertion keeps the full set of four endings (the arc doesn't affect main-line endings; see `test_arc_tide` in tests/run.gd).
+- Simulation: `simulate.gd -- 24 packs/arc_tide` injects the arc into its host and starts the bot holding the Tide Chart (item-gated graft probe); coverage 4/4. When the bot holds the Tide Chart the injected edge is visible, and after completing the arc it returns to N1-1; the ending-distribution assertion keeps the full set of four endings (the arc doesn't affect main-line endings; see `test_arc_tide` in tests/run.gd).

@@ -113,6 +113,35 @@ The three classes are three ways Ashenport survives the Fading:
 
 Backgrounds bind the hero to a faction before the first page: a **Dockhand** grew up under Old Fei's crane; a **Scriptorium Novice** copied pages in the archive until the pages began to empty; an **Uninked Runaway** fled the ink tithe and owes the Uninked a debt; a **Salvager's Apprentice** knows the price of every fragment. Each grants a keepsake item, a starting reputation and a written backstory, and opens extra lines at matching scenes (doc 11 §1.1).
 
+## 8.2 Companions: canon sheets
+
+Every companion has "a past that was written" and "a page they want to rewrite" (§4.3). This section is the **canon registry**. A writer may fill an *open* item once, in a quest, and must then record it here in the same change (quest id + one line), so the next quest doesn't contradict it. *Locked* items are already established on screen and must not be contradicted.
+
+### Kelan (`companion_kelan`)
+
+- **Locked:**
+  - She is at the Unwritten's side from the first night of ink-rain (N1-7) and stays in the party.
+  - She reads old bindings and dates records at a glance (N1-1ma, "Kelan dates the ledgers"), and leads History checks in the archive thread (campaign book §4).
+  - She heals with written ink (Kelan's Patch) and fights with an ink bolt.
+  - Stats: d6 Hit Die; proficient in history and soothe.
+  - She smooths the paper for the hero's new line in ending E3.
+- **Temperament (locked by her lines):** quiet, precise, protective. She asks before she acts.
+- **Open:**
+  - Her written past: who taught her to read bindings, and where.
+  - The page she wants to rewrite.
+  - How she relates to the Scriptorium.
+
+### Old Fei (`companion_laofei`)
+
+- **Locked:**
+  - He is the harbour crane operator; Dockhands grew up under his crane, and he recognises a Dockhand's tally.
+  - He handles salvage practically (he dries readable pages on an oilcloth, N1-1mb).
+  - He fights with a boathook and braces to protect the party.
+  - Stats: d8 Hit Die; proficient in athletics and perception.
+- **Temperament:** dry, practical, unsentimental in words and sentimental in deeds.
+- **Filled by arc_crane (story/05):** for thirty years he chalked every crew he worked with into one ledger, kept in the tally house by the breakwater; the Fading began eating it from the newest crews back. Crews he names: "the lad who lost two fingers to the chain", "Big Hu". If the player kept the ledger for him, he gave away his old crane token.
+- **Open:** the page he wants to rewrite, and his family.
+
 ## 9. Compendium Lore entry framework
 
 Lore entries in the Compendium (screen ⑥) are organised into four series; completing a series unlocks hidden content:

@@ -42,11 +42,26 @@ Side quests are tuned on the merged view with their host automatically. Trial pa
 
 ## Knob order
 
-1. `enemy_mods.hp` (all enemies of that encounter) — the tuner's first choice.
+1. `enemy_mods.hp` (all enemies of that encounter) — the tuner's first choice, **capped at ±40 % of the weakest enemy's HP** (rounded up: Ink Imp 8 → ±4). A bigger buff turns the enemy into a different monster, so the tuner refuses it and asks for a line-up change.
 2. `enemy_mods.attack_mod` (±1–2) when HP alone can't reach the band.
 3. Line-up (add / remove / swap enemies) when the tuner reports "still out of band".
 4. Shared enemy stats — only with the world designer; re-run every pack using that enemy.
 5. Never the rule pack.
+
+## Starting line-ups known to be in band (default party)
+
+| Difficulty, level | Line-up |
+|---|---|
+| easy, Lv1 | `ink_imp x3, ink_swarm` · `mercenary x2` + hp+4 |
+| medium, Lv1 | `ink_fiend, ink_imp x2` + hp+4 · `ink_swarm, dock_ambusher x2, ink_imp` + hp−1 |
+| medium, Lv2 | `uninked_guard x3` + hp+1 |
+| hard, Lv2 | `mercenary x3` |
+| medium, Lv3 | `ink_fiend, ink_swarm x2` + hp+2 |
+| hard, Lv3 | `page_warden` (boss) · `tide_avatar, ink_imp x2` |
+
+A new battle that starts above 95 % or below 40 % has the wrong line-up. Start from this table instead of tuning HP.
+
+`tests/run.gd` `test_arc_packs` locks every side quest's battles to their bands (200 games, ±3) and enforces the HP cap, so a drifted battle fails the suite.
 
 ## Reporting
 
@@ -67,7 +82,8 @@ A table per pack: encounter, difficulty, band, rate before, change, rate after (
 | packlint | `V15 声明语言 zh-CN 但缺 …` | missing `texts/zh-CN.json` or keys — fill from `text_extract` |
 | balance_tune | `（在区间内，不动）` | in band, unchanged |
 | balance_tune | `{"hp":5} 71.3% ✓` | suggested `enemy_mods` and the confirmed rate: OK |
-| balance_tune | `✗ 仍越界（需改阵容 / 敌人条目）` | knobs can't fix it: **change the line-up** (enemy count / types), re-import, re-tune |
+| balance_tune | `✗ 仍越界（需改阵容）/ out of band: change the line-up — too easy / too hard …` | the HP knob (capped at ±40 % of the weakest enemy's HP) can't fix it: **change the line-up** in the direction given, re-import, re-tune |
+| balance_tune | `✗ enemy_mods.hp +N 超过上限 ±M` | a stored HP buff is too big: change the line-up and remove the `mods` |
 | balance_tune | `== 建议 N 处（加 --write 写回）==` / `== 已写回 … ==` / `== 全部在区间内 ==` | N suggestions (re-run with `--write`) / written / all in band |
 | simulate | `== 仿真断言全绿 ==` / `== 仿真失败：N ==` | all assertions green / N failures |
 | simulate | `未覆盖：ID` / `覆盖 a/b 节点（x%）` / `卡在节点 ID` | node never reached / coverage (≥ 95 % needed) / bot stuck (no usable exit) |

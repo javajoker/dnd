@@ -30,10 +30,23 @@ func _init() -> void:
 		var n: Dictionary = p["nodes"][nid]
 		if str(n.get("type", "")) == "hub":
 			print("- %s · %s · %s · %d exits" % [nid, n.get("act", ""), n.get("title", ""), (n.get("edges", []) as Array).size()])
-	print("\n## Characters (ref · kind · name)")
+	print("\n## Side quests already grafted here (host node · entry label · pack) — keep entry labels unique per node")
+	for sub: String in DirAccess.get_directories_at(dir.get_base_dir()):
+		var mpath := dir.get_base_dir().path_join(sub).path_join("manifest.json")
+		var mm: Variant = JSON.parse_string(FileAccess.get_file_as_string(mpath)) if FileAccess.file_exists(mpath) else null
+		if mm is Dictionary and str(((mm as Dictionary).get("graft", {}) as Dictionary).get("into", "")) == str(p["pack_id"]):
+			var g: Dictionary = (mm as Dictionary)["graft"]
+			var label := str((g.get("edge", {}) as Dictionary).get("label", ""))
+			var tpath := dir.get_base_dir().path_join(sub).path_join("texts/%s.json" % PackLoader.locale)
+			var tt: Variant = JSON.parse_string(FileAccess.get_file_as_string(tpath)) if FileAccess.file_exists(tpath) else null
+			if tt is Dictionary and (tt as Dictionary).has("manifest.graft.edge.label"):
+				label = str(tt["manifest.graft.edge.label"])
+			print("- %s · \"%s\" · %s" % [g.get("node", ""), label, sub])
+	print("\n## Characters (ref · kind · name · proficiencies · skills) — backstory canon: docs/en/story/01-world-*.md §8.2")
 	for id: String in (p.get("characters", {}) as Dictionary).keys():
 		var c: Dictionary = p["characters"][id]
-		print("- %s · %s · %s" % [id, c.get("kind", ""), c.get("name", "")])
+		print("- %s · %s · %s · %s · %s" % [id, c.get("kind", ""), c.get("name", ""),
+			",".join(PackedStringArray(c.get("proficiencies", []))), ",".join(PackedStringArray(c.get("skills", [])))])
 	print("\n## Enemies (ref · name · HP / AC / attack / damage)")
 	for id: String in (p.get("enemies", {}) as Dictionary).keys():
 		var e: Dictionary = p["enemies"][id]
@@ -68,8 +81,10 @@ func _init() -> void:
 	var ks := keys.keys()
 	ks.sort()
 	print("- ", ", ".join(PackedStringArray(ks)))
+	print("\n## Check skills (check edges; doc 11 §2) and difficulties")
+	print("- ", ", ".join(PackedStringArray(PacklintCore.LIGHT_SKILLS)), " · easy DC 8 / medium 12 / hard 16")
 	print("\n## Doom Clock budget (packlint V5: host + side quest positive clock effects ≤ 10)")
-	print("- positive clock effects in this pack: +%d → a side quest grafted here may add at most +%d" % [clock_pos, maxi(0, 10 - clock_pos)])
+	print("- positive clock effects in this pack: +%d → a side quest grafted here may add at most +%d (negative effects don't offset it; each quest is checked against the host alone, and the runtime clamps the clock at 10)" % [clock_pos, maxi(0, 10 - clock_pos)])
 	quit(0)
 
 static func _default_party(p: Dictionary) -> Array:

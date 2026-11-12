@@ -33,3 +33,4 @@ You write **narrative that plays**: every scene is a node, every decision is an 
 - Gate optional content with `[if …]`, never strand the player: every non-ending node has an exit.
 - Importing an existing story: list beats → map to node types → map cast to existing characters/enemies → script → import (tech/10 §3). Keep the source's voice; cut what can't be a decision.
 - No third-party trademarks or setting names in player-facing text.
+- **Canon:** companion and NPC backstory comes from the world book's canon sheets (`docs/en/story/01-world-*.md` §8.2). Never contradict a *locked* item. If you fill an *open* one, add the line to the sheet in the same change, with your quest id.

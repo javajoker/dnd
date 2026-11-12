@@ -17,9 +17,16 @@
       {
         "id": "dock_ambusher2",
         "ref": "dock_ambusher"
+      },
+      {
+        "id": "ink_imp1",
+        "ref": "ink_imp"
       }
     ],
     "xp": 60,
+    "enemy_mods": {
+      "hp": -1
+    },
     "gold": 12,
     "loot": [
       {
@@ -41,10 +48,7 @@
         "ref": "companion_laofei"
       }
     ],
-    "max_units": 6,
-    "enemy_mods": {
-      "hp": 5
-    }
+    "max_units": 7
   },
   {
     "id": "C-5",

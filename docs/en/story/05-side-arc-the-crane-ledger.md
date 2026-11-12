@@ -27,7 +27,7 @@ Old Fei has chalked every harbour crew he ever worked with into one ledger, and 
 | C-1 | scene | **Under the Old Crane**: Old Fei asks for help (`bond.laofei +5`). **Dockhand** background line: "my name's in there too" (`bond.laofei +10`, inspiration +1) |
 | C-2 | check | **The Flooded Tally House**: athletics or thievery, medium; the **Boathook Axe** (item edge) opens it outright. Either failed check → C-2f |
 | C-2f | scene | **Too Much Noise**: the one costed failure, `clock +1` (a lamp on the breakwater fades) → C-3 |
-| C-3 | battle | **Ink at the Ledger** (medium): Ink Swarm + Dock Ambusher ×2, `enemy_mods.hp +5`; 60 XP, 12 gold, Ink Salve |
+| C-3 | battle | **Ink at the Ledger** (medium): Ink Swarm + Dock Ambusher ×2 + Ink Imp, `enemy_mods.hp −1`; 60 XP, 12 gold, Ink Salve |
 | C-4 | dialog | **Three Buyers for a Book of Names**: lore `revoked_registry_crane`. The Scriptorium clerk, an Uninked runner and Old Fei himself |
 | C-5 | battle | **The Clerk's Hired Swords** (easy, only if the persuasion check fails): Mercenary ×2, `enemy_mods.hp +4`; 40 XP, 8 gold; `rep.scriptorium -1` |
 | C-6k | scene | **Names Read Aloud** (keep it): `bond.laofei +15`, **Old Fei's Crane Token**, 40 XP |
@@ -56,7 +56,7 @@ Everything else is reused from the host: player_blank, Kelan, Old Fei, Ink Swarm
 
 | Battle | Band | Before | Change | After (seed 20261109 / 7 / 99, 600 games) |
 |---|---|---|---|---|
-| C-3 | medium 70–80 | 93.7 % | `hp +5` | 71.3 / 71.5 / 73.0 % |
+| C-3 | medium 70–80 | 93.7 % (Swarm + Ambusher ×2) | first `hp +5`; then the HP cap (±40 % of the weakest enemy, so ±4) ruled that a different monster, so the line-up gained an Ink Imp, with `hp −1` | 77.7 / 74.3 / 76.7 % |
 | C-5 | easy 85–95 | 100 % (one mercenary; HP and attack knobs couldn't fix it) | line-up → Mercenary ×2, `hp +4` | 89.2 / 88.2 / 89.8 % |
 
 - Classes (600 games): Harbour Guard 77.0 / 92.2, Scavenger 74.0 / 89.8, Ink Adept 76.5 / 90.5. All within ±7 points of the default hero.
@@ -68,3 +68,4 @@ Everything else is reused from the host: player_blank, Kelan, Old Fei, Ink Swarm
 - The importer cut long summaries mid-word; now it cuts at a word boundary with an ellipsis.
 - `simulate.gd` and `StoryBot.run` now accept side quests: they inject the arc into its host, and the bot takes the injected option when it appears.
 - The first line-up was rejected by the tuner ("change the line-up"), as tech/11 §5 intends.
+- C-3 was re-done after the HP cap was introduced: `hp +5` on 9-HP ambushers broke the cap, so the line-up changed instead.

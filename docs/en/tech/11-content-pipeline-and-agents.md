@@ -83,7 +83,7 @@ Checks: easy DC 8 / medium 12 / hard 16; mix per act per doc 11 §9. Growth: XP 
    godot --headless --path game -s tools/balance_tune.gd -- packs/<id> --games 600
    godot --headless --path game -s tools/balance_tune.gd -- packs/<id> --games 600 --write
    ```
-   The tuner binary-searches an `enemy_mods.hp` (then `attack_mod`) that brings each out-of-band battle to its band centre, re-checks with a second seed and reports battles that can't be fixed by knobs ("change the line-up").
+   The tuner binary-searches an `enemy_mods.hp` (then `attack_mod`) that brings each out-of-band battle to its band centre, re-checks with a second seed and reports battles that can't be fixed by knobs ("change the line-up", with the direction). The HP knob is capped at ±40 % of the weakest enemy's HP: beyond that the enemy has become a different monster (run 2 below produced 8-HP imps at +11), so the line-up must change instead. Stored mods above the cap are flagged too.
 3. Class parity: `tools/winrate.gd -- <games> <seed> <pack dir> <class>` for each class — within ±7 points of the default hero.
 4. Whole-run sanity: `tools/simulate.gd -- 24 <pack dir>` — every run reaches an ending, the Doom Clock stays in range, ≥ 95 % node coverage. A side quest is injected into its host and run from the host start (the bot takes the injected option when it appears); coverage counts the quest's own nodes.
 5. Noise: 200 games ≈ ±3 points; decide with ≥ 600 games and two seeds.
@@ -96,10 +96,10 @@ Cold-start rule: the skills must be enough on their own. A fresh agent on a smal
 - [ ] `packlint` 0 FAIL (side quests grafted onto their host)
 - [ ] `balance_tune` reports every battle in band; classes within tolerance
 - [ ] `simulate` green (endings reached, coverage ≥ 95 %)
-- [ ] Headless test suite green (`tests/run.gd`)
+- [ ] Headless test suite green (`tests/run.gd`). Side quests need no test code: `test_arc_packs` checks every arc in the game manifest (grafted lint, script matches pack, band lock, HP cap, grafted simulation coverage)
 - [ ] Texts complete for every shipped locale (`text_extract`, V15)
 - [ ] Pack listed in the game manifest; entitlement registered if gated
-- [ ] Docs: the story / world book in `docs/en/story/`, any new mechanic specified before code (tech/07 §6)
+- [ ] Docs: the story / world book in `docs/en/story/`, any new mechanic specified before code (tech/07 §6); backstory added to the world book's canon sheets (§8.2)
 - [ ] Player-facing text uses no third-party trademarks or setting names
 
 ## 7. Cold-start verification log
@@ -107,3 +107,4 @@ Cold-start rule: the skills must be enough on their own. A fresh agent on a smal
 | Date | Model / effort | Brief | Result | Fixes made from it |
 |---|---|---|---|---|
 | 2026-11-12 | Sonnet / low | Kelan companion side quest, 6–8 nodes | Invalid run: its worktree was cut from `main`, without the pipeline commits. Even so it hand-wrote a valid arc (packlint 0 FAIL, tests green) | First-run `--import` step; shell and path rules; graft edge types, party, faction keys and item roles written into the side-quest skill; importer resolves repo-root paths and item-gated short grafts; `pack_catalog.gd`; output-marker glossary; per-class balance via `balance_tune --class` |
+| 2026-11-12 | Sonnet / low | same | **Pass**: `arc_kelan` with 8 nodes, real zh-CN, packlint 0 FAIL, tuner in band, simulate 8/8, tests green; ~88k tokens, 23 tool calls, 5 min. Problems: it accepted `hp +11` on 8-HP imps; it invented Kelan's backstory (no canon existed); it hand-copied a test | HP-knob cap ±40 % (tuner + test); data-driven `test_arc_packs` (it also caught arc_tide drifting to 93 % and never being simulated; both fixed); item-gated graft probe; world book §8.2 companion canon sheets; side-quest skill rewritten as a linear checklist (setup, catalogue, line-up table, translation steps, Chinese host terms); `pack_catalog` lists existing grafts, companion skills, check skills |
