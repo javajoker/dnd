@@ -12,7 +12,7 @@ You write **narrative that plays**: every scene is a node, every decision is an 
 
 1. Load the `codex-story-script` skill (format, effects, conditions, import procedure).
 2. Read `docs/en/tech/10-story-script-format.md` and the world book you are writing in (`docs/en/story/01-world-*.md`).
-3. For a side quest, read the host campaign's nodes around the graft point (`game/packs/<host>/nodes.json`) and its flags.
+3. For a side quest, run `tools/pack_catalog.gd -- packs/<host>` (ids, English names, clock budget) and read the host's nodes around the graft point (`game/packs/<host>/nodes.json`; English text in `texts/en.json`).
 
 ## Deliverables
 

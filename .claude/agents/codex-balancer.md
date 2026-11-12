@@ -20,7 +20,7 @@ G=/Applications/Godot.app/Contents/MacOS/Godot
 $G --headless --path game -s tools/balance_tune.gd -- packs/<id> --games 600            # report
 $G --headless --path game -s tools/balance_tune.gd -- packs/<id> --games 600 --write    # apply
 $G --headless --path game -s tools/balance_tune.gd -- packs/<id> --games 600 --seed 7   # re-check, other seed
-$G --headless --path game -s tools/winrate.gd -- 600 5 packs/<id> <class_id>            # each class
+$G --headless --path game -s tools/balance_tune.gd -- packs/<id> --games 600 --class <class_id>  # each class (ids: pack_catalog; works for side quests)
 $G --headless --path game -s tools/simulate.gd -- 24 packs/<id>
 ```
 

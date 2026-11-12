@@ -8647,6 +8647,10 @@ func test_content_pipeline() -> void:
 	var graft: Dictionary = sq["manifest"]["graft"]
 	check(graft.has("edge") and str(graft["edge"].get("to", "")) == "L-1" and str(graft.get("into", "")) == "campaign01",
 		"支线 graft 短式 → {into, node, edge}")
+	var item_gate: Dictionary = imp.parse_script("---\npack_id: g\npack_type: arc\ngraft: {\"into\": \"campaign01\", \"node\": \"N1-1\", \"label\": \"L\", \"item\": \"half_tide_table\"}\n---\n# ACT G: G\n## G-1 scene: A\nx\n- choice \"back\" -> N1-1\n")
+	var ig: Dictionary = item_gate["manifest"]["graft"]["edge"]
+	check(str(ig.get("type", "")) == "item" and str(ig.get("item", "")) == "half_tide_table" and str(ig.get("to", "")) == "G-1",
+		"graft 短式 item 门 → item 边（缺 to 时指向首节点）")
 	var errs: Array[String] = []
 	var eff: Array = imp._effects("xp 40, gold -5, rep.salvage +1, give heal_potion x2, write tally = 3, lore lk", 1, errs)
 	check(JSON.stringify(imp.ints(eff)) == JSON.stringify([{"xp": 40}, {"gold": -5}, {"rep.salvage": 1}, {"give_item": "heal_potion"}, {"give_item": "heal_potion"},

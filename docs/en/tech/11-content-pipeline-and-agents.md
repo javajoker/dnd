@@ -1,6 +1,6 @@
 # tech/11 · Content Pipeline and Agent Set — new games, sub-games, side quests
 
-> Status: **implemented** (2026-11-12). Agents in `.claude/agents/`, skills in `.claude/skills/`. Tools: `game/tools/story_import.gd` (tech/10), `game/tools/balance_tune.gd`, `winrate.gd`, `simulate.gd`, `packlint.gd`, `text_extract.gd`, `gen_art.py` / `gen_audio.py`. Related: tech/07 (new-game kit), tech/02 / tech/04 (data formats), docs 11 / 15 / 16 (rules, party split, maps), story/03 (balance bands), tech/08 (asset prompts).
+> Status: **implemented** (2026-11-12). Agents in `.claude/agents/`, skills in `.claude/skills/`. Tools: `game/tools/story_import.gd` (tech/10), `game/tools/balance_tune.gd`, `game/tools/pack_catalog.gd` (a pack's reusable ids, English names, stats and Doom Clock budget), `winrate.gd`, `simulate.gd`, `packlint.gd`, `text_extract.gd`, `gen_art.py` / `gen_audio.py`. Related: tech/07 (new-game kit), tech/02 / tech/04 (data formats), docs 11 / 15 / 16 (rules, party split, maps), story/03 (balance bands), tech/08 (asset prompts).
 
 The framework already separates **engine** from **content** (tech/07). This document defines how content is produced: who does what, in which order, with which tools, and what "done" means. The same pipeline serves three products:
 
@@ -90,6 +90,9 @@ Checks: easy DC 8 / medium 12 / hard 16; mix per act per doc 11 §9. Growth: XP 
 
 ## 6. Definition of done (producer)
 
+Cold-start rule: the skills must be enough on their own. A fresh agent on a smaller model (Sonnet, low effort), given only a brief, must be able to finish this list. Re-test after changing the skills or tools (§7).
+
+
 - [ ] `packlint` 0 FAIL (side quests grafted onto their host)
 - [ ] `balance_tune` reports every battle in band; classes within tolerance
 - [ ] `simulate` green (endings reached, coverage ≥ 95 %)
@@ -98,3 +101,9 @@ Checks: easy DC 8 / medium 12 / hard 16; mix per act per doc 11 §9. Growth: XP 
 - [ ] Pack listed in the game manifest; entitlement registered if gated
 - [ ] Docs: the story / world book in `docs/en/story/`, any new mechanic specified before code (tech/07 §6)
 - [ ] Player-facing text uses no third-party trademarks or setting names
+
+## 7. Cold-start verification log
+
+| Date | Model / effort | Brief | Result | Fixes made from it |
+|---|---|---|---|---|
+| 2026-11-12 | Sonnet / low | Kelan companion side quest, 6–8 nodes | Invalid run: its worktree was cut from `main`, without the pipeline commits. Even so it hand-wrote a valid arc (packlint 0 FAIL, tests green) | First-run `--import` step; shell and path rules; graft edge types, party, faction keys and item roles written into the side-quest skill; importer resolves repo-root paths and item-gated short grafts; `pack_catalog.gd`; output-marker glossary; per-class balance via `balance_tune --class` |

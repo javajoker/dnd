@@ -33,7 +33,7 @@ default_party: ["player_blank", "companion_kelan", "companion_laofei"]
 ---
 ```
 
-`key: value`; a value that looks like JSON (`{…}`, `[…]`, numbers, `true`/`false`, quoted strings) is parsed as JSON. Every key except `default_party` goes into `manifest.json` (tech/02 §2): `recommended_level`, `start`, `balance`, `subgame`, `monetization`, `entitlement`, `presentation`, `estimated_hours`, … Defaults: `namespace` = `pack_id`, `source_locale` = `en`, `rule_pack` light v1, `node_budget` = nodes + 4. A side quest's short `graft` form (`label` / `to` / `requires`) is expanded to the standard `{into, node, edge}` block; a sub-game without a `subgame` block gets a default one.
+`key: value`; a value that looks like JSON (`{…}`, `[…]`, numbers, `true`/`false`, quoted strings) is parsed as JSON. Every key except `default_party` goes into `manifest.json` (tech/02 §2): `recommended_level`, `start`, `balance`, `subgame`, `monetization`, `entitlement`, `presentation`, `estimated_hours`, … Defaults: `namespace` = `pack_id`, `source_locale` = `en`, `rule_pack` light v1, `node_budget` = nodes + 4. A side quest's short `graft` form (`label` / `to` / `requires`, plus `item` for an item-gated entry) is expanded to the standard `{into, node, edge}` block (a `choice` edge, or an `item` edge when `item` is given; `to` defaults to the first node); a sub-game without a `subgame` block gets a default one.
 
 ### 2.2 Acts and nodes
 

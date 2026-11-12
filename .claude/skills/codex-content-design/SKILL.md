@@ -7,7 +7,15 @@ type: prompt
 
 # Content design skill
 
+Run every command from the repository root with `G=/Applications/Godot.app/Contents/MacOS/Godot` set (one shell call: `G=… ; $G --headless --path game -s tools/… -- …`).
+
+- **Fresh checkout or worktree:** run `$G --headless --path game --import` once first. Without it every tool fails with `Identifier "PackLoader" not declared` (the global class cache is missing).
+- **Shell:** one plain command per call, no `cd … &&` chains or heredocs mixed with `cd` (sandboxes reject them). Write files with the Write tool.
+- **Paths:** pack dirs are relative to `game/` (`packs/<id>`, `user://story_trial/<id>`); story scripts can be given from the repo root (`docs/en/story/…`) or from `game/` (`kit/stories/…`).
+
 References: `docs/en/framework/11-light-rulepack-v1.md` (numbers), `docs/en/tech/04-resources-and-effects-system.md` (schemas), `docs/en/tech/02-content-pack-format-spec.md` (pack files), `docs/en/story/03-balance-and-boss-design.md` §4 (enemy anchors), `docs/en/framework/16-map-and-exploration-spec.md` (maps / tables), `docs/en/tech/05-art-pipeline.md` (art ids, `fx`).
+
+**Host data at a glance:** `$G --headless --path game -s tools/pack_catalog.gd -- packs/<host>` lists reusable ids with English names and stats (characters, enemies, items, classes, backgrounds, lore, rep / bond keys), hubs, the default party, act levels and the **Doom Clock budget** left for a side quest. campaign01's JSON names are Chinese; use this instead of reading raw JSON.
 
 ## Worldview → mechanics
 

@@ -12,7 +12,7 @@ The world is the mechanics made flesh: factions become reputation keys, places b
 
 1. Load the `codex-content-design` skill (schemas, number ranges, design heuristics).
 2. Read `docs/en/framework/11-light-rulepack-v1.md`, `docs/en/tech/04-resources-and-effects-system.md`, `docs/en/story/03-balance-and-boss-design.md` §4, and the world book.
-3. For additions to an existing game, read the pack's current `characters / enemies / items / skills / classes` and match their scale.
+3. For additions to an existing game, run `tools/pack_catalog.gd -- packs/<id>` and match the scale of its characters / enemies / items / classes.
 
 ## Deliverables
 

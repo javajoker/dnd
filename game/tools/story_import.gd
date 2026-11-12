@@ -40,8 +40,9 @@ func _init() -> void:
 	var oi := a.find("--out")
 	if oi >= 0 and oi + 1 < a.size():
 		out = a[oi + 1]
+	src = resolve_path(src)
 	if not FileAccess.file_exists(src):
-		push_error("找不到脚本：%s" % src)
+		push_error("找不到脚本 / script not found：%s（试过：原样、game/ 下、仓库根下）" % a[0])
 		quit(1)
 		return
 	var res := parse_script(FileAccess.get_file_as_string(src))
@@ -69,6 +70,14 @@ func _init() -> void:
 		print(line)
 	print("== 导入完成：packlint %d FAIL / %d WARN ==" % [int(report["fail"]), int(report["warn"])])
 	quit(0 if int(report["fail"]) == 0 else 2)
+
+## 脚本路径：原样 → 相对 game/（Godot 进程的工作目录）→ 相对仓库根（从仓库根运行时传入 docs/… 也能找到）。
+static func resolve_path(src: String) -> String:
+	var root := ProjectSettings.globalize_path("res://")
+	for cand: String in [src, root.path_join(src), root.path_join("..").path_join(src).simplify_path()]:
+		if FileAccess.file_exists(cand):
+			return cand
+	return src
 
 # ---------------------------------------------------------------- 解析
 
@@ -301,6 +310,9 @@ static func parse_script(text: String) -> Dictionary:
 		# 简写：graft: {"into", "node", "label", "to"?, "requires"?} → 标准 edge 块
 		var g: Dictionary = m["graft"]
 		var ge := {"type": "choice", "label": str(g["label"]), "to": str(g.get("to", nodes[0]["id"] if not nodes.is_empty() else ""))}
+		if g.has("item"): # 道具门：持有该道具时才显形（tech/02 §4.3）
+			ge["type"] = "item"
+			ge["item"] = str(g["item"])
 		if g.has("requires"):
 			ge["requires"] = g["requires"]
 		m["graft"] = {"into": str(g["into"]), "node": str(g["node"]), "edge": ge}
