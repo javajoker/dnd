@@ -1,0 +1,10 @@
+[
+  {
+    "id": "salvage_crate",
+    "name": "The Sealed Crate",
+    "trigger": {"type": "choice", "node": "N1-1", "label": "The Guild broker has a crate that needs fetching"},
+    "objective": "Recover the Salvage Guild's sealed crate from the half-faded warehouse",
+    "node": "S-7",
+    "settle": [{"xp": 20}]
+  }
+]

@@ -1,0 +1,304 @@
+{
+  "acts": [
+    {
+      "id": "SALVAGE",
+      "title": "The Sealed Crate",
+      "role": "Side arc",
+      "mode": "choice"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "S-1",
+      "act": "SALVAGE",
+      "type": "scene",
+      "title": "A Broker With a Short Fuse",
+      "edges": [
+        {
+          "type": "choice",
+          "label": "Take the docket",
+          "to": "S-2",
+          "effects": [
+            {
+              "rep.salvage": 1
+            }
+          ]
+        },
+        {
+          "type": "choice",
+          "label": "(Salvager's Apprentice) 'Sixty for a sealed crate? What is really in it?'",
+          "to": "S-2",
+          "requires": {
+            "background": "salvager_apprentice"
+          },
+          "effects": [
+            {
+              "rep.salvage": 1
+            },
+            {
+              "inspiration": 1
+            }
+          ]
+        }
+      ],
+      "text_ref": "#node.S-1.text",
+      "summary": "The Salvage Guild keeps a counting table under an awning at the edge of the plaza."
+    },
+    {
+      "id": "S-2",
+      "act": "SALVAGE",
+      "type": "check",
+      "title": "Warehouse Nine",
+      "edges": [
+        {
+          "type": "check",
+          "skill": "stealth",
+          "difficulty": "medium",
+          "label": "Slip through the faded loading bay",
+          "success": "S-3",
+          "failure": "S-2f"
+        },
+        {
+          "type": "check",
+          "skill": "perception",
+          "difficulty": "medium",
+          "label": "Find the stretch of floor that is still real",
+          "success": "S-3",
+          "failure": "S-2f"
+        },
+        {
+          "type": "item",
+          "item": "boathook_axe",
+          "label": "Hook a path through the faded stacks",
+          "to": "S-3"
+        }
+      ],
+      "text_ref": "#node.S-2.text",
+      "summary": "The front of the warehouse is only an idea: the doors are still there, but the wall around them has gone to pale paper."
+    },
+    {
+      "id": "S-2f",
+      "act": "SALVAGE",
+      "type": "scene",
+      "title": "The Floor Gives Way",
+      "edges": [
+        {
+          "type": "choice",
+          "label": "Climb back up to the office",
+          "to": "S-3"
+        }
+      ],
+      "on_enter": [
+        {
+          "clock": 1
+        }
+      ],
+      "text_ref": "#node.S-2f.text",
+      "summary": "A plank that was only remembered, not made, drops you into the cellar."
+    },
+    {
+      "id": "S-3",
+      "act": "SALVAGE",
+      "type": "battle",
+      "title": "What Lives in the Margins",
+      "edges": [
+        {
+          "type": "choice",
+          "label": "Break the seal-lock on the crate",
+          "to": "S-4"
+        }
+      ],
+      "encounter": "S-3",
+      "text_ref": "#node.S-3.text",
+      "summary": "The ink that eats the warehouse has started to take shape."
+    },
+    {
+      "id": "S-4",
+      "act": "SALVAGE",
+      "type": "scene",
+      "title": "Unopened",
+      "edges": [
+        {
+          "type": "choice",
+          "label": "Close the crate and think",
+          "to": "S-5"
+        }
+      ],
+      "on_enter": [
+        {
+          "lore": "revoked_registry_plates"
+        }
+      ],
+      "text_ref": "#node.S-4.text",
+      "summary": "You were told not to open it."
+    },
+    {
+      "id": "S-5",
+      "act": "SALVAGE",
+      "type": "dialog",
+      "title": "Sixty Gold, Unopened",
+      "edges": [
+        {
+          "type": "choice",
+          "label": "Hand over the crate and take the sixty gold",
+          "to": "S-6p",
+          "effects": [
+            {
+              "rep.salvage": 1
+            },
+            {
+              "alignment": -5
+            },
+            {
+              "gold": 60
+            }
+          ]
+        },
+        {
+          "type": "choice",
+          "label": "Take the plates to the Scriptorium registry, and let the clerks sort it out",
+          "to": "S-6c",
+          "effects": [
+            {
+              "rep.scriptorium": 1
+            },
+            {
+              "alignment": 5
+            }
+          ]
+        },
+        {
+          "type": "check",
+          "skill": "intimidate",
+          "difficulty": "medium",
+          "label": "Keep the crate. Walk the plates back to their families yourself.",
+          "success": "S-6r",
+          "failure": "S-6x"
+        }
+      ],
+      "text_ref": "#node.S-5.text",
+      "summary": "Orsolya Venn is waiting at the foot of the wharf with two porters, as if she had known you would come this way."
+    },
+    {
+      "id": "S-6x",
+      "act": "SALVAGE",
+      "type": "scene",
+      "title": "Closed Doors",
+      "edges": [
+        {
+          "type": "choice",
+          "label": "Walk back to the plaza",
+          "to": "S-7"
+        }
+      ],
+      "on_enter": [
+        {
+          "rep.salvage": -1
+        },
+        {
+          "bond.kelan": 5
+        },
+        {
+          "xp": 40
+        }
+      ],
+      "text_ref": "#node.S-6x.text",
+      "summary": "Venn lets you leave, which is worse than a fight."
+    },
+    {
+      "id": "S-6p",
+      "act": "SALVAGE",
+      "type": "scene",
+      "title": "The Fee",
+      "edges": [
+        {
+          "type": "choice",
+          "label": "Count the coins anyway",
+          "to": "S-7"
+        }
+      ],
+      "on_enter": [
+        {
+          "bond.kelan": -5
+        },
+        {
+          "xp": 40
+        }
+      ],
+      "text_ref": "#node.S-6p.text",
+      "summary": "The gold is real and heavy and counted twice."
+    },
+    {
+      "id": "S-6c",
+      "act": "SALVAGE",
+      "type": "scene",
+      "title": "A Proper Procedure",
+      "edges": [
+        {
+          "type": "choice",
+          "label": "Leave it with the clerks",
+          "to": "S-7"
+        }
+      ],
+      "on_enter": [
+        {
+          "bond.kelan": 5
+        },
+        {
+          "xp": 40
+        },
+        {
+          "clock": -1
+        }
+      ],
+      "text_ref": "#node.S-6c.text",
+      "summary": "The registry clerk takes the crate with both hands and a sigh, and gives you a receipt."
+    },
+    {
+      "id": "S-6r",
+      "act": "SALVAGE",
+      "type": "scene",
+      "title": "Plates Home",
+      "edges": [
+        {
+          "type": "choice",
+          "label": "Walk back to the plaza",
+          "to": "S-7"
+        }
+      ],
+      "on_enter": [
+        {
+          "bond.kelan": 15
+        },
+        {
+          "give_item": "mended_house_plate"
+        },
+        {
+          "xp": 40
+        }
+      ],
+      "text_ref": "#node.S-6r.text",
+      "summary": "Street by street, door by door, you press the plates back into the hands of the people they belong to."
+    },
+    {
+      "id": "S-7",
+      "act": "SALVAGE",
+      "type": "scene",
+      "title": "The Awning at Dusk",
+      "edges": [
+        {
+          "type": "choice",
+          "label": "Return to the plaza",
+          "to": "N1-1"
+        }
+      ],
+      "on_enter": [
+        {
+          "write": "done",
+          "value": true
+        }
+      ],
+      "summary": "The Guild's counting table is empty when you pass. Under the awning someone has chalked a new price on the board, and rubbed it out again."
+    }
+  ]
+}

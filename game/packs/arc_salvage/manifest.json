@@ -1,0 +1,40 @@
+{
+  "pack_id": "arc_salvage",
+  "pack_type": "arc",
+  "name": "The Sealed Crate",
+  "source_locale": "en",
+  "locales": [
+    "en",
+    "zh-CN"
+  ],
+  "estimated_hours": "0.3",
+  "monetization": {
+    "strategies": [
+      "free"
+    ]
+  },
+  "source_doc": "docs/en/story/06-side-arc-the-sealed-crate.md",
+  "graft": {
+    "into": "campaign01",
+    "node": "N1-1",
+    "edge": {
+      "type": "choice",
+      "label": "The Guild broker has a crate that needs fetching",
+      "to": "S-1",
+      "requires": {
+        "flag.done": false
+      }
+    }
+  },
+  "namespace": "arc_salvage",
+  "pack_version": 1,
+  "min_framework_version": "1.0.0",
+  "rule_pack": {
+    "id": "light",
+    "min_version": 1
+  },
+  "presentation": {
+    "mode": "choice"
+  },
+  "node_budget": 15
+}
