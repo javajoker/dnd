@@ -346,7 +346,12 @@ static func _first_sentence(s: String) -> String:
 		var p := first.find(mark)
 		if p > 0 and p < 120:
 			return first.substr(0, p + mark.length()).strip_edges()
-	return first.left(120)
+	if first.length() <= 120:
+		return first
+	# 无句号可切：在 120 字内最后一个空格处截断加省略号（不切半个词；无空格的 CJK 直接截）
+	var cut := first.left(120)
+	var sp := cut.rfind(" ")
+	return (cut.left(sp) if sp > 60 else cut).strip_edges().trim_suffix(",") + "…"
 
 static func _value(v: String) -> Variant:
 	if v.begins_with("{") or v.begins_with("[") or v.begins_with("\"") or v == "true" or v == "false" or v.is_valid_float():

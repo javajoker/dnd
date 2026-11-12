@@ -60,6 +60,7 @@
 | [02 Campaign Book: Ashenport Fragments](story/02-campaign-ashenport-fragments.md) | First main campaign: 35-node five-act structure, 16 encounters, 4 ending types |
 | [03 Final Balance and Boss Design](story/03-balance-and-boss-design.md) | Difficulty targets and simulation calibration, boss behavior scripts, final enemy stats |
 | [04 Side Arc: Echoes of Fog Wharf](story/04-side-arc-echoes-of-fog-wharf.md) | arc_tide, grafted onto N1-1 without touching main-line data |
+| [05 Side Arc: The Crane Ledger](story/05-side-arc-the-crane-ledger.md) | arc_crane, Old Fei's companion quest; the first side quest made with the content pipeline ([script](story/05-side-arc-the-crane-ledger.story.md)) |
 | [campaign01/](story/campaign01/README.md) | *Ashenport Fragments* pack data notes and transcription decision log |
 
 ## subgames/ — one subdirectory per sub-game

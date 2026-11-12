@@ -1,0 +1,10 @@
+[
+  {
+    "id": "crane_ledger",
+    "name": "The Crane Ledger",
+    "trigger": {"type": "choice", "node": "N1-1", "label": "Old Fei wants a word about his ledger"},
+    "objective": "Recover Old Fei's tally ledger from the flooded tally house",
+    "node": "C-7",
+    "settle": [{"xp": 20}]
+  }
+]

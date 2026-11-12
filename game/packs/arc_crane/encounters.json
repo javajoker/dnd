@@ -1,0 +1,86 @@
+[
+  {
+    "id": "C-3",
+    "node": "C-3",
+    "type": "battle",
+    "mode": "inherit",
+    "difficulty": "medium",
+    "enemies": [
+      {
+        "id": "ink_swarm1",
+        "ref": "ink_swarm"
+      },
+      {
+        "id": "dock_ambusher1",
+        "ref": "dock_ambusher"
+      },
+      {
+        "id": "dock_ambusher2",
+        "ref": "dock_ambusher"
+      }
+    ],
+    "xp": 60,
+    "gold": 12,
+    "loot": [
+      {
+        "item": "ink_salve",
+        "n": 1
+      }
+    ],
+    "party": [
+      {
+        "id": "pc",
+        "ref": "player_blank"
+      },
+      {
+        "id": "kelan",
+        "ref": "companion_kelan"
+      },
+      {
+        "id": "laofei",
+        "ref": "companion_laofei"
+      }
+    ],
+    "max_units": 6,
+    "enemy_mods": {
+      "hp": 5
+    }
+  },
+  {
+    "id": "C-5",
+    "node": "C-5",
+    "type": "battle",
+    "mode": "inherit",
+    "difficulty": "easy",
+    "enemies": [
+      {
+        "id": "mercenary1",
+        "ref": "mercenary"
+      },
+      {
+        "id": "mercenary2",
+        "ref": "mercenary"
+      }
+    ],
+    "xp": 40,
+    "gold": 8,
+    "party": [
+      {
+        "id": "pc",
+        "ref": "player_blank"
+      },
+      {
+        "id": "kelan",
+        "ref": "companion_kelan"
+      },
+      {
+        "id": "laofei",
+        "ref": "companion_laofei"
+      }
+    ],
+    "max_units": 5,
+    "enemy_mods": {
+      "hp": 4
+    }
+  }
+]

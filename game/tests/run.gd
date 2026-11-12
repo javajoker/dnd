@@ -97,6 +97,7 @@ func _init() -> void:
 	test_font()
 	test_ngplus_inheritance()
 	test_content_pipeline()
+	test_arc_crane()
 	call_deferred("_async_shell_tests")
 
 func _async_shell_tests() -> void:
@@ -7449,7 +7450,7 @@ func test_pack_copies_in_sync() -> void:
 
 func test_no_content_constants() -> void:
 	print("[no_content_constants]")
-	var ids := ["campaign01", "arena", "riddle_maze", "arc_tide"]
+	var ids := ["campaign01", "arena", "riddle_maze", "arc_tide", "arc_crane"]
 	var hits: Array = []
 	var node_id := RegEx.create_from_string("\"(N[0-9]-[0-9A-Za-z-]*|R[0-9][a-z0-9-]*|E[0-9])\"")
 	for path: String in _gd_files(["res://core", "res://shell", "res://main.gd", "res://subgame_runner.gd"]):
@@ -8659,6 +8660,8 @@ func test_content_pipeline() -> void:
 		and str(((enc["party"] as Array)[0] as Dictionary).get("ref", "")) == "hero", "遭遇行：难度 / 敌人 xN / 默认队伍")
 	check(enc.get("enemy_mods", {}) == {"hp": 2, "attack_mod": -1}, "遭遇行：mods hp+2 atk-1 → enemy_mods")
 	check(errs.is_empty(), "DSL 片段无解析错误 %s" % str(errs))
+	var long_s: String = imp._first_sentence("word ".repeat(40))
+	check(long_s.ends_with("…") and long_s.length() <= 121 and not long_s.contains("wor…"), "长句摘要在词边界截断加省略号")
 	var ledger := {}
 	for f: Dictionary in sq["flags"]:
 		ledger[str(f["id"])] = f
@@ -8699,3 +8702,52 @@ func test_content_pipeline() -> void:
 	check(kept, "重导入保留调过的 enemy_mods")
 	check(not FileAccess.get_file_as_string(epath).contains(".0"), "写出的 JSON 整数不带 .0")
 	_wipe_dir(root)
+
+# ---------------------------------------------------------------- 支线 arc_crane（首个走内容管线的支线：docs/en/story/05）
+
+func test_arc_crane() -> void:
+	print("[arc_crane]")
+	var arc_res := PackLoader.load_pack("res://packs/arc_crane")
+	var host_res := PackLoader.load_pack("res://packs/campaign01")
+	check(bool(arc_res["ok"]) and bool(host_res["ok"]), "arc_crane 与宿主 campaign01 可加载")
+	var arc: Dictionary = arc_res["pack"]
+	var host: Dictionary = host_res["pack"]
+	var fails: Array = []
+	for it: Dictionary in PacklintCore.lint_grafted(arc, host):
+		if it["level"] == PacklintCore.LEVEL_FAIL:
+			fails.append("%s %s" % [it["v"], it["msg"]])
+	check(fails.is_empty(), "arc_crane 嫁接 packlint 0 FAIL（含 V5 合并时钟、V15 zh-CN）%s" % str(fails))
+	var game: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://packs/_game/game.json"))
+	check((game["packs"] as Array).has("arc_crane"), "arc_crane 已登记到游戏清单")
+	var src := FileAccess.get_file_as_string("res://../docs/en/story/05-side-arc-the-crane-ledger.story.md")
+	if src == "":
+		src = FileAccess.get_file_as_string(ProjectSettings.globalize_path("res://").path_join("../docs/en/story/05-side-arc-the-crane-ledger.story.md"))
+	var imp: GDScript = load("res://tools/story_import.gd")
+	var parsed: Dictionary = imp.parse_script(src)
+	check(src != "" and (parsed["errors"] as Array).is_empty()
+		and (parsed["nodes"]["nodes"] as Array).size() == (arc["node_order"] as Array).size(),
+		"剧本源与运行包节点数一致（剧本为结构真源）")
+	# 调参锁：两场战斗在区间内（200 局，基种子）
+	var wr: GDScript = load("res://tools/winrate.gd")
+	var view: Dictionary = PackLoader.merge_graft(host, arc)["view"]
+	var bands := {"easy": [85, 95], "medium": [70, 80]}
+	for eid: String in ["C-3", "C-5"]:
+		var r: Dictionary = wr.run_encounter(view, eid, 200, 20261109)
+		var rate := 100.0 * int(r["wins"]) / 200.0
+		var band: Array = bands[str((view["encounters"][eid] as Dictionary)["difficulty"])]
+		check(rate >= float(band[0]) - 3.0 and rate <= float(band[1]) + 3.0,
+			"调参锁：%s 胜率 %.1f%% ≈ %d~%d（200 局 ±3 噪声）" % [eid, rate, int(band[0]), int(band[1])])
+	# 嫁接仿真：从宿主起点跑，注入边被走到，支线节点全覆盖，每局达结局
+	var cover := {}
+	var all_ok := true
+	for i: int in 12:
+		var res: Dictionary = StoryBot.run(host, 1000 + i * 7919, i % 2 == 1, false, false, false, [arc])
+		all_ok = all_ok and bool(res["ok"])
+		for nid: String in (res["visited"] as Dictionary).keys():
+			cover[nid] = true
+	var missing: Array = []
+	for nid: String in arc["node_order"]:
+		if not cover.has(nid):
+			missing.append(nid)
+	check(all_ok, "嫁接仿真 12 局全部抵达结局")
+	check(missing.is_empty(), "嫁接仿真覆盖全部支线节点（缺：%s）" % str(missing))

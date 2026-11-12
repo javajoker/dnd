@@ -85,7 +85,7 @@ Checks: easy DC 8 / medium 12 / hard 16; mix per act per doc 11 §9. Growth: XP 
    ```
    The tuner binary-searches an `enemy_mods.hp` (then `attack_mod`) that brings each out-of-band battle to its band centre, re-checks with a second seed and reports battles that can't be fixed by knobs ("change the line-up").
 3. Class parity: `tools/winrate.gd -- <games> <seed> <pack dir> <class>` for each class — within ±7 points of the default hero.
-4. Whole-run sanity: `tools/simulate.gd -- 24 <pack dir>` — every run reaches an ending, the Doom Clock stays in range, ≥ 95 % node coverage.
+4. Whole-run sanity: `tools/simulate.gd -- 24 <pack dir>` — every run reaches an ending, the Doom Clock stays in range, ≥ 95 % node coverage. A side quest is injected into its host and run from the host start (the bot takes the injected option when it appears); coverage counts the quest's own nodes.
 5. Noise: 200 games ≈ ±3 points; decide with ≥ 600 games and two seeds.
 
 ## 6. Definition of done (producer)

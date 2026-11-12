@@ -5,6 +5,7 @@
   "packs": [
     "campaign01",
     "arc_tide",
+    "arc_crane",
     "arena",
     "riddle_maze"
   ],

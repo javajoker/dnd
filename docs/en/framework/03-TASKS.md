@@ -260,7 +260,7 @@ Goal: turn the framework into a reusable D&D-style engine — new narrative game
 - [x] Templates for a side quest, a new campaign and a sub-game — `game/kit/stories/`
 - [x] Balance auto-tuner: per-battle win rate vs band, binary search on `enemy_mods` (HP, then attack), second-seed confirmation, `--write` — `tools/balance_tune.gd`; `simulate.gd` accepts `user://` trial packs
 - [x] Agent set (producer, story writer, world designer, balancer) and skills (story script, content design, balance, new game / sub-game / side quest recipes) — `.claude/agents/codex-*`, `.claude/skills/codex-*`, tech/11
-- [ ] First real content through the pipeline (a new side quest or sub-game from a brief) to shake out the recipes
+- [x] First real content through the pipeline: side quest *The Crane Ledger* (`arc_crane`, story/05). Fixes from the run: word-boundary summaries; `simulate.gd` / `StoryBot` run side quests injected into their host
 
 ## Known gap
 

@@ -7,7 +7,7 @@ type: prompt
 
 # Side quest recipe
 
-References: `docs/en/tech/02-content-pack-format-spec.md` §2.6 (graft), `docs/en/story/04-side-arc-echoes-of-fog-wharf.md` (worked example), `docs/en/tech/11-content-pipeline-and-agents.md` §3.3.
+References: `docs/en/tech/02-content-pack-format-spec.md` §2.6 (graft), `docs/en/story/05-side-arc-the-crane-ledger.md` + `.story.md` (worked example made with this recipe), `docs/en/story/04-side-arc-echoes-of-fog-wharf.md`, `docs/en/tech/11-content-pipeline-and-agents.md` §3.3.
 
 1. **Entry point:** host campaign + node (usually a hub such as campaign01 `N1-1`), entry label, entry condition (`requires`: not done yet, a flag, an item, a reputation, a class / background for personal quests).
 2. **Arc book** (`docs/en/story/<nn>-side-arc-<id>.md`): premise, 4–10 nodes, payoff (lore, reputation, items, XP), how the host reacts afterwards (flags the host may read).
@@ -16,3 +16,10 @@ References: `docs/en/tech/02-content-pack-format-spec.md` §2.6 (graft), `docs/e
 5. **Import** (`tools/story_import.gd`) — packlint lints the arc grafted onto its host (V14 namespace independence, V5 combined clock bound).
 6. **Register:** add the id to `packs/_game/game.json` `packs`.
 7. **Balance** with `balance_tune` (automatically on the merged view), then acceptance (tech/11 §6).
+
+Lessons from arc_crane:
+- **Doom Clock budget:** campaign01 already spends 9 of 10 segments (packlint V5 sums them). A side quest gets at most one +1 cost, so route every failed check through one costed node.
+- **Locales:** the shipped game is `en` + `zh-CN`. Set `locales: ["en", "zh-CN"]` and write `texts/zh-CN.json` from `tools/text_extract.gd -- packs/<id> zh-CN <out.json>`, reusing the host's terms (老费, 誊写庭, 黑羽…). V15 fails until it's complete.
+- **Quest log:** hand-write `events.json` (trigger at the host node with the graft label, `node` = the last node, `settle`). The importer keeps it.
+- **New items:** put them in the arc's own `items.json` before importing (V11).
+- Add a `test_<pack>` in `tests/run.gd` (grafted lint, band lock, grafted simulation coverage).

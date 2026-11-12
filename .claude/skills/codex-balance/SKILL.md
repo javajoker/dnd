@@ -28,7 +28,7 @@ $G --headless --path game -s tools/balance_tune.gd -- packs/<id> --games 600 --w
 $G --headless --path game -s tools/balance_tune.gd -- packs/<id> --games 600 --seed 7       # confirm, 2nd seed
 $G --headless --path game -s tools/balance_tune.gd -- packs/<id> --only <encounter> --games 1000
 $G --headless --path game -s tools/winrate.gd -- 600 5 packs/<id> [class_id]                # full table / per class
-$G --headless --path game -s tools/simulate.gd -- 24 packs/<id>                             # whole runs
+$G --headless --path game -s tools/simulate.gd -- 24 packs/<id>                             # whole runs (side quests: injected into the host)
 ```
 
 Side quests are tuned on the merged view with their host automatically. Trial packs: `user://story_trial/<id>`.

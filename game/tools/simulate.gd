@@ -20,6 +20,22 @@ func _init() -> void:
 		return
 	var pack: Dictionary = res["pack"]
 	var is_c01 := str(pack.get("pack_id", "")) == "campaign01" # 战役书专属断言只对 campaign01
+	# 支线（manifest.graft）：注入宿主后从宿主起点跑；覆盖率只算本包节点（tech/11 §5）
+	var run_pack := pack
+	var arcs: Array = []
+	var graft: Dictionary = (pack.get("manifest", {}) as Dictionary).get("graft", {})
+	if not graft.is_empty():
+		var host_dir := pack_dir.get_base_dir().path_join(str(graft.get("into", "")))
+		if not DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(host_dir)):
+			host_dir = "res://packs/%s" % str(graft.get("into", ""))
+		var host := PackLoader.load_pack(host_dir)
+		if not bool(host["ok"]):
+			push_error("宿主包 %s 加载失败" % host_dir)
+			quit(1)
+			return
+		run_pack = host["pack"]
+		arcs = [pack]
+		print("  （支线：注入宿主 %s 后仿真）" % str(graft.get("into", "")))
 
 	print("== %s bot 仿真：%d 局（半数二周目） ==" % [str(pack.get("pack_id", "")), seed_count])
 	var failures := 0
@@ -39,7 +55,7 @@ func _init() -> void:
 		# 幕二绕行探针：确定性覆盖 N2G-2c（一周目、非独狼局；不买潮汐表且优先拾遗行会链）
 		var detour := i % 12 == 4 and not lone_wolf and not ngplus
 		var explore := (i % 6 == 3) if is_c01 else (i % 2 == 0) # 地图探针：雾岸支线（区域地图 / 灯塔场所 / 分队演示，docs/en/framework/15/16）
-		var r := StoryBot.run(pack, seed, ngplus, lone_wolf, detour, explore)
+		var r := StoryBot.run(run_pack, seed, ngplus, lone_wolf, detour, explore, arcs)
 		if not r["ok"]:
 			failures += 1
 			push_error("  FAIL seed=%d ngplus=%s：%s" % [seed, ngplus, r["reason"]])

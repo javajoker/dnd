@@ -23,11 +23,13 @@ const MAX_STEPS := 200
 ## explore_probe=true（地图探针，docs/en/framework/15/16）：遇到通往 map 节点的边优先走；在地图上
 ## 逐段行旅、进场所用尽可交互物与出口、事件卡随机选项、遭遇按胜计；分队后被推进上限卡住时切组。
 static func run(pack: Dictionary, seed: int, ngplus: bool = false, lone_wolf: bool = false,
-		detour_probe: bool = false, explore_probe: bool = false) -> Dictionary:
+		detour_probe: bool = false, explore_probe: bool = false, arcs: Array = []) -> Dictionary:
 	var stream := EventStream.new()
 	var board := Board.new(stream)
 	var rng := Rng.new(seed)
 	var graph := StoryGraph.new(board, rng, pack)
+	for arc: Variant in arcs: # 支线仿真（tech/11 §5）：注入后从宿主起点跑，嫁接探针优先走注入边
+		graph.graft_pack(arc)
 	if ngplus:
 		var prov := {"event_id": 0, "node_id": "ngplus_boot", "pack_id": "system"}
 		# 多周目残简继承：数据驱动读 manifest.ngplus.carries（tech/02 §2.7；战役书 §11），缺省 1
@@ -35,7 +37,7 @@ static func run(pack: Dictionary, seed: int, ngplus: bool = false, lone_wolf: bo
 			.get("ngplus", {}) as Dictionary).get("carries", {})
 		board.give_item("codex_fragment", int(carries.get("codex_fragment", 1)), prov)
 		# 多周目羁绊继承：上一周目图内投放所得（TP1 验收裁决 2；不含注入数值）
-		var prev := run(pack, seed + 1, false, false)
+		var prev := run(pack, seed + 1, false, false, false, false, arcs)
 		var prev_bond := int(prev.get("bond_max", 0))
 		if prev_bond > 0:
 			board.write("global.bond.kelan", prev_bond, prov)
@@ -74,7 +76,13 @@ static func run(pack: Dictionary, seed: int, ngplus: bool = false, lone_wolf: bo
 				clock_min, clock_max, board, checks, ngplus, lone_wolf)
 		if nid == "N4-2":
 			ending_by_table = graph.pick_ending() # 结局表求值与图边选择互证（tech/02 §9）
-		var edge: Dictionary = _choose(node, edges, board, rng, ngplus, lone_wolf, detour_probe, explore_probe, pack, visited)
+		var edge: Dictionary = {}
+		for ge: Variant in edges: # 嫁接探针：注入边（_graft）显形即走
+			if not arcs.is_empty() and (ge as Dictionary).has("_graft"):
+				edge = ge
+				break
+		if edge.is_empty():
+			edge = _choose(node, edges, board, rng, ngplus, lone_wolf, detour_probe, explore_probe, pack, visited)
 		if str(edge.get("type", "")) == "check":
 			checks["total"] = int(checks["total"]) + 1
 			var roll := rng.d20()

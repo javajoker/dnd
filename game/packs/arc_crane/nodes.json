@@ -1,0 +1,282 @@
+{
+  "acts": [
+    {
+      "id": "CRANE",
+      "title": "The Crane Ledger",
+      "role": "Side arc",
+      "mode": "choice"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "C-1",
+      "act": "CRANE",
+      "type": "scene",
+      "title": "Under the Old Crane",
+      "edges": [
+        {
+          "type": "choice",
+          "label": "Go to the tally house with him",
+          "to": "C-2",
+          "effects": [
+            {
+              "bond.laofei": 5
+            }
+          ]
+        },
+        {
+          "type": "choice",
+          "label": "(Dockhand) 'I grew up under this crane. My name's in there too.'",
+          "to": "C-2",
+          "requires": {
+            "background": "dockhand"
+          },
+          "effects": [
+            {
+              "bond.laofei": 10
+            },
+            {
+              "inspiration": 1
+            }
+          ]
+        }
+      ],
+      "text_ref": "#node.C-1.text",
+      "summary": "Old Fei sits on the counterweight of the dead harbour crane, turning a tally board over in his hands."
+    },
+    {
+      "id": "C-2",
+      "act": "CRANE",
+      "type": "check",
+      "title": "The Flooded Tally House",
+      "edges": [
+        {
+          "type": "check",
+          "skill": "athletics",
+          "difficulty": "medium",
+          "label": "Shoulder the swollen door",
+          "success": "C-3",
+          "failure": "C-2f"
+        },
+        {
+          "type": "check",
+          "skill": "thievery",
+          "difficulty": "medium",
+          "label": "Work the shutter latch quietly",
+          "success": "C-3",
+          "failure": "C-2f"
+        },
+        {
+          "type": "item",
+          "item": "boathook_axe",
+          "label": "Pry the door off with the boathook axe",
+          "to": "C-3"
+        }
+      ],
+      "summary": "The tide has come in under the tally house door and swollen it shut. Through the shutters you can hear something wet turning pages."
+    },
+    {
+      "id": "C-2f",
+      "act": "CRANE",
+      "type": "scene",
+      "title": "Too Much Noise",
+      "edges": [
+        {
+          "type": "choice",
+          "label": "Get inside before it's too late",
+          "to": "C-3"
+        }
+      ],
+      "on_enter": [
+        {
+          "clock": 1
+        }
+      ],
+      "text_ref": "#node.C-2f.text",
+      "summary": "The door gives at last with a crack that carries across the whole harbour."
+    },
+    {
+      "id": "C-3",
+      "act": "CRANE",
+      "type": "battle",
+      "title": "Ink at the Ledger",
+      "edges": [
+        {
+          "type": "choice",
+          "label": "Lift the ledger out of the water",
+          "to": "C-4"
+        }
+      ],
+      "encounter": "C-3",
+      "text_ref": "#node.C-3.text",
+      "summary": "A swarm of ink has settled on the open ledger like flies on spilt sugar, drinking names line by line."
+    },
+    {
+      "id": "C-4",
+      "act": "CRANE",
+      "type": "dialog",
+      "title": "Three Buyers for a Book of Names",
+      "edges": [
+        {
+          "type": "choice",
+          "label": "Hand it to the clerk to be re-inked",
+          "to": "C-6s",
+          "effects": [
+            {
+              "rep.scriptorium": 1
+            },
+            {
+              "alignment": 5
+            },
+            {
+              "gold": 15
+            }
+          ]
+        },
+        {
+          "type": "choice",
+          "label": "Throw it to the tide, as the runner says",
+          "to": "C-6u",
+          "effects": [
+            {
+              "rep.uninked": 1
+            },
+            {
+              "alignment": -5
+            }
+          ]
+        },
+        {
+          "type": "check",
+          "skill": "persuasion",
+          "difficulty": "medium",
+          "label": "It stays with Old Fei. Talk the clerk down.",
+          "success": "C-6k",
+          "failure": "C-5"
+        }
+      ],
+      "on_enter": [
+        {
+          "lore": "revoked_registry_crane"
+        }
+      ],
+      "text_ref": "#node.C-4.text",
+      "summary": "Half the ledger is grey."
+    },
+    {
+      "id": "C-5",
+      "act": "CRANE",
+      "type": "battle",
+      "title": "The Clerk's Hired Swords",
+      "edges": [
+        {
+          "type": "choice",
+          "label": "Let the clerk run",
+          "to": "C-6k",
+          "effects": [
+            {
+              "rep.scriptorium": -1
+            }
+          ]
+        }
+      ],
+      "encounter": "C-5",
+      "summary": "The clerk steps back and nods to his escort. The hired swords draw, polite about it, the way men are who are paid by the day."
+    },
+    {
+      "id": "C-6k",
+      "act": "CRANE",
+      "type": "scene",
+      "title": "Names Read Aloud",
+      "edges": [
+        {
+          "type": "choice",
+          "label": "Walk back with him",
+          "to": "C-7"
+        }
+      ],
+      "on_enter": [
+        {
+          "bond.laofei": 15
+        },
+        {
+          "give_item": "fei_crane_token"
+        },
+        {
+          "xp": 40
+        }
+      ],
+      "text_ref": "#node.C-6k.text",
+      "summary": "That night Old Fei sits on the crane's counterweight and reads every name still left in the ledger, slowly, out loud…"
+    },
+    {
+      "id": "C-6s",
+      "act": "CRANE",
+      "type": "scene",
+      "title": "A Clean Copy",
+      "edges": [
+        {
+          "type": "choice",
+          "label": "Leave him to it",
+          "to": "C-7"
+        }
+      ],
+      "on_enter": [
+        {
+          "bond.laofei": 5
+        },
+        {
+          "xp": 40
+        },
+        {
+          "clock": -1
+        }
+      ],
+      "text_ref": "#node.C-6s.text",
+      "summary": "The clerk sends the copy back three days later: clean gold ink, every surviving line, the grey ones left blank."
+    },
+    {
+      "id": "C-6u",
+      "act": "CRANE",
+      "type": "scene",
+      "title": "What the Tide Keeps",
+      "edges": [
+        {
+          "type": "choice",
+          "label": "Stand with him a while",
+          "to": "C-7"
+        }
+      ],
+      "on_enter": [
+        {
+          "bond.laofei": -5
+        },
+        {
+          "xp": 40
+        }
+      ],
+      "text_ref": "#node.C-6u.text",
+      "summary": "The ledger turns once in the swell and goes under."
+    },
+    {
+      "id": "C-7",
+      "act": "CRANE",
+      "type": "scene",
+      "title": "The Crane at Low Tide",
+      "edges": [
+        {
+          "type": "choice",
+          "label": "Return to the plaza",
+          "to": "N1-1"
+        }
+      ],
+      "on_enter": [
+        {
+          "write": "done",
+          "value": true
+        }
+      ],
+      "summary": "The tide goes out. The crane stands over the plaza the way it always has, rusted into one position, pointing at the sea."
+    }
+  ]
+}
