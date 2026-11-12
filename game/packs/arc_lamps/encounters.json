@@ -1,0 +1,49 @@
+[
+  {
+    "id": "S-3",
+    "node": "S-3",
+    "type": "battle",
+    "mode": "inherit",
+    "difficulty": "medium",
+    "enemies": [
+      {
+        "id": "ink_fiend1",
+        "ref": "ink_fiend"
+      },
+      {
+        "id": "ink_imp1",
+        "ref": "ink_imp"
+      },
+      {
+        "id": "ink_imp2",
+        "ref": "ink_imp"
+      }
+    ],
+    "xp": 60,
+    "enemy_mods": {
+      "hp": 4
+    },
+    "gold": 12,
+    "loot": [
+      {
+        "item": "ink_salve",
+        "n": 1
+      }
+    ],
+    "party": [
+      {
+        "id": "pc",
+        "ref": "player_blank"
+      },
+      {
+        "id": "kelan",
+        "ref": "companion_kelan"
+      },
+      {
+        "id": "laofei",
+        "ref": "companion_laofei"
+      }
+    ],
+    "max_units": 6
+  }
+]

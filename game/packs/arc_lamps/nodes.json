@@ -1,0 +1,210 @@
+{
+  "acts": [
+    {
+      "id": "LAMPS",
+      "title": "The Thirty Lamps",
+      "role": "Side arc",
+      "mode": "choice"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "S-1",
+      "act": "LAMPS",
+      "type": "scene",
+      "title": "The Archivist's Errand",
+      "edges": [
+        {
+          "type": "choice",
+          "label": "Take the errand to the annex",
+          "to": "S-2"
+        }
+      ],
+      "text_ref": "#node.S-1.text",
+      "summary": "Archivist Dace of the Scriptorium waits at the plaza fountain with a seal case under one arm and no sleep in her face."
+    },
+    {
+      "id": "S-2",
+      "act": "LAMPS",
+      "type": "check",
+      "title": "The Sealed Annex Door",
+      "edges": [
+        {
+          "type": "check",
+          "skill": "investigation",
+          "difficulty": "medium",
+          "label": "Read the dating on the seal ring",
+          "success": "S-3",
+          "failure": "S-2f"
+        },
+        {
+          "type": "check",
+          "skill": "athletics",
+          "difficulty": "medium",
+          "label": "Force the bent hinges",
+          "success": "S-3",
+          "failure": "S-2f"
+        }
+      ],
+      "text_ref": "#node.S-2.text",
+      "summary": "The annex door is painted over with ink-rings, and the seal ring in the middle is still turning."
+    },
+    {
+      "id": "S-2f",
+      "act": "LAMPS",
+      "type": "scene",
+      "title": "The Lamp Goes Grey",
+      "edges": [
+        {
+          "type": "choice",
+          "label": "Get inside before the seal sets",
+          "to": "S-3"
+        }
+      ],
+      "on_enter": [
+        {
+          "clock": 1
+        }
+      ],
+      "text_ref": "#node.S-2f.text",
+      "summary": "The hinges give with a crack that carries over the whole harbour."
+    },
+    {
+      "id": "S-3",
+      "act": "LAMPS",
+      "type": "battle",
+      "title": "Ink in the Thirty Lamps",
+      "edges": [
+        {
+          "type": "choice",
+          "label": "Reach the centre desk",
+          "to": "S-4"
+        }
+      ],
+      "encounter": "S-3",
+      "text_ref": "#node.S-3.text",
+      "summary": "Thirty lamps stand in a ring around an empty desk, and about half of them have gone out."
+    },
+    {
+      "id": "S-4",
+      "act": "LAMPS",
+      "type": "dialog",
+      "title": "Pell at the Centre Desk",
+      "edges": [
+        {
+          "type": "choice",
+          "label": "Tell Pell the seal is closing and carry him out",
+          "to": "S-5r"
+        },
+        {
+          "type": "choice",
+          "label": "Let Pell finish the copy and carry the sheet out with you",
+          "to": "S-5w"
+        },
+        {
+          "type": "choice",
+          "label": "(Scriptorium Novice) 'I copied the Ninth Rule too. There is a clause for copies.'",
+          "to": "S-5w",
+          "requires": {
+            "background": "scriptorium_novice"
+          },
+          "effects": [
+            {
+              "inspiration": 1
+            }
+          ]
+        }
+      ],
+      "text_ref": "#node.S-4.text",
+      "summary": "Pell is copying by the last living lamp."
+    },
+    {
+      "id": "S-5r",
+      "act": "LAMPS",
+      "type": "scene",
+      "title": "The Seal Closes",
+      "edges": [
+        {
+          "type": "choice",
+          "label": "Walk back to the plaza",
+          "to": "S-6"
+        }
+      ],
+      "on_enter": [
+        {
+          "rep.scriptorium": 1
+        },
+        {
+          "alignment": 5
+        },
+        {
+          "gold": 15
+        },
+        {
+          "xp": 40
+        }
+      ],
+      "text_ref": "#node.S-5r.text",
+      "summary": "You carry Pell out on your shoulder while he protests that he has four more names."
+    },
+    {
+      "id": "S-5w",
+      "act": "LAMPS",
+      "type": "scene",
+      "title": "A Copy Carried Out",
+      "edges": [
+        {
+          "type": "choice",
+          "label": "Walk back to the plaza",
+          "to": "S-6"
+        }
+      ],
+      "on_enter": [
+        {
+          "rep.scriptorium": -1
+        },
+        {
+          "rep.salvage": 1
+        },
+        {
+          "alignment": -5
+        },
+        {
+          "gold": 10
+        },
+        {
+          "give_item": "pell_copy"
+        },
+        {
+          "xp": 40
+        }
+      ],
+      "text_ref": "#node.S-5w.text",
+      "summary": "Pell finishes the thirty names in careful ink while the seal rings."
+    },
+    {
+      "id": "S-6",
+      "act": "LAMPS",
+      "type": "scene",
+      "title": "The Thirty Lamps",
+      "edges": [
+        {
+          "type": "choice",
+          "label": "Return to the plaza",
+          "to": "N1-1"
+        }
+      ],
+      "on_enter": [
+        {
+          "lore": "revoked_registry_lamps"
+        },
+        {
+          "write": "done",
+          "value": true
+        }
+      ],
+      "text_ref": "#node.S-6.text",
+      "summary": "Whatever you carried out of the annex, the Reading Room is now a room that does not hold names."
+    }
+  ]
+}

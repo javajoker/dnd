@@ -1,0 +1,10 @@
+[
+  {
+    "id": "thirty_lamps",
+    "name": "The Thirty Lamps",
+    "trigger": {"type": "choice", "node": "N1-1", "label": "The archivist asks for a copyist"},
+    "objective": "Bring the novice Pell Ambry out of the sealed Reading Room of the Thirty Lamps",
+    "node": "S-6",
+    "settle": [{"xp": 20}]
+  }
+]
