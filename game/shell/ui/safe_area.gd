@@ -33,14 +33,39 @@ static func rect(vp: Viewport) -> Rect2:
 	return Rect2(full.position + Vector2(i["left"], i["top"]),
 		full.size - Vector2(i["left"] + i["right"], i["top"] + i["bottom"]))
 
-## 以位置 + 尺寸落位（父节点非 Control 的界面根）。
+## 以位置 + 尺寸落位（父节点非 Control 的界面根）。视口尺寸变化（横竖屏切换——移动端是异步的，
+## 界面可能在旋转完成前就建好）时自动重新落位；界面离树即解除。
 static func fit(c: Control) -> void:
+	_fit_now(c)
+	_follow_viewport(c, _fit_now)
+
+static func _fit_now(c: Control) -> void:
 	var r := rect(c.get_viewport())
 	c.position = r.position
 	c.size = r.size
 
-## 以锚点全屏 + 偏移内缩落位（双壳根节点）。
+## 以锚点全屏 + 偏移内缩落位（双壳根节点）。同样跟随视口变化（旋转后刘海 / 指示条边可能换边）。
 static func apply_offsets(c: Control) -> void:
+	_apply_offsets_now(c)
+	_follow_viewport(c, _apply_offsets_now)
+
+## 视口 size_changed → 重新落位（每个控件只挂一次；离树时断开，避免残留回调）。
+static func _follow_viewport(c: Control, refit: Callable) -> void:
+	var vp := c.get_viewport()
+	if vp == null or c.has_meta(&"safe_area_follow"):
+		return
+	c.set_meta(&"safe_area_follow", true)
+	var cb := func() -> void:
+		if is_instance_valid(c) and c.is_inside_tree():
+			refit.call(c)
+	vp.size_changed.connect(cb)
+	c.tree_exiting.connect(func() -> void:
+		if vp.size_changed.is_connected(cb):
+			vp.size_changed.disconnect(cb)
+		if is_instance_valid(c):
+			c.remove_meta(&"safe_area_follow"), CONNECT_ONE_SHOT)
+
+static func _apply_offsets_now(c: Control) -> void:
 	var i := insets(c.get_viewport())
 	c.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	c.offset_left = i["left"]

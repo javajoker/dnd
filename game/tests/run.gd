@@ -1120,6 +1120,33 @@ func test_portrait_shell() -> void:
 		and portrait.pip_state(2) == EncounterPortrait.PIP_CURRENT
 		and portrait.pip_state(3) == EncounterPortrait.PIP_FUTURE,
 		"推进条：已过点亮 / 当前脉动 / 未来剪影")
+	# 房间多时推进条不撑宽主视野（安卓回归：14 间房 → 故事文本出屏、战场右移）——按手机宽度 390 测
+	var win_before := root.size
+	root.size = Vector2i(390, 760)
+	await process_frame
+	await process_frame
+	for n_rooms: int in [14, 30]:
+		var many: Array = []
+		for k: int in n_rooms:
+			many.append("R%d" % k)
+		portrait.set_rooms(many, 3)
+		await process_frame
+		await process_frame
+		var mv := portrait.main_view.size.x
+		check(portrait.progress_row.get_combined_minimum_size().x <= mv + 0.5
+			and portrait.story_panel.get_parent().size.x <= mv + 0.5,
+			"%d 间房：推进条最小宽 %.0f ≤ 主视野 %.0f，主视野内容不被撑宽" % [n_rooms,
+				portrait.progress_row.get_combined_minimum_size().x, mv])
+	# 长横幅（中文提示）同样不得撑宽主视野
+	portrait._flash("这一段记忆只能以碎片的方式回放——它按自己的顺序回来，不按你走过的顺序；每一片都可能改变你对这座港口的判断。")
+	await process_frame
+	await process_frame
+	check(portrait.story_panel.get_parent().size.x <= portrait.main_view.size.x + 0.5,
+		"长横幅换行：主视野内容不被撑宽（%.0f ≤ %.0f）" % [portrait.story_panel.get_parent().size.x, portrait.main_view.size.x])
+	root.size = win_before
+	await process_frame
+	await process_frame
+	portrait.set_rooms(["N1-1", "N1-3", "N1-7", "N1-8"], 2)
 	# 战斗态呼吸 12/55/33：高度变化随 state.entered 发生（09 §1/§5）
 	# 待裁决：04 §④.1 战斗行写作 12/55/37（合计 104≠100），实现按状态栏 12、主视野 55、操作台补齐 33 落位
 	sm.begin_combat(_std_def())
@@ -7659,6 +7686,20 @@ func test_mobile_platform() -> void:
 	await process_frame
 	check(m.current_screen is ScreenHome, "返回键：回到主屏")
 	m.queue_free()
+	await process_frame
+	# 视口尺寸变化（横竖屏切换在移动端异步发生）后，fit 落位的界面自动跟随（安卓回归：
+	# 从横屏战役回到竖屏，界面停留在横屏尺寸、右侧出屏）
+	var fitted := Control.new()
+	root.add_child(fitted)
+	SafeArea.fit(fitted)
+	var before := fitted.size
+	root.size = Vector2i(int(before.y), int(before.x)) # 模拟旋转：宽高互换
+	await process_frame
+	check(fitted.size == Vector2(root.get_visible_rect().size) - Vector2(0, 78) and fitted.size != before,
+		"视口旋转后 fit 界面跟随新尺寸（不残留横屏宽度）")
+	root.size = Vector2i(int(before.x), int(before.y))
+	await process_frame
+	fitted.queue_free()
 	await process_frame
 	SafeArea.override_insets = {}
 	# 横屏开关（竖屏优先 v1）：关闭时 choice/forced space/子游戏一律落竖屏，入口不呈现横屏卡

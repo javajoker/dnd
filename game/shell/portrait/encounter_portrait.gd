@@ -193,6 +193,7 @@ func _build_ui() -> void:
 	menu_button.text = Texts.s(&"MENU")
 	menu_button.pressed.connect(_open_menu)
 	progress_row.add_child(menu_button) # ☰ 常驻：推进条右端（09 §7）
+	main_view.resized.connect(_fit_pips) # 旋转 / 尺寸变化后重排房间点
 	# 故事态叙事面板（04 §④.3 房间呈现：scene 文本 / dialog NPC 文本；战斗时收起）
 	story_panel = VBoxContainer.new()
 	story_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -220,7 +221,9 @@ func _build_ui() -> void:
 	flash_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	flash_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.4))
 	flash_label.theme_type_variation = &"ToastLabel" # 横幅提示（UI 套件丝带底板，tech/05 §10）
-	flash_label.size_flags_horizontal = Control.SIZE_SHRINK_CENTER # 丝带贴合文字宽度
+	# 横幅占满宽度并自动换行：长文案（如中文提示）不撑宽主视野——否则整列内容（故事文本 / 战场）被推出屏幕右侧
+	flash_label.size_flags_horizontal = Control.SIZE_FILL
+	flash_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	flash_label.modulate = Color(1, 1, 1, 0)
 	main_v.add_child(flash_label)
 	party_row = HBoxContainer.new()
@@ -952,6 +955,22 @@ func set_rooms(room_ids: Array, current_index: int, titles: Dictionary = {}) -> 
 		progress_row.add_child(pip)
 		progress_row.move_child(pip, i)
 		_pips.append({"node": pip, "state": st, "id": str(room_ids[i])})
+	_fit_pips()
+
+## 房间点按可用宽度自适应（04 §④.2）：房间多时缩小点与间距，整行永不宽过主视野——
+## 否则推进条撑宽 main_v，故事文本出屏、战场整体右移（房间越多越严重）。
+func _fit_pips() -> void:
+	var n := _pips.size()
+	if n == 0:
+		return
+	var width := main_view.size.x if main_view != null and main_view.size.x > 0.0 else get_viewport_rect().size.x
+	var avail := maxf(width - menu_button.get_combined_minimum_size().x - 32.0, 120.0)
+	var slot := avail / float(n)
+	var sep := clampi(int(slot * 0.3), 1, 10)
+	var fs := clampi(int(slot - sep) - 1, 6, 16)
+	progress_row.add_theme_constant_override("separation", sep)
+	for p: Dictionary in _pips:
+		(p["node"] as Label).add_theme_font_size_override("font_size", fs)
 
 func pip_state(index: int) -> StringName:
 	if index < 0 or index >= _pips.size():
